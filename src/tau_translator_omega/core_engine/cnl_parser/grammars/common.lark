@@ -1,0 +1,8 @@
+// Common terminals for Tau grammars
+
+SIGNED_NUMBER: /(\+|\-)?\d+(\.\d+)?/
+ESCAPED_STRING: /\"([^\"\\]|\\.)*\"|\'([^\'\\]|\\.)*\'/ // Now supports single quotes too
+WS: /[ \t\f\r\n]+/
+
+// Optional: If you want a common DOT and import it, define it here.
+// DOT: "."

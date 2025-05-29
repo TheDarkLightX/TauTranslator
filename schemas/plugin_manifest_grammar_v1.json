@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Plugin Manifest for Grammar Definition",
+  "description": "Schema for plugin manifests of type 'grammar_definition' for TauTranslatorOmega.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "Unique identifier for the plugin, reverse domain name notation recommended (e.g., com.example.my_grammar).",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "description": "Human-readable name of the plugin.",
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "description": "Version of the plugin (e.g., 0.1.0). Should follow semantic versioning.",
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "description": {
+      "description": "A brief description of the plugin and the grammar it provides.",
+      "type": "string"
+    },
+    "author": {
+      "description": "Author or organization responsible for the plugin.",
+      "type": "string"
+    },
+    "plugin_type": {
+      "description": "Type of the plugin.",
+      "type": "string",
+      "const": "grammar_definition"
+    },
+    "ilr_versions_supported": {
+      "description": "List of TauTranslatorOmega ILR versions this plugin is compatible with.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+      },
+      "minItems": 1
+    },
+    "grammar_details": {
+      "description": "Details specific to the grammar provided by this plugin.",
+      "type": "object",
+      "properties": {
+        "formalism": {
+          "description": "The grammar formalism used.",
+          "type": "string",
+          "enum": ["antlr4", "lark"]
+        },
+        "grammar_file": {
+          "description": "Path to the main grammar definition file, relative to the plugin's root directory (e.g., 'grammar/my_tau_lang.g4' or 'grammar/my_tau_lang.lark').",
+          "type": "string",
+          "pattern": "^[^/][\\w\\d_./-]+\\.(g4|lark)$"
+        },
+        "entry_rule": {
+          "description": "Optional: The name of the main or starting rule in the grammar that represents a complete Tau compilation unit. If not provided, a default might be assumed or it might be formalism-dependent.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "antlr_version": {
+          "description": "Required if formalism is 'antlr4'. Specifies the ANTLR version the grammar targets (e.g., '4.9', '4.13').",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$"
+        },
+        "transformer_class": {
+          "description": "Optional: Fully qualified name of the Python class that transforms the CST to AST (e.g., 'my_plugin.transformer.MyTransformer'). Primarily used with Lark.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)+$"
+        },
+        "ilr_version": {
+          "description": "The ILR version this grammar definition targets or produces (e.g., '1.0.0'). Should follow semantic versioning.",
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        }
+      },
+      "required": [
+        "formalism",
+        "grammar_file",
+        "ilr_version"
+      ],
+      "if": {
+        "properties": { "formalism": { "const": "antlr4" } }
+      },
+      "then": {
+        "required": ["antlr_version"]
+      }
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "version",
+    "plugin_type",
+    "ilr_versions_supported",
+    "grammar_details"
+  ]
+}

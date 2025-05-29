@@ -1,0 +1,197 @@
+/* Styles for the Editor Page - pwa/styles/Editor.module.css */
+
+.editorContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  gap: 10px;
+  height: calc(100vh - 80px); /* Adjusted for more editor space */
+  background-color: #f4f6f8;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 1.5rem; /* Reduced */
+  margin: 0; /* Adjusted */
+  text-align: center;
+  flex: 1;
+}
+
+.authStatus {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.authIndicator {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.authenticatedStatus,
+.unauthenticatedStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loginButton,
+.logoutButton {
+  padding: 6px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #495057;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.loginButton:hover,
+.logoutButton:hover {
+  background-color: #f8f9fa;
+  border-color: #007bff;
+}
+
+.loginButton {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.loginButton:hover {
+  background-color: #0056b3;
+}
+
+.controlsBar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px; /* Reduced */
+  margin-bottom: 10px; /* Reduced */
+  padding: 8px; /* Reduced */
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.languageSelector, .languageDisplay {
+  padding: 6px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 0.85rem;
+  color: #495057;
+  min-width: 120px;
+  text-align: center;
+  display: inline-flex; /* For vertical alignment if needed with other elements */
+  align-items: center; /* For vertical alignment if needed */
+  justify-content: center; /* For text centering */
+  box-sizing: border-box; /* Ensure padding and border are included in width/height */
+}
+
+.languageDisplay {
+  background-color: #e9ecef; /* Slightly different background for display only */
+  border-color: #ced4da;
+}
+
+.swapButton,
+.translateButton {
+  padding: 8px 12px; /* Reduced */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem; /* Reduced */
+  font-weight: 500;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.swapButton {
+  background-color: #6c757d;
+  color: white;
+}
+
+.swapButton:hover {
+  background-color: #5a6268;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.translateButton {
+  background-color: #007bff;
+  color: white;
+}
+
+.translateButton:hover {
+  background-color: #0056b3;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.panelsContainer {
+  display: flex;
+  flex-grow: 1; /* Allows panels to fill available height */
+  gap: 15px;
+}
+
+.editorPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  overflow: hidden; /* Ensures textarea respects border-radius */
+}
+
+.panelHeader {
+  padding: 8px 12px; /* Reduced */
+  font-weight: 500;
+  color: #495057;
+  background-color: #e9ecef;
+  border-bottom: 1px solid #dee2e6;
+  font-size: 0.85rem; /* Reduced */
+}
+
+.textarea {
+  flex-grow: 1;
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 0 0 8px 8px; /* Match panel border-radius at bottom */
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #343a40;
+  resize: none; /* Disable manual resize, panel is responsive */
+  outline: none; /* Remove focus outline, rely on panel styling */
+  min-height: 200px; /* Added minimum height, flex-grow will expand it */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .controlsBar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panelsContainer {
+    flex-direction: column;
+    height: auto; /* Allow panels to define height */
+  }
+  .editorPanel {
+    min-height: 250px; /* Ensure panels have some min height on mobile */
+  }
+  .title {
+    font-size: 1.5rem;
+  }
+}

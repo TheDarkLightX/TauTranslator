@@ -1,0 +1,746 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TauTranslatorOmega ILR Document",
+  "description": "JSON Schema for the Intermediate Logical Representation (ILR). Can represent low-level declarations/statements or high-level intent-based commands.",
+  "type": "object",
+  "properties": {
+    "ilr_version": {
+      "description": "Version of the ILR specification this document adheres to.",
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "metadata": {
+      "description": "Optional metadata about the source, translation, etc.",
+      "type": ["object", "null"],
+      "properties": {
+        "source_description": {
+          "type": ["string", "null"]
+        },
+        "translation_timestamp": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "declarations": {
+      "description": "Array of declaration objects.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/definitions/VariableDeclaration" },
+          { "$ref": "#/definitions/FunctionDeclaration" }
+        ]
+      }
+    },
+    "statements": {
+      "description": "Array of statement objects.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/definitions/AssignmentStatement" },
+          { "$ref": "#/definitions/AssertionStatement" },
+          { "$ref": "#/definitions/TemporalStatement" }
+        ]
+      }
+    },
+    "intent_commands": {
+      "description": "Array of high-level intent-based commands.",
+      "type": "array",
+      "items": { "$ref": "#/definitions/IntentBasedCommand" },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "ilr_version"
+  ],
+  "oneOf": [
+    { 
+      "title": "Formal Language Representation",
+      "description": "ILR representing low-level declarations and statements.",
+      "required": ["declarations", "statements"]
+    },
+    { 
+      "title": "Intent-Based Representation",
+      "description": "ILR representing one or more high-level intent commands.",
+      "required": ["intent_commands"]
+    }
+  ],
+  "definitions": {
+    "CoreDataType": {
+      "type": "string",
+      "enum": ["BOOLEAN", "NUMBER", "STRING", "VOID", "BITVECTOR", "BITSTRING", "FUNCTION_SIGNATURE"]
+    },
+    "IntentOperationType": {
+      "description": "Defines the type of high-level intent operation.",
+      "type": "string",
+      "enum": [
+        "CREATE_ENTITY",
+        "READ_ENTITY_COLLECTION",
+        "READ_ENTITY_INSTANCE",
+        "UPDATE_ENTITY_INSTANCE",
+        "DELETE_ENTITY_INSTANCE",
+        "MANAGE_RELATIONSHIP",
+        "CUSTOM_OPERATION" 
+      ]
+    },
+    "IdentifierCriterion": {
+      "description": "A single criterion for identifying an entity instance.",
+      "type": "object",
+      "properties": {
+        "field": { 
+          "type": "string",
+          "description": "The name of the field in the entity to match against (from vocabulary)."
+        },
+        "operator": {
+          "type": "string",
+          "description": "The comparison operator (e.g., EQ, NEQ, GT, LT, CONTAINS). Defaults to EQ if not specified. (from vocabulary)",
+          "default": "EQ" 
+        },
+        "value": {
+          "description": "The value to match against. Can be a simple constant or a more complex expression node.",
+          "anyOf": [
+            { "$ref": "#/definitions/BooleanConstant" },
+            { "$ref": "#/definitions/NumericConstant" },
+            { "$ref": "#/definitions/StringConstant" },
+            { "$ref": "#/definitions/BitvectorConstant" },
+            { "$ref": "#/definitions/BitstringConstant" },
+            { "$ref": "#/definitions/VariableReference" }, 
+            { "$ref": "#/definitions/ExpressionNode" }    
+          ]
+        }
+      },
+      "required": ["field", "value"],
+      "additionalProperties": false
+    },
+    "TargetEntityInfo": {
+      "description": "Information about the primary target entity of an operation.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of the entity (e.g., USER, DOCUMENT, DEVICE - from vocabulary)."
+        },
+        "schema_version": {
+          "type": "string",
+          "description": "Optional version of the schema for this entity type (from vocabulary)."
+        },
+        "identifier_criteria": {
+          "description": "Array of criteria to identify specific instance(s) for READ_INSTANCE, UPDATE, DELETE. For CREATE, this might be empty or define unique keys for pre-validation.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/IdentifierCriterion" }
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "PayloadData": {
+      "description": "Represents the data payload for CREATE or UPDATE operations. Keys are parameter names (from vocabulary), values are the data to be set.",
+      "type": "object",
+      "additionalProperties": {
+        "description": "Value for a given entity field. Can be a simple constant or a complex expression.",
+        "anyOf": [
+          { "$ref": "#/definitions/BooleanConstant" },
+          { "$ref": "#/definitions/NumericConstant" },
+          { "$ref": "#/definitions/StringConstant" },
+          { "$ref": "#/definitions/BitvectorConstant" },
+          { "$ref": "#/definitions/BitstringConstant" },
+          { "$ref": "#/definitions/VariableReference" },
+          { "$ref": "#/definitions/ExpressionNode" },
+          { "type": "array", "items": { "$ref": "#/definitions/ExpressionNode" } }, 
+          { "type": "null" } 
+        ]
+      }
+    },
+    "FilterOperator": {
+      "description": "Defines the comparison operators for filtering.",
+      "type": "string",
+      "enum": [ 
+        "EQ", "NEQ", "GT", "GTE", "LT", "LTE",
+        "CONTAINS", "NOT_CONTAINS", "STARTS_WITH", "ENDS_WITH",
+        "IN", "NOT_IN",
+        "IS_NULL", "IS_NOT_NULL"
+      ]
+    },
+    "FilterCriterion": {
+      "description": "A single criterion for filtering data in READ operations.",
+      "type": "object",
+      "properties": {
+        "field": { 
+          "type": "string",
+          "description": "The name of the field to filter on (from vocabulary)."
+        },
+        "operator": { "$ref": "#/definitions/FilterOperator" },
+        "value": {
+          "description": "The value to compare against. For IN/NOT_IN, this could be an array of constants/expressions.",
+          "anyOf": [
+            { "$ref": "#/definitions/BooleanConstant" },
+            { "$ref": "#/definitions/NumericConstant" },
+            { "$ref": "#/definitions/StringConstant" },
+            { "$ref": "#/definitions/BitvectorConstant" },
+            { "$ref": "#/definitions/BitstringConstant" },
+            { "$ref": "#/definitions/VariableReference" },
+            { "$ref": "#/definitions/ExpressionNode" },
+            { 
+              "type": "array",
+              "items": {
+                "anyOf": [ 
+                  { "$ref": "#/definitions/BooleanConstant" },
+                  { "$ref": "#/definitions/NumericConstant" },
+                  { "$ref": "#/definitions/StringConstant" }
+                  
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "required": ["field", "operator", "value"],
+      "additionalProperties": false
+    },
+    "SortDirection": {
+      "type": "string",
+      "enum": ["ASC", "DESC"]
+    },
+    "SortCriterion": {
+      "description": "A single criterion for sorting data.",
+      "type": "object",
+      "properties": {
+        "field": { 
+          "type": "string",
+          "description": "The name of the field to sort by (from vocabulary)."
+        },
+        "direction": { "$ref": "#/definitions/SortDirection" }
+      },
+      "required": ["field", "direction"],
+      "additionalProperties": false
+    },
+    "PaginationInfo": {
+      "description": "Information for paginating query results.",
+      "type": "object",
+      "properties": {
+        "limit": { 
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of items to return."
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of items to skip from the beginning."
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Opaque cursor for cursor-based pagination."
+        }
+      },
+      "additionalProperties": false 
+                                    
+    },
+    "QueryInfo": {
+      "description": "Parameters for querying/reading data.",
+      "type": "object",
+      "properties": {
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FilterCriterion" },
+          "description": "Array of filter criteria to apply (logical AND between them)."
+        },
+        "projection": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of field names to include in the results (from vocabulary)."
+        },
+        "sorting": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SortCriterion" },
+          "description": "Array of sort criteria to apply."
+        },
+        "pagination": { 
+          "$ref": "#/definitions/PaginationInfo"
+        }
+      },
+      "additionalProperties": false
+    },
+    "BooleanConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "BOOLEAN_CONSTANT" },
+        "value": { "type": "boolean" }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "NumericConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "NUMERIC_CONSTANT" },
+        "value": { "type": "number" }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "StringConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "STRING_CONSTANT" },
+        "value": { "type": "string" }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "BitvectorConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "BITVECTOR_CONSTANT" },
+        "value": { 
+          "type": "string",
+          "description": "String representation of the bitvector's value (e.g., \"0xDEADBEEF\", \"0b1010\")"
+        },
+        "width": { 
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optional width of the bitvector in bits."
+        }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "BitstringConstant": {
+      "type": "object",
+      "description": "Represents a constant bitstring value (e.g., '1010xz01b').",
+      "properties": {
+        "node_type": { "const": "BITSTRING_CONSTANT" },
+        "value": {
+          "type": "string",
+          "description": "The bitstring value as a string (e.g., \"1010xz01\"). Should only contain '0', '1', 'x', 'z'."
+        },
+        "length": {
+          "type": "integer",
+          "description": "The number of characters in the bitstring value.",
+          "minimum": 0
+        }
+      },
+      "required": ["node_type", "value", "length"],
+      "additionalProperties": false
+    },
+    "TemporalQualifier": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "TIME_OFFSET" },
+        "offset": { "type": "integer" }
+      },
+      "required": ["type", "offset"],
+      "additionalProperties": false
+    },
+    "VariableReference": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "VARIABLE_REFERENCE" },
+        "name": { "type": "string" },
+        "temporal_qualifier": {
+          "anyOf": [
+            { "$ref": "#/definitions/TemporalQualifier" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["node_type", "name"],
+      "additionalProperties": false
+    },
+    "ExpressionNode": {
+      "oneOf": [
+        { "$ref": "#/definitions/BooleanExpression" },
+        { "$ref": "#/definitions/VariableReference" },
+        { "$ref": "#/definitions/BooleanConstant" },
+        { "$ref": "#/definitions/ComparisonExpression" },
+        { "$ref": "#/definitions/NumericConstant" },
+        { "$ref": "#/definitions/StringConstant" },
+        { "$ref": "#/definitions/BitvectorConstant" },
+        { "$ref": "#/definitions/BitstringConstant" },
+        { "$ref": "#/definitions/ArithmeticExpression" },
+        { "$ref": "#/definitions/FunctionCall" },
+        { "$ref": "#/definitions/QuantifierExpression" },
+        { "$ref": "#/definitions/BitwiseBinaryExpression" },
+        { "$ref": "#/definitions/BitwiseUnaryExpression" },
+        { "$ref": "#/definitions/LambdaExpression" }
+      ]
+    },
+    "BooleanExpression": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "BOOLEAN_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["AND", "OR", "NOT", "XOR", "IMPLIES", "EQUIVALENT"]
+        },
+        "operands": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExpressionNode" }
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "ComparisonExpression": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "COMPARISON_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["EQUALS", "NOT_EQUALS", "GREATER_THAN", "LESS_THAN", "GTE", "LTE"]
+        },
+        "lhs": { "$ref": "#/definitions/ExpressionNode" },
+        "rhs": { "$ref": "#/definitions/ExpressionNode" }
+      },
+      "required": ["node_type", "operator", "lhs", "rhs"],
+      "additionalProperties": false
+    },
+    "ArithmeticExpression": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "ARITHMETIC_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MODULO", "POWER", "NEGATE"]
+        },
+        "operands": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExpressionNode" }
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "FunctionCall": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "FUNCTION_CALL" },
+        "function_name": { "type": "string" },
+        "arguments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExpressionNode" }
+        }
+      },
+      "required": ["node_type", "function_name", "arguments"],
+      "additionalProperties": false
+    },
+    "QuantifierExpression": {
+      "type": "object",
+      "description": "Represents a quantified logical expression (e.g., for all x, P(x)).",
+      "properties": {
+        "node_type": { "const": "QUANTIFIER_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["FOR_ALL", "EXISTS"],
+          "description": "The quantifier operator."
+        },
+        "bound_variables": {
+          "type": "array",
+          "description": "An array of variables bound by this quantifier.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the bound variable."
+              },
+              "data_type": {
+                "$ref": "#/definitions/CoreDataType",
+                "description": "The data type of the bound variable."
+              }
+            },
+            "required": ["name", "data_type"],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "expression": {
+          "$ref": "#/definitions/ExpressionNode",
+          "description": "The logical expression being quantified."
+        }
+      },
+      "required": ["node_type", "operator", "bound_variables", "expression"],
+      "additionalProperties": false
+    },
+    "BitwiseBinaryExpression": {
+      "type": "object",
+      "description": "Represents a binary bitwise operation (e.g., x & y, a << 2). Operands must evaluate to bitvector or bitstring types.",
+      "properties": {
+        "node_type": { "const": "BITWISE_BINARY_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": [
+            "BITWISE_AND",
+            "BITWISE_OR",
+            "BITWISE_XOR",
+            "SHIFT_LEFT",
+            "SHIFT_RIGHT_LOGICAL",
+            "SHIFT_RIGHT_ARITHMETIC"
+          ],
+          "description": "The binary bitwise operator."
+        },
+        "operands": {
+          "type": "array",
+          "description": "An array containing exactly two ExpressionNode operands.",
+          "items": { "$ref": "#/definitions/ExpressionNode" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "BitwiseUnaryExpression": {
+      "type": "object",
+      "description": "Represents a unary bitwise operation (e.g., ~x). Operand must evaluate to a bitvector or bitstring type.",
+      "properties": {
+        "node_type": { "const": "BITWISE_UNARY_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["BITWISE_NOT"],
+          "description": "The unary bitwise operator (complement)."
+        },
+        "operands": {
+          "type": "array",
+          "description": "An array containing exactly one ExpressionNode operand.",
+          "items": { "$ref": "#/definitions/ExpressionNode" },
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "LambdaExpression": {
+      "type": "object",
+      "description": "Represents a lambda expression or anonymous function.",
+      "properties": {
+        "node_type": { "const": "LAMBDA_EXPRESSION" },
+        "parameters": {
+          "type": "array",
+          "description": "An ordered list of parameters for the lambda expression.",
+          "items": { "$ref": "#/definitions/FunctionParameter" },
+          "default": []
+        },
+        "body": {
+          "$ref": "#/definitions/ExpressionNode",
+          "description": "The expression that forms the body of the lambda."
+        },
+        "return_type": {
+          "$ref": "#/definitions/CoreDataType",
+          "description": "The data type of the value returned by the lambda expression."
+        }
+      },
+      "required": ["node_type", "parameters", "body", "return_type"],
+      "additionalProperties": false
+    },
+    "VariableDeclaration": {
+      "type": "object",
+      "properties": {
+        "declaration_type": { "const": "VARIABLE" },
+        "name": { "type": "string" },
+        "data_type": { "$ref": "#/definitions/CoreDataType" },
+        "is_stream": { "type": "boolean" },
+        "stream_kind": {
+          "type": ["string", "null"],
+          "enum": [null, "INPUT", "OUTPUT", "INTERNAL_STATE"]
+        },
+        "initial_value": {
+          "anyOf": [
+            { "$ref": "#/definitions/BooleanConstant" },
+            { "$ref": "#/definitions/NumericConstant" },
+            { "$ref": "#/definitions/StringConstant" },
+            { "$ref": "#/definitions/BitvectorConstant" },
+            { "$ref": "#/definitions/BitstringConstant" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["declaration_type", "name", "data_type", "is_stream"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "data_type": { "const": "FUNCTION_SIGNATURE" } }
+          },
+          "then": {
+            "properties": {
+              "parameter_types": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/CoreDataType" },
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the data types of the function's parameters."
+              },
+              "function_return_type": {
+                "$ref": "#/definitions/CoreDataType",
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the return data type of the function."
+              }
+            },
+            "required": ["parameter_types", "function_return_type"]
+          }
+        }
+      ]
+    },
+    "FunctionParameter": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "data_type": { "$ref": "#/definitions/CoreDataType" }
+      },
+      "required": ["name", "data_type"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "data_type": { "const": "FUNCTION_SIGNATURE" } }
+          },
+          "then": {
+            "properties": {
+              "parameter_types": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/CoreDataType" },
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the data types of the function's parameters."
+              },
+              "function_return_type": {
+                "$ref": "#/definitions/CoreDataType",
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the return data type of the function."
+              }
+            },
+            "required": ["parameter_types", "function_return_type"]
+          }
+        }
+      ]
+    },
+    "FunctionDeclaration": {
+      "type": "object",
+      "properties": {
+        "declaration_type": { "const": "FUNCTION" },
+        "name": { "type": "string" },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FunctionParameter" }
+        },
+        "return_type": { "$ref": "#/definitions/CoreDataType" }
+      },
+      "required": ["declaration_type", "name", "parameters", "return_type"],
+      "additionalProperties": false
+    },
+    "AssignmentStatement": {
+      "type": "object",
+      "properties": {
+        "statement_type": { "const": "ASSIGNMENT" },
+        "target": { "$ref": "#/definitions/VariableReference" },
+        "expression": { "$ref": "#/definitions/ExpressionNode" }
+      },
+      "required": ["statement_type", "target", "expression"],
+      "additionalProperties": false
+    },
+    "AssertionStatement": {
+      "type": "object",
+      "properties": {
+        "statement_type": { "const": "ASSERTION" },
+        "condition": { "$ref": "#/definitions/BooleanExpression" },
+        "label": { "type": ["string", "null"] }
+      },
+      "required": ["statement_type", "condition"],
+      "additionalProperties": false
+    },
+    "TemporalStatement": {
+      "type": "object",
+      "properties": {
+        "statement_type": { "const": "TEMPORAL_LOGIC" },
+        "operator": {
+          "type": "string",
+          "enum": ["ALWAYS", "SOMETIMES", "NEXT"]
+        },
+        "condition": { "$ref": "#/definitions/BooleanExpression" },
+        "label": { "type": ["string", "null"] }
+      },
+      "required": ["statement_type", "operator", "condition"],
+      "additionalProperties": false
+    },
+    "RelationshipAction": {
+      "description": "Defines the action to perform on a relationship.",
+      "type": "string",
+      "enum": ["ADD", "REMOVE", "UPDATE_ATTRIBUTES"] 
+    },
+    "RelationshipInfo": {
+      "description": "Parameters for managing a relationship between entities.",
+      "type": "object",
+      "properties": {
+        "source_entity": { 
+          "$ref": "#/definitions/TargetEntityInfo",
+          "description": "The source entity of the relationship."
+        },
+        "relationship_type": {
+          "type": "string",
+          "description": "The type of relationship (e.g., HAS_MEMBER, IS_PARENT_OF - from vocabulary)."
+        },
+        "target_entity": {
+          "$ref": "#/definitions/TargetEntityInfo",
+          "description": "The target entity of the relationship."
+        },
+        "action": {
+          "$ref": "#/definitions/RelationshipAction",
+          "description": "The action to perform on the relationship (e.g., ADD, REMOVE)."
+        },
+        "attributes": {
+          "$ref": "#/definitions/PayloadData",
+          "description": "Optional attributes specific to this relationship instance (e.g., role, permissions, effective_date). Uses PayloadData structure for flexibility."
+        }
+      },
+      "required": ["source_entity", "relationship_type", "target_entity", "action"],
+      "additionalProperties": false
+    },
+    "IntentBasedCommand": {
+      "description": "Represents a single high-level intent-based command.",
+      "type": "object",
+      "properties": {
+        "command_schema_version": {
+          "type": "string",
+          "const": "0.1.0", 
+          "description": "Version of the IntentBasedCommand schema."
+        },
+        "operation_type": { "$ref": "#/definitions/IntentOperationType" },
+        "target_entity": { "$ref": "#/definitions/TargetEntityInfo" },
+        
+        
+        "payload": { "$ref": "#/definitions/PayloadData" },
+        "query_info": { "$ref": "#/definitions/QueryInfo" },
+        "relationship_info": { "$ref": "#/definitions/RelationshipInfo" }
+        
+      },
+      "required": ["command_schema_version", "operation_type"],
+      "additionalProperties": false, 
+
+      
+      "allOf": [
+        {
+          "if": { "properties": { "operation_type": { "const": "CREATE_ENTITY" } } },
+          "then": { "required": ["target_entity", "payload"] }
+        },
+        {
+          "if": { "properties": { "operation_type": { "const": "READ_ENTITY_COLLECTION" } } },
+          "then": { "required": ["target_entity", "query_info"] } 
+        },
+        {
+          "if": { "properties": { "operation_type": { "const": "READ_ENTITY_INSTANCE" } } },
+          "then": { "required": ["target_entity", "query_info"] } 
+        },
+        {
+          "if": { "properties": { "operation_type": { "const": "UPDATE_ENTITY_INSTANCE" } } },
+          "then": { "required": ["target_entity", "payload"] } 
+        },
+        {
+          "if": { "properties": { "operation_type": { "const": "DELETE_ENTITY_INSTANCE" } } },
+          "then": { "required": ["target_entity"] } 
+        },
+        {
+          "if": { "properties": { "operation_type": { "const": "MANAGE_RELATIONSHIP" } } },
+          "then": { "required": ["relationship_info"] }
+        }
+        
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+// Test grammar for simple arithmetic expressions
+
+// Terminals
+NUMBER: /[0-9]+/
+PLUS: "+"
+MINUS: "-"
+TIMES: "*"
+DIVIDE: "/"
+LPAR: "("
+RPAR: ")"
+
+// Rules
+start: expr
+
+?expr: term ((PLUS | MINUS) term)*
+
+?term: factor ((TIMES | DIVIDE) factor)*
+
+factor: PLUS factor  -> uplus
+       | MINUS factor -> uminus
+       | NUMBER
+       | LPAR expr RPAR -> factor_from_paren
+
+// Imports and Ignores
+%import common.WS
+%ignore WS

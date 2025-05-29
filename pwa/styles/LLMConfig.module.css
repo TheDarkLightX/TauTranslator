@@ -1,0 +1,286 @@
+/* General Page Styles */
+.pageContainer {
+  background-color: #f8f9fa; /* Lighter page background */
+  padding: 30px;
+  min-height: calc(100vh - 120px); /* Adjust based on nav/footer height */
+}
+
+.title {
+  color: #2c3e50; /* Darker, more professional title color */
+  font-weight: 600;
+  font-size: 2rem;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 15px;
+}
+
+/* Layout Columns */
+.configLayout {
+  display: flex;
+  gap: 30px;
+}
+
+.listColumn, .formColumn {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0; /* Softer border */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Softer shadow */
+}
+
+.listColumn {
+  flex: 1;
+  min-width: 300px;
+}
+
+.formColumn {
+  flex: 2;
+}
+
+/* Service List Styles */
+.listHeader {
+  color: #34495e;
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.serviceItem {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.serviceItem:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 5px rgba(0, 123, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.serviceItem.selected {
+  background-color: #e6f2ff;
+  border-left: 4px solid #0056b3;
+  border-color: #0056b3;
+  box-shadow: 0 2px 5px rgba(0, 86, 179, 0.15);
+}
+
+.serviceName {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.05rem;
+}
+
+.serviceName .defaultTag {
+  font-size: 0.75em;
+  color: #28a745;
+  margin-left: 8px;
+  font-weight: 500;
+  background-color: #e9f5ec;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.serviceName .errorTag {
+  font-size: 0.75em;
+  color: #dc3545;
+  margin-left: 8px;
+  font-weight: 500;
+  background-color: #fbe9eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.serviceActions {
+  display: flex;
+  align-items: center;
+}
+
+.actionButton {
+  background-color: transparent;
+  border: 1px solid #ced4da;
+  color: #495057;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  border-color: #adb5bd;
+  background-color: #f1f3f5;
+}
+
+.setDefaultButton {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.setDefaultButton:hover {
+  background-color: #28a745;
+  color: white;
+}
+
+.dangerButton {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.dangerButton:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Form Styles */
+.formTitle {
+  color: #34495e;
+  font-size: 1.6rem;
+  font-weight: 500;
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057; /* Darker label color for better contrast */
+  font-size: 0.95rem;
+}
+
+.formGroup small {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 4px;
+  display: block;
+}
+
+.formActions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px; /* Adds space between buttons */
+}
+
+/* Feedback Messages */
+.feedback {
+  margin-top: 15px;
+  padding: 12px 15px;
+  border-radius: 5px;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.feedback.success {
+  background-color: #d1e7dd; /* Softer success green */
+  color: #0f5132;
+  border: 1px solid #badbcc;
+}
+
+.feedback.error {
+  background-color: #f8d7da; /* Softer error red */
+  color: #842029;
+  border: 1px solid #f5c2c7;
+}
+
+.feedback.info {
+  background-color: #cff4fc;
+  color: #055160;
+  border: 1px solid #b6effb;
+}
+
+/* Advanced Options */
+.advancedOptionsToggle {
+  color: #0056b3; /* Consistent with primary action color */
+  cursor: pointer;
+  margin-bottom: 10px;
+  display: inline-block;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.advancedOptionsToggle:hover {
+  text-decoration: underline;
+}
+
+.advancedOptions {
+  padding: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-top: 15px;
+  background-color: #f8f9fa; /* Slightly off-white background */
+}
+
+/* Add New Service Button (specific class for the main button) */
+.addNewButton {
+  /* Utilizes global button styles, but can be overridden or extended */
+  width: 100%;
+  padding: 12px 20px; /* Larger padding for primary action */
+  font-size: 1rem;
+  margin-top: 20px;
+  /* Assuming global button styles handle background, color, hover etc. */
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .configLayout {
+    flex-direction: column;
+  }
+  .listColumn, .formColumn {
+    min-width: auto;
+    margin-bottom: 20px; /* Add space when stacked */
+  }
+  .title {
+    font-size: 1.6rem;
+  }
+  .listHeader, .formTitle {
+    font-size: 1.2rem;
+  }
+}
+
+/* New Sections Styling */
+.settingsSection {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0; /* Softer border */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Softer shadow */
+  margin-top: 30px; /* Space between sections */
+}
+
+.sectionTitle {
+  color: #34495e;
+  font-size: 1.5rem; /* Slightly smaller than main form/list titles */
+  font-weight: 500;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.sectionDivider {
+  border: 0;
+  height: 1px;
+  background-color: #dee2e6;
+  margin: 40px 0; /* More prominent spacing for dividers */
+}
+
+.placeholderText {
+  color: #6c757d; /* Standard muted text color */
+  font-style: italic;
+  font-size: 0.95rem;
+}

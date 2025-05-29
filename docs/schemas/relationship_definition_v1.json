@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Relationship Definition",
+  "description": "Schema for defining a relationship between two concepts within a user-provided semantic layer.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The unique name of the relationship.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "description": {
+      "description": "A human-readable description of the relationship.",
+      "type": "string"
+    },
+    "source_concept": {
+      "description": "The name of the source concept for this relationship. Must match the 'name' of a defined concept.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "target_concept": {
+      "description": "The name of the target concept for this relationship. Must match the 'name' of a defined concept.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "cardinality": {
+      "description": "The cardinality of the relationship.",
+      "type": "string",
+      "enum": [
+        "ONE_TO_ONE",
+        "ONE_TO_MANY",
+        "MANY_TO_ONE",
+        "MANY_TO_MANY"
+      ]
+    },
+    "attributes": {
+      "description": "A list of attributes belonging to this relationship itself (e.g., for an associative entity or properties of the link).",
+      "type": "array",
+      "items": {
+        "$ref": "concept_definition_v1.json#/properties/attributes/items"
+      },
+      "default": []
+    },
+    "source_foreign_key_attribute": {
+        "description": "Optional: The name of the attribute in the source concept that acts as a foreign key linking to the target concept. Useful for relational modeling.",
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "target_foreign_key_attribute": {
+        "description": "Optional: The name of the attribute in the target concept that acts as a foreign key linking to the source concept. Useful for relational modeling.",
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    }
+  },
+  "required": [
+    "name",
+    "source_concept",
+    "target_concept",
+    "cardinality"
+  ],
+  "additionalProperties": false
+}

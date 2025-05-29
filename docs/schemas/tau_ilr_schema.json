@@ -1,0 +1,1678 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tau Intermediate Logical Representation (ILR) Schema",
+  "description": "Defines the structure for Tau ILR, representing programs in a standardized, machine-readable format.",
+  "type": "object",
+  "definitions": {
+    "CoreDataType": {
+      "description": "Enumerates fundamental data types supported by the ILR.",
+      "type": "string",
+      "enum": [
+        "INTEGER",
+        "FLOAT",
+        "BOOLEAN",
+        "STRING",
+        "VOID",
+        "USER_DEFINED",
+        "ARRAY",
+        "POINTER"
+      ]
+    },
+    "TemporalQualifier": {
+      "description": "Specifies a temporal offset for stream or time-dependent variable access.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "The type of temporal qualification.",
+          "type": "string",
+          "const": "TIME_OFFSET"
+        },
+        "offset": {
+          "description": "Integer offset: 0 for current time [t], -1 for [t-1], etc.",
+          "type": "integer"
+        }
+      },
+      "required": ["type", "offset"],
+      "additionalProperties": false
+    },
+    "BooleanConstant": {
+      "description": "Represents a literal boolean value.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BOOLEAN_CONSTANT"
+        },
+        "value": {
+          "description": "The boolean value.",
+          "type": "boolean"
+        }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "NumericConstant": {
+      "description": "Represents a literal numeric value (integer or floating-point).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "NUMERIC_CONSTANT"
+        },
+        "value": {
+          "description": "The numeric value.",
+          "type": "number"
+        }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "StringConstant": {
+      "description": "Represents a literal string value.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "STRING_CONSTANT"
+        },
+        "value": {
+          "description": "The string value.",
+          "type": "string"
+        }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "BitvectorConstant": {
+      "description": "Represents a constant bitvector value.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BITVECTOR_CONSTANT"
+        },
+        "value": {
+          "description": "String representation of the bitvector (e.g., '0xDEADBEEF', '0b1010').",
+          "type": "string"
+        },
+        "width": {
+          "description": "Optional width of the bitvector in bits.",
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "BitstringConstant": {
+      "description": "Represents a constant bitstring value (e.g., '1010xz01'). Allows 'x' (don't care) and 'z' (high-impedance).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BITSTRING_CONSTANT"
+        },
+        "value": {
+          "description": "The bitstring value as a string. Should only contain '0', '1', 'x', 'z'.",
+          "type": "string",
+          "pattern": "^[01xz]+$"
+        },
+        "length": {
+          "description": "The number of characters in the bitstring value.",
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["node_type", "value", "length"],
+      "additionalProperties": false
+    },
+    "VariableReference": {
+      "description": "Represents a reference to a declared variable, stream, or entity.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "VARIABLE_REFERENCE"
+        },
+        "name": {
+          "description": "The unique name/identifier of the variable or stream.",
+          "type": "string"
+        },
+        "temporal_qualifier": {
+          "description": "Optional temporal qualifier for time-dependent variable access.",
+          "$ref": "#/definitions/TemporalQualifier"
+        }
+      },
+      "required": ["node_type", "name"],
+      "additionalProperties": false
+    },
+    "LogicalOperator": {
+      "description": "Operators for logical expressions.",
+      "type": "string",
+      "enum": ["AND", "OR", "XOR", "NOT"]
+    },
+    "ComparisonOperator": {
+      "description": "Operators for comparison expressions.",
+      "type": "string",
+      "enum": ["EQ", "NEQ", "LT", "LTE", "GT", "GTE"]
+    },
+    "ArithmeticOperator": {
+      "description": "Binary operators for arithmetic expressions.",
+      "type": "string",
+      "enum": ["ADD", "SUB", "MUL", "DIV", "MOD", "POW"]
+    },
+    "UnaryArithmeticOperator": {
+      "description": "Unary operators for arithmetic expressions.",
+      "type": "string",
+      "enum": ["NEG"]
+    },
+    "LogicalExpression": {
+      "description": "Represents a logical operation (AND, OR, XOR, NOT).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "LOGICAL_EXPRESSION"
+        },
+        "operator": {
+          "$ref": "#/definitions/LogicalOperator"
+        },
+        "operands": {
+          "description": "An array of one or more expressions (for NOT) or two or more expressions (for AND, OR, XOR).",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyExpressionNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "operator": {
+            "const": "NOT"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "operands": {
+            "minItems": 1,
+            "maxItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "operands": {
+            "minItems": 2
+          }
+        }
+      }
+    },
+    "ComparisonExpression": {
+      "description": "Represents a comparison between two expressions.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "COMPARISON_EXPRESSION"
+        },
+        "operator": {
+          "$ref": "#/definitions/ComparisonOperator"
+        },
+        "left_operand": {
+          "description": "The left operand of the comparison.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "right_operand": {
+          "description": "The right operand of the comparison.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        }
+      },
+      "required": ["node_type", "operator", "left_operand", "right_operand"],
+      "additionalProperties": false
+    },
+    "ArithmeticExpression": {
+      "description": "Represents a binary arithmetic operation.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ARITHMETIC_EXPRESSION"
+        },
+        "operator": {
+          "$ref": "#/definitions/ArithmeticOperator"
+        },
+        "left_operand": {
+          "description": "The left operand of the arithmetic operation.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "right_operand": {
+          "description": "The right operand of the arithmetic operation.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        }
+      },
+      "required": ["node_type", "operator", "left_operand", "right_operand"],
+      "additionalProperties": false
+    },
+    "UnaryArithmeticExpression": {
+      "description": "Represents a unary arithmetic operation (e.g., negation).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "UNARY_ARITHMETIC_EXPRESSION"
+        },
+        "operator": {
+          "$ref": "#/definitions/UnaryArithmeticOperator"
+        },
+        "operand": {
+          "description": "The operand of the unary arithmetic operation.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        }
+      },
+      "required": ["node_type", "operator", "operand"],
+      "additionalProperties": false
+    },
+    "FunctionParameter": {
+      "description": "Represents a parameter for a function call, can be positional (just an expression) or named.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "parameter_name": {
+              "description": "Name of the parameter for named arguments.",
+              "type": "string"
+            },
+            "value": {
+              "description": "Value of the named parameter.",
+              "$ref": "#/definitions/AnyExpressionNode"
+            }
+          },
+          "required": ["parameter_name", "value"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "FunctionCall": {
+      "description": "Represents a function call expression.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "FUNCTION_CALL"
+        },
+        "function_name": {
+          "description": "Name of the function to call. This could also be an expression that evaluates to a function reference in more advanced scenarios, but for now, a string name is assumed.",
+          "type": "string"
+        },
+        "arguments": {
+          "description": "An array of arguments for the function call.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FunctionParameter"
+          },
+          "default": []
+        }
+      },
+      "required": ["node_type", "function_name"],
+      "additionalProperties": false
+    },
+    "ConditionalExpression": {
+      "description": "Represents a conditional expression (e.g., if-then-else).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "CONDITIONAL_EXPRESSION"
+        },
+        "condition": {
+          "description": "The condition to evaluate.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "value_if_true": {
+          "description": "The expression to evaluate if the condition is true.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "value_if_false": {
+          "description": "The expression to evaluate if the condition is false.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        }
+      },
+      "required": ["node_type", "condition", "value_if_true", "value_if_false"],
+      "additionalProperties": false
+    },
+    "TypeConversionExpression": {
+      "description": "Represents an explicit type conversion of an expression.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "TYPE_CONVERSION_EXPRESSION"
+        },
+        "expression": {
+          "description": "The expression to convert.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "target_type": {
+          "description": "The data type to convert the expression to.",
+          "$ref": "#/definitions/DataType"
+        },
+        "width": {
+          "description": "Optional. For conversions to BITVECTOR, specifies the target width in bits.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "radix": {
+          "description": "Optional. For STRING to NUMBER or BITVECTOR, specifies the radix (e.g., 2, 10, 16).",
+          "type": "integer",
+          "enum": [2, 8, 10, 16]
+        }
+      },
+      "required": ["node_type", "expression", "target_type"],
+      "additionalProperties": false
+    },
+    "BitwiseOperator": {
+      "description": "Operators for bitwise expressions.",
+      "type": "string",
+      "enum": ["AND", "OR", "XOR", "NOT", "NAND", "NOR", "XNOR"]
+    },
+    "PaddingBitType": {
+      "description": "Type of bit to use for padding.",
+      "type": "string",
+      "enum": ["ZERO", "ONE", "X", "Z"]
+    },
+    "PaddingSide": {
+      "description": "Side to apply padding.",
+      "type": "string",
+      "enum": ["MSB", "LSB"]
+    },
+    "TruncationSide": {
+      "description": "Side from which to truncate bits.",
+      "type": "string",
+      "enum": ["MSB", "LSB"]
+    },
+    "BitExtractionExpression": {
+      "description": "Extracts a range of bits from a bitvector or bitstring.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BIT_EXTRACTION_EXPRESSION"
+        },
+        "expression": {
+          "description": "The bitvector or bitstring expression.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "msb_index": {
+          "description": "Most significant bit index (inclusive). Indexing from 0 (LSB).",
+          "type": "integer"
+        },
+        "lsb_index": {
+          "description": "Least significant bit index (inclusive). Indexing from 0 (LSB).",
+          "type": "integer"
+        }
+      },
+      "required": ["node_type", "expression", "msb_index", "lsb_index"],
+      "additionalProperties": false
+    },
+    "BitConcatenationExpression": {
+      "description": "Concatenates two or more bitvector or bitstring expressions.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BIT_CONCATENATION_EXPRESSION"
+        },
+        "operands": {
+          "description": "An array of two or more bitvector/bitstring expressions to concatenate.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyExpressionNode"
+          },
+          "minItems": 2
+        }
+      },
+      "required": ["node_type", "operands"],
+      "additionalProperties": false
+    },
+    "BitwiseExpression": {
+      "description": "Represents a bitwise operation.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BITWISE_EXPRESSION"
+        },
+        "operator": {
+          "$ref": "#/definitions/BitwiseOperator"
+        },
+        "operands": {
+          "description": "An array of one (for NOT) or two (for AND, OR, etc.) bitvector/bitstring expressions.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyExpressionNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "operator": {
+            "const": "NOT"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "operands": {
+            "minItems": 1,
+            "maxItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "operands": {
+            "minItems": 2,
+            "maxItems": 2
+          }
+        }
+      }
+    },
+    "BitPaddingExpression": {
+      "description": "Pads a bitvector or bitstring to a target width.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BIT_PADDING_EXPRESSION"
+        },
+        "expression": {
+          "description": "The bitvector/bitstring expression to pad.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "target_width": {
+          "description": "The desired width after padding. Must be >= original width.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "padding_bit": {
+          "description": "The bit type to use for padding.",
+          "$ref": "#/definitions/PaddingBitType",
+          "default": "ZERO"
+        },
+        "padding_side": {
+          "description": "The side to which padding bits are added.",
+          "$ref": "#/definitions/PaddingSide",
+          "default": "MSB"
+        }
+      },
+      "required": ["node_type", "expression", "target_width"],
+      "additionalProperties": false
+    },
+    "BitTruncationExpression": {
+      "description": "Truncates a bitvector or bitstring to a target width.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "BIT_TRUNCATION_EXPRESSION"
+        },
+        "expression": {
+          "description": "The bitvector/bitstring expression to truncate.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        },
+        "target_width": {
+          "description": "The desired width after truncation. Must be <= original width.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "truncation_from": {
+          "description": "The side from which bits are removed.",
+          "$ref": "#/definitions/TruncationSide",
+          "default": "MSB"
+        }
+      },
+      "required": ["node_type", "expression", "target_width"],
+      "additionalProperties": false
+    },
+    "ArrayLiteral": {
+      "description": "Represents an array literal expression, e.g., [1, 2, 3].",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ARRAY_LITERAL"
+        },
+        "elements": {
+          "description": "An array of expressions representing the elements of the literal.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyExpressionNode"
+          }
+        }
+      },
+      "required": ["node_type", "elements"],
+      "additionalProperties": false
+    },
+    "AddressOfExpression": {
+      "description": "Represents taking the address of a variable (e.g., &var).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ADDRESS_OF_EXPRESSION"
+        },
+        "operand": {
+          "description": "The LValue expression whose address is being taken.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        }
+      },
+      "required": ["node_type", "operand"],
+      "additionalProperties": false
+    },
+    "DereferenceExpression": {
+      "description": "Represents dereferencing a pointer (e.g., *ptr).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "DEREFERENCE_EXPRESSION"
+        },
+        "operand": {
+          "description": "The expression that evaluates to a pointer.",
+          "$ref": "#/definitions/AnyExpressionNode"
+        }
+      },
+      "required": ["node_type", "operand"],
+      "additionalProperties": false
+    },
+    "AnyExpressionNode": {
+      "description": "Represents any valid ILR expression node.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/BooleanConstant"
+        },
+        {
+          "$ref": "#/definitions/NumericConstant"
+        },
+        {
+          "$ref": "#/definitions/StringConstant"
+        },
+        {
+          "$ref": "#/definitions/BitvectorConstant"
+        },
+        {
+          "$ref": "#/definitions/BitstringConstant"
+        },
+        {
+          "$ref": "#/definitions/VariableReference"
+        },
+        {
+          "$ref": "#/definitions/LogicalExpression"
+        },
+        {
+          "$ref": "#/definitions/ComparisonExpression"
+        },
+        {
+          "$ref": "#/definitions/ArithmeticExpression"
+        },
+        {
+          "$ref": "#/definitions/UnaryArithmeticExpression"
+        },
+        {
+          "$ref": "#/definitions/FunctionCall"
+        },
+        {
+          "$ref": "#/definitions/ConditionalExpression"
+        },
+        {
+          "$ref": "#/definitions/TypeConversionExpression"
+        },
+        {
+          "$ref": "#/definitions/BitExtractionExpression"
+        },
+        {
+          "$ref": "#/definitions/BitConcatenationExpression"
+        },
+        {
+          "$ref": "#/definitions/BitwiseExpression"
+        },
+        {
+          "$ref": "#/definitions/BitPaddingExpression"
+        },
+        {
+          "$ref": "#/definitions/BitTruncationExpression"
+        },
+        {
+          "$ref": "#/definitions/ArrayLiteral"
+        },
+        {
+          "$ref": "#/definitions/AddressOfExpression"
+        },
+        {
+          "$ref": "#/definitions/DereferenceExpression"
+        }
+      ]
+    },
+    "DirectionEnum": {
+      "description": "Specifies the direction of a variable or parameter, typically for function arguments or module ports.",
+      "type": "string",
+      "enum": ["IN", "OUT", "INOUT"]
+    },
+    "VariableDeclaration": {
+      "description": "Declares a variable, constant, stream, or parameter.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "VARIABLE_DECLARATION"
+        },
+        "name": {
+          "description": "The unique name/identifier of the variable.",
+          "type": "string"
+        },
+        "data_type": {
+          "$ref": "#/definitions/DataType",
+          "description": "The data type of the variable."
+        },
+        "width": {
+          "description": "Optional. For BITVECTOR type, specifies the width in bits.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "is_constant": {
+          "description": "Optional. If true, the variable is a constant and must have an initial value. Defaults to false.",
+          "type": "boolean",
+          "default": false
+        },
+        "is_stream": {
+          "description": "Optional. If true, the variable represents a data stream. Defaults to false.",
+          "type": "boolean",
+          "default": false
+        },
+        "initial_value": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "Optional. The initial value of the variable. Required if is_constant is true."
+        },
+        "direction": {
+          "$ref": "#/definitions/DirectionEnum",
+          "description": "Optional. Specifies the direction, primarily for function parameters or module ports."
+        }
+      },
+      "required": ["node_type", "name", "data_type"],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "is_constant": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": ["node_type", "name", "data_type", "initial_value"]
+      }
+    },
+    "FunctionDeclaration": {
+      "description": "Declares a function, its parameters, return type, and optionally its body.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "FUNCTION_DECLARATION"
+        },
+        "name": {
+          "description": "The unique name/identifier of the function.",
+          "type": "string"
+        },
+        "parameters": {
+          "description": "An array of variable declarations representing the function parameters.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/VariableDeclaration"
+          },
+          "default": []
+        },
+        "return_type": {
+          "$ref": "#/definitions/DataType",
+          "description": "The data type of the value returned by the function. Use 'VOID' if the function does not return a value."
+        },
+        "return_width": {
+          "description": "Optional. If return_type is BITVECTOR, specifies the width in bits.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "body": {
+          "description": "Optional. An array of statements forming the function's body.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          }
+        }
+      },
+      "required": ["node_type", "name", "return_type"],
+      "additionalProperties": false
+    },
+    "AnyDeclarationNode": {
+      "description": "Represents any valid ILR declaration node (e.g., variable, function).",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/VariableDeclaration"
+        },
+        {
+          "$ref": "#/definitions/FunctionDeclaration"
+        },
+        {
+          "$ref": "#/definitions/AnnotationNode"
+        },
+        {
+          "$ref": "#/definitions/StructDefinition"
+        },
+        {
+          "$ref": "#/definitions/EnumDefinition"
+        },
+        {
+          "$ref": "#/definitions/TypeAliasDefinition"
+        },
+        {
+          "$ref": "#/definitions/ImportDeclaration"
+        },
+        {
+          "$ref": "#/definitions/ExportDeclaration"
+        }
+      ]
+    },
+    "AssignmentStatement": {
+      "description": "Assigns a value from an expression to a variable or other writable target.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ASSIGNMENT_STATEMENT"
+        },
+        "target": {
+          "$ref": "#/definitions/VariableReference",
+          "description": "The variable or writable reference to assign to."
+        },
+        "expression": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The expression whose value is assigned."
+        }
+      },
+      "required": ["node_type", "target", "expression"],
+      "additionalProperties": false
+    },
+    "ReturnStatement": {
+      "description": "Returns a value from a function. If the function's return type is VOID, the expression may be omitted.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "RETURN_STATEMENT"
+        },
+        "expression": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "Optional. The expression to return. Required if function return type is not VOID."
+        }
+      },
+      "required": ["node_type"],
+      "additionalProperties": false
+    },
+    "ProcedureCallStatement": {
+      "description": "Represents a call to a procedure (a function called for its side effects). Structurally similar to FunctionCall.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "PROCEDURE_CALL_STATEMENT"
+        },
+        "procedure_name": {
+          "description": "Name of the procedure to call.",
+          "type": "string"
+        },
+        "arguments": {
+          "description": "An array of argument expressions for the procedure call.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyExpressionNode"
+          },
+          "default": []
+        }
+      },
+      "required": ["node_type", "procedure_name"],
+      "additionalProperties": false
+    },
+    "ElseIfClause": {
+      "description": "An else-if clause for an IfStatement.",
+      "type": "object",
+      "properties": {
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The condition for this else-if branch."
+        },
+        "then_block": {
+          "description": "An array of statements to execute if this else-if condition is true.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["condition", "then_block"],
+      "additionalProperties": false
+    },
+    "IfStatement": {
+      "description": "Represents a conditional statement (if-then-else-if-else).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "IF_STATEMENT"
+        },
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The primary condition to evaluate."
+        },
+        "then_block": {
+          "description": "An array of statements to execute if the primary condition is true.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        },
+        "else_if_clauses": {
+          "description": "Optional. An array of else-if clauses.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ElseIfClause"
+          },
+          "default": []
+        },
+        "else_block": {
+          "description": "Optional. An array of statements to execute if all preceding conditions are false.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          }
+        }
+      },
+      "required": ["node_type", "condition", "then_block"],
+      "additionalProperties": false
+    },
+    "LoopTypeEnum": {
+      "description": "Enumerates different types of loop constructs.",
+      "type": "string",
+      "enum": ["FOR", "WHILE", "DO_WHILE", "FOREACH"]
+    },
+    "ForLoopStatement": {
+      "description": "Represents a for-loop statement.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "FOR_LOOP_STATEMENT"
+        },
+        "initialization": {
+          "description": "Optional. Statement(s) or declaration for loop initialization.",
+          "oneOf": [
+            { "$ref": "#/definitions/AssignmentStatement" },
+            { "$ref": "#/definitions/VariableDeclaration" }
+          ]
+        },
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "Loop continuation condition."
+        },
+        "increment": {
+          "description": "Optional. Expression or statement executed after each iteration.",
+          "oneOf": [
+            { "$ref": "#/definitions/AnyExpressionNode" },
+            { "$ref": "#/definitions/AssignmentStatement" }
+          ]
+        },
+        "body": {
+          "description": "An array of statements forming the loop's body.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["node_type", "condition", "body"],
+      "additionalProperties": false
+    },
+    "WhileLoopStatement": {
+      "description": "Represents a while-loop statement.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "WHILE_LOOP_STATEMENT"
+        },
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "Loop continuation condition."
+        },
+        "body": {
+          "description": "An array of statements forming the loop's body.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["node_type", "condition", "body"],
+      "additionalProperties": false
+    },
+    "DoWhileLoopStatement": {
+      "description": "Represents a do-while-loop statement.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "DO_WHILE_LOOP_STATEMENT"
+        },
+        "body": {
+          "description": "An array of statements forming the loop's body.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        },
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "Loop continuation condition, evaluated after the body."
+        }
+      },
+      "required": ["node_type", "body", "condition"],
+      "additionalProperties": false
+    },
+    "ForEachLoopStatement": {
+      "description": "Represents a for-each loop, iterating over an iterable expression.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "FOR_EACH_LOOP_STATEMENT"
+        },
+        "iterator_variable": {
+          "$ref": "#/definitions/VariableDeclaration",
+          "description": "Declaration of the variable that takes on the value of each item in the iterable."
+        },
+        "iterable_expression": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The expression that evaluates to an iterable collection or range."
+        },
+        "body": {
+          "description": "An array of statements forming the loop's body.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["node_type", "iterator_variable", "iterable_expression", "body"],
+      "additionalProperties": false
+    },
+    "LoopControlStatement": {
+      "description": "Represents a loop control statement like BREAK or CONTINUE.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "LOOP_CONTROL_STATEMENT"
+        },
+        "control_type": {
+          "description": "The type of loop control.",
+          "type": "string",
+          "enum": ["BREAK", "CONTINUE"]
+        }
+      },
+      "required": ["node_type", "control_type"],
+      "additionalProperties": false
+    },
+    "AssertionStatement": {
+      "description": "Asserts that a given condition is true. If not, it implies an error or failure.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ASSERTION_STATEMENT"
+        },
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The condition to assert."
+        },
+        "message": {
+          "description": "Optional. A message to associate with the assertion, e.g., for logging on failure.",
+          "type": "string"
+        }
+      },
+      "required": ["node_type", "condition"],
+      "additionalProperties": false
+    },
+    "WaitStatement": {
+      "description": "Pauses execution until a condition is met or a timeout occurs.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "WAIT_STATEMENT"
+        },
+        "condition": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The condition to wait for. Execution resumes when this becomes true."
+        },
+        "timeout_value": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "Optional. An expression evaluating to a duration or time value for timeout."
+        },
+        "timeout_block": {
+          "description": "Optional. An array of statements to execute if the wait times out.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          }
+        }
+      },
+      "required": ["node_type", "condition"],
+      "additionalProperties": false
+    },
+    "ExpressionStatement": {
+      "description": "A statement that consists of an expression evaluated for its side effects. The expression's value is discarded.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "EXPRESSION_STATEMENT"
+        },
+        "expression": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The expression to evaluate."
+        }
+      },
+      "required": ["node_type", "expression"],
+      "additionalProperties": false
+    },
+    "EmptyStatement": {
+      "description": "A statement that performs no operation (no-op).",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "EMPTY_STATEMENT"
+        }
+      },
+      "required": ["node_type"],
+      "additionalProperties": false
+    },
+    "CaseClause": {
+      "description": "Represents a case within a SwitchStatement.",
+      "type": "object",
+      "properties": {
+        "values": {
+          "description": "An array of literal values to match against the switch discriminant. The case is selected if any of these values match.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LiteralValue"
+          },
+          "minItems": 1
+        },
+        "block": {
+          "description": "An array of statements to execute if this case matches.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        },
+        "fallthrough": {
+          "description": "Optional. If true, execution continues to the next case's block after this block completes. Defaults to false.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": ["values", "block"],
+      "additionalProperties": false
+    },
+    "SwitchStatement": {
+      "description": "Represents a switch statement for multi-way branching.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "SWITCH_STATEMENT"
+        },
+        "discriminant": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The expression whose value is switched upon."
+        },
+        "cases": {
+          "description": "An array of case clauses.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CaseClause"
+          },
+          "minItems": 1
+        },
+        "default_block": {
+          "description": "Optional. An array of statements to execute if no case matches.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          }
+        }
+      },
+      "required": ["node_type", "discriminant", "cases"],
+      "additionalProperties": false
+    },
+    "CatchClause": {
+      "description": "Represents a catch block within a TryCatchFinallyStatement.",
+      "type": "object",
+      "properties": {
+        "exception_variable": {
+          "$ref": "#/definitions/VariableDeclaration",
+          "description": "Variable declaration for the caught exception. Its type may indicate the type of exception handled."
+        },
+        "block": {
+          "description": "An array of statements to execute if an exception is caught by this clause.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["exception_variable", "block"],
+      "additionalProperties": false
+    },
+    "TryCatchFinallyStatement": {
+      "description": "Represents a try-catch-finally block for structured exception handling.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "TRY_CATCH_FINALLY_STATEMENT"
+        },
+        "try_block": {
+          "description": "An array of statements forming the try block.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          },
+          "minItems": 1
+        },
+        "catch_clauses": {
+          "description": "An array of catch clauses to handle exceptions.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CatchClause"
+          },
+          "default": []
+        },
+        "finally_block": {
+          "description": "Optional. An array of statements forming the finally block, executed after try/catch.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyStatementNode"
+          }
+        }
+      },
+      "required": ["node_type", "try_block"],
+      "additionalProperties": false
+    },
+    "ThrowStatement": {
+      "description": "Represents a statement that throws an exception.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "THROW_STATEMENT"
+        },
+        "expression": {
+          "$ref": "#/definitions/AnyExpressionNode",
+          "description": "The expression evaluating to the exception object to be thrown."
+        }
+      },
+      "required": ["node_type", "expression"],
+      "additionalProperties": false
+    },
+    "AnnotationNode": {
+      "description": "Represents a non-operational annotation, such as a comment or pragma.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ANNOTATION_NODE"
+        },
+        "content": {
+          "description": "The textual content of the annotation.",
+          "type": "string"
+        },
+        "annotation_type": {
+          "description": "Optional. Categorizes the annotation (e.g., COMMENT, PRAGMA).",
+          "type": "string",
+          "default": "COMMENT"
+        }
+      },
+      "required": ["node_type", "content"],
+      "additionalProperties": false
+    },
+    "AnyStatementNode": {
+      "description": "Represents any valid ILR statement node.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/AssignmentStatement"
+        },
+        {
+          "$ref": "#/definitions/ReturnStatement"
+        },
+        {
+          "$ref": "#/definitions/ProcedureCallStatement"
+        },
+        {
+          "$ref": "#/definitions/IfStatement"
+        },
+        {
+          "$ref": "#/definitions/ForLoopStatement"
+        },
+        {
+          "$ref": "#/definitions/WhileLoopStatement"
+        },
+        {
+          "$ref": "#/definitions/DoWhileLoopStatement"
+        },
+        {
+          "$ref": "#/definitions/ForEachLoopStatement"
+        },
+        {
+          "$ref": "#/definitions/LoopControlStatement"
+        },
+        {
+          "$ref": "#/definitions/AssertionStatement"
+        },
+        {
+          "$ref": "#/definitions/WaitStatement"
+        },
+        {
+          "$ref": "#/definitions/ExpressionStatement"
+        },
+        {
+          "$ref": "#/definitions/EmptyStatement"
+        },
+        {
+          "$ref": "#/definitions/SwitchStatement"
+        },
+        {
+          "$ref": "#/definitions/TryCatchFinallyStatement"
+        },
+        {
+          "$ref": "#/definitions/ThrowStatement"
+        },
+        {
+          "$ref": "#/definitions/AnnotationNode"
+        }
+      ]
+    },
+    "StructField": {
+      "description": "Defines a field within a StructDefinition.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the struct field.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "data_type": {
+          "$ref": "#/definitions/DataType",
+          "description": "Data type of the struct field."
+        },
+        "description": {
+          "description": "Optional description for the field.",
+          "type": "string"
+        }
+      },
+      "required": ["name", "data_type"],
+      "additionalProperties": false
+    },
+    "StructDefinition": {
+      "description": "Defines a structure (record) type, a composite type with named fields.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "STRUCT_DEFINITION"
+        },
+        "name": {
+          "description": "Name of the struct type.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "fields": {
+          "description": "An array of fields that compose the struct.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StructField"
+          },
+          "minItems": 1
+        },
+        "description": {
+          "description": "Optional description for the struct type.",
+          "type": "string"
+        }
+      },
+      "required": ["node_type", "name", "fields"],
+      "additionalProperties": false
+    },
+    "EnumMember": {
+      "description": "Defines a member (named constant) of an EnumDefinition.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the enum member.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "value": {
+          "description": "Optional. Explicit integer value for the enum member. If omitted, values may be auto-assigned.",
+          "$ref": "#/definitions/IntegerLiteral"
+        },
+        "description": {
+          "description": "Optional description for the enum member.",
+          "type": "string"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "EnumDefinition": {
+      "description": "Defines an enumeration type, a set of named constants.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "ENUM_DEFINITION"
+        },
+        "name": {
+          "description": "Name of the enum type.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "members": {
+          "description": "An array of members (named constants) in the enum.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EnumMember"
+          },
+          "minItems": 1
+        },
+        "base_type": {
+          "description": "Optional. The underlying core data type for the enum (e.g., INTEGER). Defaults to INTEGER if not specified.",
+          "$ref": "#/definitions/CoreDataType",
+          "default": "INTEGER"
+        },
+        "description": {
+          "description": "Optional description for the enum type.",
+          "type": "string"
+        }
+      },
+      "required": ["node_type", "name", "members"],
+      "additionalProperties": false
+    },
+    "TypeAliasDefinition": {
+      "description": "Defines an alias (alternative name) for an existing data type.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "TYPE_ALIAS_DEFINITION"
+        },
+        "name": {
+          "description": "The new alias name for the type.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "target_type": {
+          "$ref": "#/definitions/DataType",
+          "description": "The data type being aliased."
+        },
+        "description": {
+          "description": "Optional description for the type alias.",
+          "type": "string"
+        }
+      },
+      "required": ["node_type", "name", "target_type"],
+      "additionalProperties": false
+    },
+    "ImportedSymbol": {
+      "description": "Specifies a symbol to be imported and its optional alias.",
+      "type": "object",
+      "properties": {
+        "symbol_name": {
+          "description": "The name of the symbol to import.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "alias": {
+          "description": "Optional alias for the imported symbol.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        }
+      },
+      "required": ["symbol_name"],
+      "additionalProperties": false
+    },
+    "ImportDeclaration": {
+      "description": "Declares an import of symbols from another module/program_unit.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "IMPORT_DECLARATION"
+        },
+        "module_name": {
+          "description": "Name or path of the module to import from.",
+          "type": "string"
+        },
+        "imported_symbols": {
+          "description": "Optional. Specific symbols to import. If absent, may imply importing all exported symbols.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportedSymbol"
+          }
+        }
+      },
+      "required": ["node_type", "module_name"],
+      "additionalProperties": false
+    },
+    "ExportedSymbol": {
+      "description": "Specifies a symbol to be exported and its optional alias.",
+      "type": "object",
+      "properties": {
+        "symbol_name": {
+          "description": "The name of the symbol in the current unit to export.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "alias": {
+          "description": "Optional. The name under which the symbol is exported.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        }
+      },
+      "required": ["symbol_name"],
+      "additionalProperties": false
+    },
+    "ExportDeclaration": {
+      "description": "Declares symbols from the current unit to be made available for import by other units.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "EXPORT_DECLARATION"
+        },
+        "exported_symbols": {
+          "description": "Symbols to be exported.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExportedSymbol"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["node_type", "exported_symbols"],
+      "additionalProperties": false
+    },
+    "DataType": {
+      "description": "Represents a data type, which can be a core type or a user-defined type.",
+      "type": "object",
+      "properties": {
+        "core_type": {
+          "description": "The specific core data type, if not a user-defined type.",
+          "$ref": "#/definitions/CoreDataType"
+        },
+        "type_name": {
+          "description": "Name of the type. For core types, this is redundant but can be descriptive (e.g., 'int32', 'string'). For USER_DEFINED core_type, this holds the name of the user-defined type (e.g., 'MyStruct', 'StatusEnum').",
+          "type": "string"
+        },
+        "width_bits": {
+          "description": "Optional. For BITVECTOR core_type, specifies the width in bits.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "element_type": {
+          "description": "Required if core_type is ARRAY. Specifies the data type of array elements.",
+          "$ref": "#/definitions/DataType"
+        },
+        "dimensions": {
+          "description": "Optional. If core_type is ARRAY, specifies the size of each dimension.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/AnyExpressionNode" }
+        },
+        "referenced_type": {
+          "description": "Required if core_type is POINTER. Specifies the data type the pointer refers to.",
+          "$ref": "#/definitions/DataType"
+        }
+      },
+      "required": ["core_type"],
+      "additionalProperties": false
+    },
+    "ProgramUnit": {
+      "description": "Represents the root of a Tau ILR program or module, containing top-level declarations.",
+      "type": "object",
+      "properties": {
+        "node_type": {
+          "description": "Node type discriminator.",
+          "type": "string",
+          "const": "PROGRAM_UNIT"
+        },
+        "name": {
+          "description": "Optional. An identifier or name for this program unit (e.g., module name).",
+          "type": "string"
+        },
+        "imports": {
+          "description": "Optional. An array of import declarations.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportDeclaration"
+          },
+          "default": []
+        },
+        "exports": {
+          "description": "Optional. An array of export declarations.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExportDeclaration"
+          },
+          "default": []
+        },
+        "declarations": {
+          "description": "An array of top-level declarations (variables, functions, types, etc.).",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AnyDeclarationNode"
+          },
+          "default": []
+        },
+        "entry_point_function": {
+          "description": "Optional. The name of a function defined in 'declarations' that serves as the program's entry point.",
+          "type": "string"
+        }
+      },
+      "required": ["node_type", "declarations"],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "ilr_version": {
+      "description": "Version of the ILR schema this document conforms to.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "unit": {
+      "$ref": "#/definitions/ProgramUnit",
+      "description": "The main program unit containing all top-level declarations and structure."
+    }
+  },
+  "required": ["ilr_version", "unit"],
+  "additionalProperties": false
+}

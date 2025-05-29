@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tau_translator_omega"
+version = "0.0.1"
+authors = [
+  { name="USER", email="user@example.com" },
+]
+description = "TauTranslatorOmega: A system for translating natural language to a formal ILR and then to various target grammars via plugins."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", # Assuming MIT, adjust if needed
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "semver>=2.13,<4.0.0",
+    "lark>=1.0,<2.0.0",
+    "fastapi>=0.100,<0.112",          # For the new LLM config API
+    "uvicorn[standard]>=0.20,<0.30", # Server for FastAPI
+    "guidance>=0.1.0,<0.2.0",        # For LLM steering
+    "psutil>=5.9.0,<6.0.0",          # For system resource monitoring
+    "huggingface_hub>=0.30.0,<1.0",  # Compatible with transformers 4.52.3
+    "lmql>=0.7,<0.8"                 # For LMQL programming language
+]
+
+[project.urls]
+"Homepage" = "https://github.com/user/TauTranslatorOmega" # Placeholder
+"Bug Tracker" = "https://github.com/user/TauTranslatorOmega/issues" # Placeholder
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=3.0", # For coverage, optional but good
+    "flake8>=7.0"  # Added flake8
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.flake8] # Added flake8 configuration
+max-line-length = 88
+extend-ignore = "E203,W503" # E203: whitespace before ':', W503: line break before binary operator (often preferred for black compatibility)

@@ -1,0 +1,207 @@
+# TCE (Tau Controlled English) Accurate Examples
+# Direct mappings to real Tau Language demos and constructs
+
+# Example 1: Binary Arithmetic (maps to 4bit_binary_adder.tau)
+declare concept "binary arithmetic" as: addition of binary numbers using logic gates.
+
+# Function definitions for arithmetic operations
+halfAdderSum(a, b) := a xor b.
+halfAdderCarry(a, b) := a and b.
+fullAdderSum(a, b, c) := a xor b xor c.
+fullAdderCarry(a, b, c) := (a and b) or (a and c) or (b and c).
+
+# 4-bit number definitions
+a4(x) := 1.  # LSB of first number
+a3(x) := 1.
+a2(x) := 0.
+a1(x) := 0.  # MSB of first number
+
+b4(x) := 0.  # LSB of second number
+b3(x) := 1.
+b2(x) := 0.
+b1(x) := 0.  # MSB of second number
+
+# Binary addition using adders
+bit0(x) := halfAdderSum(a4(x), b4(x)).
+carry0(x) := halfAdderCarry(a4(x), b4(x)).
+
+bit1(x) := fullAdderSum(a3(x), b3(x), carry0(x)).
+carry1(x) := fullAdderCarry(a3(x), b3(x), carry0(x)).
+
+bit2(x) := fullAdderSum(a2(x), b2(x), carry1(x)).
+carry2(x) := fullAdderCarry(a2(x), b2(x), carry1(x)).
+
+bit3(x) := fullAdderSum(a1(x), b1(x), carry2(x)).
+bit4(x) := fullAdderCarry(a1(x), b1(x), carry2(x)).
+
+# Main formula: normalize the result
+normalize bit0(x) and bit1(x) and bit2(x) and bit3(x) and bit4(x).
+
+# Example 2: Stream Processing (maps to logic_gates.tau)
+declare concept "logic gates" as: basic boolean operations on input streams.
+
+# Stream definitions
+sbf i1 = input file("input1.in").
+sbf i2 = input file("input2.in").
+sbf o1 = output file("and.out").
+sbf o2 = output file("or.out").
+sbf o3 = output file("not.out").
+sbf o4 = output file("xor.out").
+
+# Logic gate rules
+rule o1[t] = i1[t] and i2[t].        # AND gate
+rule o2[t] = i1[t] or i2[t].         # OR gate  
+rule o3[t] = i1[t] complement.       # NOT gate
+rule o4[t] = (i1[t] and i2[t] complement) or (i1[t] complement and i2[t]).  # XOR gate
+
+# Main formula: all gates operate correctly
+always (o1[t] equals (i1[t] and i2[t])) and
+       (o2[t] equals (i1[t] or i2[t])) and
+       (o3[t] equals i1[t] complement) and
+       (o4[t] equals (i1[t] xor i2[t])).
+
+# Example 3: Democracy System (maps to democracy_demo.tau)
+declare concept "digital democracy" as: consensus building through temporal logic.
+
+# Input streams representing voters
+sbf i1 = input file("steady.in").     # Steady voter
+sbf i2 = input file("dynamic.in").    # Dynamic voter
+sbf i3 = input file("reactive.in").   # Reactive voter
+
+# Output streams for different consensus types
+sbf o1 = output file("consensus.out").
+sbf o2 = output file("harmony.out").
+sbf o3 = output file("stability.out").
+sbf o4 = output file("strength.out").
+sbf o5 = output file("democracy.out").
+
+# Majority rule: any two voters agree
+rule o1[t] = (i1[t] and i2[t]) or (i2[t] and i3[t]) or (i1[t] and i3[t]).
+
+# Perfect harmony: all voters agree
+rule o2[t] = i1[t] and i2[t] and i3[t].
+
+# Temporal stability: current majority with memory
+sbf i4 = input file("consensus.out").
+rule o3[t] = ((i1[t] and i2[t]) or (i2[t] and i3[t]) or (i1[t] and i3[t])) and
+             (i4[t-1] or (i1[t] and i2[t] and i3[t])).
+
+# Strong consensus: current and previous majority with harmony
+sbf i5 = input file("harmony.out").
+rule o4[t] = ((i1[t] and i2[t]) or (i2[t] and i3[t]) or (i1[t] and i3[t])) and
+             ((i1[t-1] and i2[t-1]) or (i2[t-1] and i3[t-1]) or (i1[t-1] and i3[t-1])) and
+             i5[t].
+
+# Final democratic decision
+sbf i6 = input file("strength.out").
+sbf i7 = input file("stability.out").
+rule o5[t] = (((i1[t] and i2[t]) or (i2[t] and i3[t]) or (i1[t] and i3[t])) or
+              (i4[t-1] and i6[t])) and
+             (i5[t] or i7[t]).
+
+# Main formula: democracy produces stable consensus
+always (o5[t] implies (o1[t] or o3[t])) and
+       sometimes o2[t] and
+       (o4[t] implies o1[t] and o1[t-1]).
+
+# Example 4: Feedback Loop (maps to feedback_loop.tau)
+declare concept "feedback system" as: temporal dependencies with memory.
+
+# Input and output streams
+sbf i1 = input file("loop.in").
+sbf o1 = output file("primary.out").
+sbf o2 = output file("secondary.out").
+sbf o3 = output file("ifeedback.out").
+sbf o4 = output file("feedback.out").
+sbf o5 = output file("final.out").
+
+# Feedback rules with temporal dependencies
+rule o1[t] = i1[t].                                    # Direct pass-through
+
+sbf i2 = input file("primary.out").
+rule o2[t] = i2[t-1] complement.                       # Delayed negation
+
+sbf i3 = input file("secondary.out").
+rule o3[t] = i1[t] and i3[t].                         # Feedback combination
+
+sbf i4 = input file("ifeedback.out").
+rule o4[t] = (i4[t-1] xor i2[t]) and i3[t].          # Complex feedback
+
+rule o5[t] = (i2[t] and i3[t]) or (i3[t] and i4[t]) or (i4[t] and i2[t] complement).
+
+# Main formula: feedback system maintains stability
+always (o1[t] equals i1[t]) and
+       (o2[t] equals i2[t-1] complement) and
+       eventually (o5[t] equals o5[t-1]).
+
+# Example 5: Temporal Stability (maps to temporal_stability.tau)
+declare concept "temporal stability" as: output changes only when input is stable.
+
+sbf i1 = input file("input.in").
+sbf o1 = output file("stable.out").
+
+# Stability rule: output changes only when input stable for 2 time steps
+rule o1[t] = (i1[t] and i1[t-1] and o1[t-1] complement) or
+             (i1[t] complement and i1[t-1] complement and o1[t-1]) or
+             ((i1[t] xor i1[t-1]) and o1[t-1]).
+
+# Main formula: stability constraint
+always (o1[t] not equals o1[t-1]) implies (i1[t] equals i1[t-1]).
+
+# Example 6: CLI Commands and Solver Integration
+declare concept "solver integration" as: using Tau's built-in solving capabilities.
+
+# Define a complex logical formula
+complexFormula(x, y, z) := (x and y) or (y and z) or (x and z).
+
+# Satisfiability checking
+check satisfiability of complexFormula(a, b, c).
+check validity of (for all x, y, complexFormula(x, y, 1) implies (x or y)).
+check unsatisfiability of (complexFormula(x, y, z) and complexFormula(x complement, y complement, z complement)).
+
+# Solution finding
+solve complexFormula(x, y, 0) and (x xor y).
+find solution to (there exists z, complexFormula(1, z, 0)).
+
+# Normal forms
+disjunctive normal form complexFormula(x, y, z).
+conjunctive normal form (complexFormula(x, y, z) implies (x or y or z)).
+negation normal form (not complexFormula(x, y, z)).
+
+# Quantifier elimination
+eliminate quantifiers from (there exists x, for all y, complexFormula(x, y, z)).
+
+# Substitution and instantiation
+substitute complexFormula(x, y, z) [x and y / x].
+instantiate complexFormula(x, y, z) [x / 1].
+
+# Normalization
+normalize (complexFormula(x, y, z) and complexFormula(x, y, z)).
+simplify ((x and y) or (x and y) or (y and z)).
+
+# Main formula: solver commands produce valid results
+always (check satisfiability of P) implies (P or not P).
+
+# Example 7: Advanced Temporal Logic
+declare concept "temporal reasoning" as: complex time-dependent logical relationships.
+
+# Temporal quantifiers
+temporalProperty(x) := always (x[t] implies sometimes x[t+1]).
+stabilityProperty(x) := always (x[t] and x[t-1]) implies always x[t+1].
+eventualityProperty(x) := sometimes x[t] implies eventually always x[t].
+
+# Complex temporal formula
+rule output[t] = (always input[t] greater than 0) and
+                 (sometimes input[t] equals 0) and
+                 (eventually input[t] less than 0).
+
+# Main formula: temporal properties hold
+temporalProperty(input) and
+stabilityProperty(output) and
+eventualityProperty(input).
+
+meta: provides: ["binary_arithmetic", "stream_processing", "democracy", "feedback", "temporal_logic"],
+      requires: ["tau_language_runtime", "file_io"],
+      complexity: "O(n)",
+      author: "TauTranslatorOmega",
+      description: "Comprehensive TCE examples mapping to real Tau Language constructs".

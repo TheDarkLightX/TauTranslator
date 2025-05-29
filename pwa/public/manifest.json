@@ -1,0 +1,17 @@
+{
+  "name": "TauTranslatorOmega",
+  "short_name": "TauOmega",
+  "description": "PWA for Tau Language Translation and CNL Editing",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+    // Add more icon sizes later (e.g., 512x512 for PWA install prompt)
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0070f3"
+}

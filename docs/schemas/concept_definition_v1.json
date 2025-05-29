@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Concept Definition",
+  "description": "Schema for defining a concept within a user-provided semantic layer.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The singular name of the concept.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "plural_name": {
+      "description": "The plural name of the concept. If not provided, a simple 's' suffix might be assumed by some tools.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "description": {
+      "description": "A human-readable description of the concept.",
+      "type": "string"
+    },
+    "attributes": {
+      "description": "A list of attributes belonging to this concept.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The name of the attribute.",
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "type": {
+            "description": "The data type of the attribute (e.g., string, integer, boolean, date, or a reference to another concept/enum).",
+            "type": "string",
+            "enum": ["string", "number", "integer", "boolean", "array", "object", "date", "datetime"]
+          },
+          "description": {
+            "description": "A human-readable description of the attribute.",
+            "type": "string"
+          },
+          "required": {
+            "description": "Whether this attribute is mandatory for an instance of the concept.",
+            "type": "boolean",
+            "default": false
+          },
+          "is_identifier": {
+            "description": "Marks this attribute as a primary or unique identifier for the concept.",
+            "type": "boolean",
+            "default": false
+          },
+          "default_value": {
+            "description": "A default value for this attribute if not specified.",
+            "type": ["string", "number", "boolean", "null"]
+          },
+          "format": {
+            "description": "A specific format for the attribute's type (e.g., 'email', 'uuid' for string; 'date-time').",
+            "type": "string"
+          },
+          "enum_values": {
+            "description": "If the attribute type is an inline enumeration, this lists the possible values.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "example": {
+            "description": "An example value for this attribute.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false
+}

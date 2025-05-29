@@ -1,0 +1,20 @@
+[
+  {
+    "timestamp": "2025-05-27T22:31:28.999765",
+    "model": "pattern_based",
+    "input": "// Example Tau Language Code\nhalfAdderSum(a, b) := a + b\nhalfAdderCarry(a, b) := a & b\n\n// Logic Gates\nr and_gate[t] = i1[t] & i2[t]\nr or_gate[t] = i1[t] | i2[t]\n\n// Temporal Logic\nalways (x > 0)\nsometimes (status = ready)\n\n// Note: Translation now properly converts:\n// i1[t] & i2[t] \u2192 \"input 1 at time t AND input 2 at time t\"\n// x > 0 \u2192 \"x is greater than 0\"\n// status = ready \u2192 \"status equals ready\"",
+    "output": "Define function halfAdderSum as a XOR b. Define function halfAdderCarry as a AND b. Rule: and_gate at time t equals input 1 at time t AND input 2 at time t. Rule: or_gate at time t equals input 1 at time t OR input 2 at time t. Always (x is greater than 0).",
+    "rating": 5,
+    "comments": "",
+    "session_id": 132998339592272
+  },
+  {
+    "timestamp": "2025-05-27T22:31:30.910040",
+    "model": "pattern_based",
+    "input": "// Example Tau Language Code\nhalfAdderSum(a, b) := a + b\nhalfAdderCarry(a, b) := a & b\n\n// Logic Gates\nr and_gate[t] = i1[t] & i2[t]\nr or_gate[t] = i1[t] | i2[t]\n\n// Temporal Logic\nalways (x > 0)\nsometimes (status = ready)\n\n// Note: Translation now properly converts:\n// i1[t] & i2[t] \u2192 \"input 1 at time t AND input 2 at time t\"\n// x > 0 \u2192 \"x is greater than 0\"\n// status = ready \u2192 \"status equals ready\"",
+    "output": "Define function halfAdderSum as a XOR b. Define function halfAdderCarry as a AND b. Rule: and_gate at time t equals input 1 at time t AND input 2 at time t. Rule: or_gate at time t equals input 1 at time t OR input 2 at time t. Always (x is greater than 0).",
+    "rating": 5,
+    "comments": "",
+    "session_id": 132998339592272
+  }
+]

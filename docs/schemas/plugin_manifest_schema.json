@@ -1,0 +1,232 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TauTranslatorOmega Plugin Manifest",
+  "description": "JSON Schema for plugin_manifest.json v1.0, as per Plugin Interface Specification",
+  "type": "object",
+  "properties": {
+    "manifest_version": {
+      "description": "Version of this manifest schema.",
+      "type": "string",
+      "const": "1.0"
+    },
+    "id": {
+      "description": "Unique machine-readable identifier for the plugin. Recommended: reverse-domain-like naming (e.g., \"com.example.my-plugin-name\").",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_.-]+$"
+    },
+    "name": {
+      "description": "Human-readable name for the plugin.",
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "description": "Brief description of the plugin's purpose.",
+      "type": "string"
+    },
+    "version": {
+      "description": "Plugin's own semantic version (e.g., \"1.2.0\").",
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "author": {
+      "description": "Author or organization.",
+      "type": ["string", "null"]
+    },
+    "license": {
+      "description": "License of the plugin code (e.g., SPDX ID or custom license text).",
+      "type": ["string", "null"]
+    },
+    "target_grammar": {
+      "description": "Details about the grammar this plugin targets or defines.",
+      "type": "object",
+      "properties": {
+        "grammar_name": {
+          "description": "The name of the target grammar (e.g., 'IDNI', 'TauCore').",
+          "type": "string",
+          "minLength": 1
+        },
+        "version_constraint": {
+          "description": "Semantic versioning constraint for the target grammar (e.g., \">=1.0.0 <2.0.0\").",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["grammar_name"],
+      "additionalProperties": false
+    },
+    "ilr_versions_supported": {
+      "description": "Array of ILR specification versions this plugin can consume (e.g., [\"0.1.0\"]).",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "output_details": {
+      "description": "Information about the plugin's output format.",
+      "type": "object",
+      "properties": {
+        "format_mime_type": {
+          "description": "Default MIME type of the output (e.g., \"text/plain\", \"application/tau+text\").",
+          "type": "string",
+          "pattern": "^\\w+\\/[-+.\\w]+$"
+        },
+        "file_extension_suggestion": {
+          "description": "Suggested file extension for the output (e.g., \".tau\").",
+          "type": ["string", "null"],
+          "pattern": "^\\.[a-zA-Z0-9]+$"
+        }
+      },
+      "required": ["format_mime_type"],
+      "additionalProperties": false
+    },
+    "entry_point": {
+      "description": "Defines how the core engine interacts with the plugin.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Type of entry point.",
+          "type": "string",
+          "enum": ["cli", "module", "url"]
+        },
+        "command": {
+          "description": "The command to execute.",
+          "type": "string"
+        },
+        "module_path": {
+          "description": "Path to the module/class.",
+          "type": "string"
+        },
+        "function_name": {
+          "description": "Name of the function to call.",
+          "type": "string"
+        },
+        "url": {
+          "description": "The URL endpoint.",
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": true,
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "cli" },
+            "command": {
+              "description": "The command to execute.",
+              "type": "string"
+            }
+          },
+          "required": ["type", "command"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "module" },
+            "module_path": {
+              "description": "Path to the module/class.",
+              "type": "string"
+            },
+            "function_name": {
+              "description": "Name of the function to call.",
+              "type": "string"
+            }
+          },
+          "required": ["type", "module_path", "function_name"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "url" },
+            "url": {
+              "description": "The URL endpoint.",
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "required": ["type", "url"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "configuration_schema": {
+      "description": "Optional: A JSON Schema defining plugin-specific configuration options.",
+      "type": ["object", "null"]
+    },
+    "plugin_type": {
+      "description": "Defines the primary type of the plugin.",
+      "type": "string",
+      "enum": [
+        "data_provider",
+        "translation_engine",
+        "grammar_definition",
+        "semantic_layer_validator",
+        "utility",
+        "generic"
+      ]
+    },
+    "tags": {
+      "description": "Optional: A list of tags for categorizing the plugin.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "nullable": true
+    },
+    "grammar_details": {
+      "description": "Details specific to grammar definition plugins. Required if plugin_type is 'grammar_definition'.",
+      "type": "object",
+      "properties": {
+        "ilr_version": {
+          "type": "string",
+          "description": "The ILR version this grammar definition is compatible with.",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "grammar_construct_schema_path": {
+          "type": "string",
+          "description": "Path to the JSON schema for grammar constructs."
+        },
+        "definition_provider_details": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["local_files", "git_repository"] },
+            "root_directory": { "type": "string" },
+            "repository_url": { "type": "string" },
+            "commit_sha": { "type": "string" }
+          },
+          "required": ["type"]
+        }
+      },
+      "required": ["ilr_version", "grammar_construct_schema_path", "definition_provider_details"]
+    }
+  },
+  "required": [
+    "manifest_version",
+    "id",
+    "name",
+    "version",
+    "description",
+    "author",
+    "license",
+    "target_grammar",
+    "ilr_versions_supported",
+    "output_details",
+    "entry_point",
+    "plugin_type"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "plugin_type": { "const": "grammar_definition" } },
+        "required": ["plugin_type"]
+      },
+      "then": {
+        "required": ["grammar_details"]
+      }
+    }
+  ]
+}

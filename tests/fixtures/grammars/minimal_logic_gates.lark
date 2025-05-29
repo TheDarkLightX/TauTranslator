@@ -1,0 +1,22 @@
+start: statement*
+
+statement: sbf_declaration | rule_definition | ignored_line
+ignored_line: COMMENT NL? // To consume comments properly
+
+sbf_declaration: "sbf" IDENTIFIER "=" io_function "(" STRING ")" NL?
+io_function: "ifile" | "ofile"
+rule_definition: "r" stream_variable "=" expression NL?
+expression: term (("&" | "|") term)*
+term: factor ("'"?)
+factor: stream_variable | "(" expression ")"
+
+stream_variable: IDENTIFIER "[" IDENTIFIER "]"
+
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+STRING: /"[^"]*"/
+COMMENT: /#.*/
+
+%import common.WS -> _WS
+%import common.NEWLINE -> NL
+%ignore _WS
+// Comment lines are handled by 'ignored_line' rule

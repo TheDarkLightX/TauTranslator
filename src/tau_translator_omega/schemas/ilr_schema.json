@@ -1,0 +1,456 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TauTranslatorOmega ILR Document",
+  "description": "JSON Schema for the Intermediate Logical Representation (ILR) v0.1",
+  "type": "object",
+  "properties": {
+    "ilr_version": {
+      "description": "Version of the ILR specification this document adheres to.",
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "metadata": {
+      "description": "Optional metadata about the source, translation, etc.",
+      "type": ["object", "null"],
+      "properties": {
+        "source_description": {
+          "type": ["string", "null"]
+        },
+        "translation_timestamp": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "declarations": {
+      "description": "Array of declaration objects.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/definitions/VariableDeclaration" },
+          { "$ref": "#/definitions/FunctionDeclaration" }
+        ]
+      }
+    },
+    "statements": {
+      "description": "Array of statement objects.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/definitions/AssignmentStatement" },
+          { "$ref": "#/definitions/AssertionStatement" },
+          { "$ref": "#/definitions/TemporalStatement" }
+        ]
+      }
+    }
+  },
+  "required": [
+    "ilr_version",
+    "declarations",
+    "statements"
+  ],
+  "definitions": {
+    "CoreDataType": {
+      "type": "string",
+      "enum": ["BOOLEAN", "NUMBER", "STRING", "VOID", "BITVECTOR", "BITSTRING", "FUNCTION_SIGNATURE"]
+    },
+    "BooleanConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "BOOLEAN_CONSTANT" },
+        "value": { "type": "boolean" }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "NumericConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "NUMERIC_CONSTANT" },
+        "value": { "type": "number" }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "StringConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "STRING_CONSTANT" },
+        "value": { "type": "string" }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "BitvectorConstant": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "BITVECTOR_CONSTANT" },
+        "value": { 
+          "type": "string",
+          "description": "String representation of the bitvector's value (e.g., \"0xDEADBEEF\", \"0b1010\")"
+        },
+        "width": { 
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optional width of the bitvector in bits."
+        }
+      },
+      "required": ["node_type", "value"],
+      "additionalProperties": false
+    },
+    "BitstringConstant": {
+      "type": "object",
+      "description": "Represents a constant bitstring value (e.g., '1010xz01b').",
+      "properties": {
+        "node_type": { "const": "BITSTRING_CONSTANT" },
+        "value": {
+          "type": "string",
+          "description": "The bitstring value as a string (e.g., \"1010xz01\"). Should only contain '0', '1', 'x', 'z'."
+        },
+        "length": {
+          "type": "integer",
+          "description": "The number of characters in the bitstring value.",
+          "minimum": 0
+        }
+      },
+      "required": ["node_type", "value", "length"],
+      "additionalProperties": false
+    },
+    "TemporalQualifier": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "TIME_OFFSET" },
+        "offset": { "type": "integer" }
+      },
+      "required": ["type", "offset"],
+      "additionalProperties": false
+    },
+    "VariableReference": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "VARIABLE_REFERENCE" },
+        "name": { "type": "string" },
+        "temporal_qualifier": {
+          "anyOf": [
+            { "$ref": "#/definitions/TemporalQualifier" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["node_type", "name"],
+      "additionalProperties": false
+    },
+    "ExpressionNode": {
+      "oneOf": [
+        { "$ref": "#/definitions/BooleanExpression" },
+        { "$ref": "#/definitions/VariableReference" },
+        { "$ref": "#/definitions/BooleanConstant" },
+        { "$ref": "#/definitions/ComparisonExpression" },
+        { "$ref": "#/definitions/NumericConstant" },
+        { "$ref": "#/definitions/StringConstant" },
+        { "$ref": "#/definitions/BitvectorConstant" },
+        { "$ref": "#/definitions/BitstringConstant" },
+        { "$ref": "#/definitions/ArithmeticExpression" },
+        { "$ref": "#/definitions/FunctionCall" },
+        { "$ref": "#/definitions/QuantifierExpression" },
+        { "$ref": "#/definitions/BitwiseBinaryExpression" },
+        { "$ref": "#/definitions/BitwiseUnaryExpression" },
+        { "$ref": "#/definitions/LambdaExpression" }
+      ]
+    },
+    "BooleanExpression": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "BOOLEAN_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["AND", "OR", "NOT", "XOR", "IMPLIES", "EQUIVALENT"]
+        },
+        "operands": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExpressionNode" }
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "ComparisonExpression": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "COMPARISON_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["EQUALS", "NOT_EQUALS", "GREATER_THAN", "LESS_THAN", "GTE", "LTE"]
+        },
+        "lhs": { "$ref": "#/definitions/ExpressionNode" },
+        "rhs": { "$ref": "#/definitions/ExpressionNode" }
+      },
+      "required": ["node_type", "operator", "lhs", "rhs"],
+      "additionalProperties": false
+    },
+    "ArithmeticExpression": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "ARITHMETIC_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MODULO", "POWER", "NEGATE"]
+        },
+        "operands": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExpressionNode" }
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "FunctionCall": {
+      "type": "object",
+      "properties": {
+        "node_type": { "const": "FUNCTION_CALL" },
+        "function_name": { "type": "string" },
+        "arguments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExpressionNode" }
+        }
+      },
+      "required": ["node_type", "function_name", "arguments"],
+      "additionalProperties": false
+    },
+    "QuantifierExpression": {
+      "type": "object",
+      "description": "Represents a quantified logical expression (e.g., for all x, P(x)).",
+      "properties": {
+        "node_type": { "const": "QUANTIFIER_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["FOR_ALL", "EXISTS"],
+          "description": "The quantifier operator."
+        },
+        "bound_variables": {
+          "type": "array",
+          "description": "An array of variables bound by this quantifier.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the bound variable."
+              },
+              "data_type": {
+                "$ref": "#/definitions/CoreDataType",
+                "description": "The data type of the bound variable."
+              }
+            },
+            "required": ["name", "data_type"],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "expression": {
+          "$ref": "#/definitions/ExpressionNode",
+          "description": "The logical expression being quantified."
+        }
+      },
+      "required": ["node_type", "operator", "bound_variables", "expression"],
+      "additionalProperties": false
+    },
+    "BitwiseBinaryExpression": {
+      "type": "object",
+      "description": "Represents a binary bitwise operation (e.g., x & y, a << 2). Operands must evaluate to bitvector or bitstring types.",
+      "properties": {
+        "node_type": { "const": "BITWISE_BINARY_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": [
+            "BITWISE_AND",
+            "BITWISE_OR",
+            "BITWISE_XOR",
+            "SHIFT_LEFT",
+            "SHIFT_RIGHT_LOGICAL",
+            "SHIFT_RIGHT_ARITHMETIC"
+          ],
+          "description": "The binary bitwise operator."
+        },
+        "operands": {
+          "type": "array",
+          "description": "An array containing exactly two ExpressionNode operands.",
+          "items": { "$ref": "#/definitions/ExpressionNode" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "BitwiseUnaryExpression": {
+      "type": "object",
+      "description": "Represents a unary bitwise operation (e.g., ~x). Operand must evaluate to a bitvector or bitstring type.",
+      "properties": {
+        "node_type": { "const": "BITWISE_UNARY_EXPRESSION" },
+        "operator": {
+          "type": "string",
+          "enum": ["BITWISE_NOT"],
+          "description": "The unary bitwise operator (complement)."
+        },
+        "operands": {
+          "type": "array",
+          "description": "An array containing exactly one ExpressionNode operand.",
+          "items": { "$ref": "#/definitions/ExpressionNode" },
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "required": ["node_type", "operator", "operands"],
+      "additionalProperties": false
+    },
+    "LambdaExpression": {
+      "type": "object",
+      "description": "Represents a lambda expression or anonymous function.",
+      "properties": {
+        "node_type": { "const": "LAMBDA_EXPRESSION" },
+        "parameters": {
+          "type": "array",
+          "description": "An ordered list of parameters for the lambda expression.",
+          "items": { "$ref": "#/definitions/FunctionParameter" },
+          "default": []
+        },
+        "body": {
+          "$ref": "#/definitions/ExpressionNode",
+          "description": "The expression that forms the body of the lambda."
+        },
+        "return_type": {
+          "$ref": "#/definitions/CoreDataType",
+          "description": "The data type of the value returned by the lambda expression."
+        }
+      },
+      "required": ["node_type", "parameters", "body", "return_type"],
+      "additionalProperties": false
+    },
+    "VariableDeclaration": {
+      "type": "object",
+      "properties": {
+        "declaration_type": { "const": "VARIABLE" },
+        "name": { "type": "string" },
+        "data_type": { "$ref": "#/definitions/CoreDataType" },
+        "is_stream": { "type": "boolean" },
+        "stream_kind": {
+          "type": ["string", "null"],
+          "enum": [null, "INPUT", "OUTPUT", "INTERNAL_STATE"]
+        },
+        "initial_value": {
+          "anyOf": [
+            { "$ref": "#/definitions/BooleanConstant" },
+            { "$ref": "#/definitions/NumericConstant" },
+            { "$ref": "#/definitions/StringConstant" },
+            { "$ref": "#/definitions/BitvectorConstant" },
+            { "$ref": "#/definitions/BitstringConstant" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["declaration_type", "name", "data_type", "is_stream"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "data_type": { "const": "FUNCTION_SIGNATURE" } }
+          },
+          "then": {
+            "properties": {
+              "parameter_types": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/CoreDataType" },
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the data types of the function's parameters."
+              },
+              "function_return_type": {
+                "$ref": "#/definitions/CoreDataType",
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the return data type of the function."
+              }
+            },
+            "required": ["parameter_types", "function_return_type"]
+          }
+        }
+      ]
+    },
+    "FunctionParameter": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "data_type": { "$ref": "#/definitions/CoreDataType" }
+      },
+      "required": ["name", "data_type"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "data_type": { "const": "FUNCTION_SIGNATURE" } }
+          },
+          "then": {
+            "properties": {
+              "parameter_types": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/CoreDataType" },
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the data types of the function's parameters."
+              },
+              "function_return_type": {
+                "$ref": "#/definitions/CoreDataType",
+                "description": "Required if data_type is FUNCTION_SIGNATURE. Specifies the return data type of the function."
+              }
+            },
+            "required": ["parameter_types", "function_return_type"]
+          }
+        }
+      ]
+    },
+    "FunctionDeclaration": {
+      "type": "object",
+      "properties": {
+        "declaration_type": { "const": "FUNCTION" },
+        "name": { "type": "string" },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FunctionParameter" }
+        },
+        "return_type": { "$ref": "#/definitions/CoreDataType" }
+      },
+      "required": ["declaration_type", "name", "parameters", "return_type"],
+      "additionalProperties": false
+    },
+    "AssignmentStatement": {
+      "type": "object",
+      "properties": {
+        "statement_type": { "const": "ASSIGNMENT" },
+        "target": { "$ref": "#/definitions/VariableReference" },
+        "expression": { "$ref": "#/definitions/ExpressionNode" }
+      },
+      "required": ["statement_type", "target", "expression"],
+      "additionalProperties": false
+    },
+    "AssertionStatement": {
+      "type": "object",
+      "properties": {
+        "statement_type": { "const": "ASSERTION" },
+        "condition": { "$ref": "#/definitions/BooleanExpression" },
+        "label": { "type": ["string", "null"] }
+      },
+      "required": ["statement_type", "condition"],
+      "additionalProperties": false
+    },
+    "TemporalStatement": {
+      "type": "object",
+      "properties": {
+        "statement_type": { "const": "TEMPORAL_LOGIC" },
+        "operator": {
+          "type": "string",
+          "enum": ["ALWAYS", "SOMETIMES", "NEXT"]
+        },
+        "condition": { "$ref": "#/definitions/BooleanExpression" },
+        "label": { "type": ["string", "null"] }
+      },
+      "required": ["statement_type", "operator", "condition"],
+      "additionalProperties": false
+    }
+  }
+}
