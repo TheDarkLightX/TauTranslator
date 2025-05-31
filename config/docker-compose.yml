@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Main API Server
+  api:
+    build: .
+    container_name: tau-translator-api
+    ports:
+      - "8000:8000"
+    environment:
+      - TAU_LOG_LEVEL=INFO
+      - TAU_DEFAULT_MODEL=gpt-3.5-turbo
+      - TAU_API_TIMEOUT=30
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tau-network
+
+  # Web Interface
+  web:
+    build: .
+    container_name: tau-translator-web
+    command: ["python", "production_translator.py", "--web"]
+    ports:
+      - "5000:5000"
+    environment:
+      - TAU_LOG_LEVEL=INFO
+      - FLASK_ENV=production
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - tau-network
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: tau-translator-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - web
+    restart: unless-stopped
+    networks:
+      - tau-network
+
+  # Redis for caching (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: tau-translator-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - tau-network
+
+networks:
+  tau-network:
+    driver: bridge
+
+volumes:
+  redis-data:

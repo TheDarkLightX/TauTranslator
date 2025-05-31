@@ -3,8 +3,11 @@ import json
 import yaml
 import glob
 import os
+import logging
 from pathlib import Path
 from jsonschema import Draft7Validator, RefResolver, ValidationError
+
+logger = logging.getLogger(__name__)
 
 class SemanticLayerValidator:
     def __init__(self, project_root_path: str):
@@ -29,9 +32,9 @@ class SemanticLayerValidator:
                     schema_content = json.load(f)
                     self.system_schemas_store[schema_uri] = schema_content
             except FileNotFoundError as e:
-                print(f"ERROR: System schema file not found: {schema_path}. Validator cannot operate effectively.")
+                logger.error(f"System schema file not found: {schema_path}. Validator cannot operate effectively.")
             except json.JSONDecodeError as e:
-                print(f"ERROR: System schema file {schema_path} is not valid JSON: {e}. Validator cannot operate effectively.")
+                logger.error(f"System schema file {schema_path} is not valid JSON: {e}. Validator cannot operate effectively.")
 
     def get_schema_by_key(self, key: str):
         """Helper to get a schema by its short key (e.g., 'concept') if needed."""
@@ -162,7 +165,7 @@ class SemanticLayerValidator:
                     f"Cross-validation error in relationship '{rel_name}': Target concept '{target_concept_name}' not found."
                 )
         
-        # TODO: Add other cross-validation checks here as needed (e.g., attribute types, FKs)
+        # Additional cross-validation checks can be added here for attribute types, foreign keys, etc.
 
         if cross_validation_errors:
             errors.extend(cross_validation_errors)

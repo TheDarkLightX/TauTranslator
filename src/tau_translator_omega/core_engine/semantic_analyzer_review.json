@@ -1,0 +1,501 @@
+{
+  "file_path": "src/tau_translator_omega/core_engine/semantic_analyzer.py",
+  "review_report": {
+    "summary": {
+      "total_checks": 31,
+      "passed_checks": 0,
+      "failed_checks": 31,
+      "pass_rate": 0.0,
+      "priority_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 12,
+        "low": 19
+      }
+    },
+    "checks_by_criteria": {
+      "correctness": [
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 64,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 64,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 66,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 317,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 369,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 383,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 474,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 555,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+          "line": 564,
+          "suggestion": "Use '==' for equality comparison with literals",
+          "priority": "medium"
+        }
+      ],
+      "security": [],
+      "performance": [],
+      "readability": [
+        {
+          "passed": false,
+          "message": "Function '_visit_SentenceNode' doesn't follow snake_case convention",
+          "line": 404,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_VariableDeclNode' doesn't follow snake_case convention",
+          "line": 408,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_VariableNode' doesn't follow snake_case convention",
+          "line": 472,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_AssignmentNode' doesn't follow snake_case convention",
+          "line": 481,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_ConstantNode' doesn't follow snake_case convention",
+          "line": 486,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_NumberNode' doesn't follow snake_case convention",
+          "line": 491,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_StringNode' doesn't follow snake_case convention",
+          "line": 495,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_ArithmeticBinaryOpNode' doesn't follow snake_case convention",
+          "line": 499,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_BooleanBinaryOpNode' doesn't follow snake_case convention",
+          "line": 530,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_ComparisonNode' doesn't follow snake_case convention",
+          "line": 538,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_PredicateCallNode' doesn't follow snake_case convention",
+          "line": 546,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_PredicateDefinitionNode' doesn't follow snake_case convention",
+          "line": 567,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_FunctionDefinitionNode' doesn't follow snake_case convention",
+          "line": 622,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_QuantifierBlockNode' doesn't follow snake_case convention",
+          "line": 639,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function '_visit_ConditionNode' doesn't follow snake_case convention",
+          "line": 661,
+          "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+          "priority": "low"
+        }
+      ],
+      "testability": [],
+      "maintainability": [
+        {
+          "passed": false,
+          "message": "Function '__init__' has too many parameters (6)",
+          "line": 86,
+          "suggestion": "Consider using a configuration object or breaking the function down",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "Function '_get_expression_type' is too long (61 lines)",
+          "line": 260,
+          "suggestion": "Consider breaking this function into smaller, more focused functions",
+          "priority": "medium"
+        },
+        {
+          "passed": false,
+          "message": "File too long (676 lines)",
+          "line": 1,
+          "suggestion": "Consider splitting this file into smaller modules",
+          "priority": "medium"
+        }
+      ],
+      "reusability": [],
+      "error_handling": [],
+      "logging": [
+        {
+          "passed": false,
+          "message": "Function 'enter_scope' with external calls lacks logging",
+          "line": 126,
+          "suggestion": "Add logging for debugging and monitoring purposes",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function 'exit_scope' with external calls lacks logging",
+          "line": 136,
+          "suggestion": "Add logging for debugging and monitoring purposes",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function 'lookup_current_scope' with external calls lacks logging",
+          "line": 184,
+          "suggestion": "Add logging for debugging and monitoring purposes",
+          "priority": "low"
+        },
+        {
+          "passed": false,
+          "message": "Function 'analyze' with external calls lacks logging",
+          "line": 354,
+          "suggestion": "Add logging for debugging and monitoring purposes",
+          "priority": "low"
+        }
+      ],
+      "documentation": []
+    },
+    "recommendations": []
+  },
+  "all_checks": [
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 64,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 64,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 66,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "maintainability",
+      "passed": false,
+      "message": "Function '__init__' has too many parameters (6)",
+      "line": 86,
+      "suggestion": "Consider using a configuration object or breaking the function down",
+      "priority": "medium"
+    },
+    {
+      "criteria": "logging",
+      "passed": false,
+      "message": "Function 'enter_scope' with external calls lacks logging",
+      "line": 126,
+      "suggestion": "Add logging for debugging and monitoring purposes",
+      "priority": "low"
+    },
+    {
+      "criteria": "logging",
+      "passed": false,
+      "message": "Function 'exit_scope' with external calls lacks logging",
+      "line": 136,
+      "suggestion": "Add logging for debugging and monitoring purposes",
+      "priority": "low"
+    },
+    {
+      "criteria": "logging",
+      "passed": false,
+      "message": "Function 'lookup_current_scope' with external calls lacks logging",
+      "line": 184,
+      "suggestion": "Add logging for debugging and monitoring purposes",
+      "priority": "low"
+    },
+    {
+      "criteria": "maintainability",
+      "passed": false,
+      "message": "Function '_get_expression_type' is too long (61 lines)",
+      "line": 260,
+      "suggestion": "Consider breaking this function into smaller, more focused functions",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 317,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 369,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "logging",
+      "passed": false,
+      "message": "Function 'analyze' with external calls lacks logging",
+      "line": 354,
+      "suggestion": "Add logging for debugging and monitoring purposes",
+      "priority": "low"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 383,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 474,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 555,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "correctness",
+      "passed": false,
+      "message": "Use '==' or '!=' instead of 'is' or 'is not' for value comparison",
+      "line": 564,
+      "suggestion": "Use '==' for equality comparison with literals",
+      "priority": "medium"
+    },
+    {
+      "criteria": "maintainability",
+      "passed": false,
+      "message": "File too long (676 lines)",
+      "line": 1,
+      "suggestion": "Consider splitting this file into smaller modules",
+      "priority": "medium"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_SentenceNode' doesn't follow snake_case convention",
+      "line": 404,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_VariableDeclNode' doesn't follow snake_case convention",
+      "line": 408,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_VariableNode' doesn't follow snake_case convention",
+      "line": 472,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_AssignmentNode' doesn't follow snake_case convention",
+      "line": 481,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_ConstantNode' doesn't follow snake_case convention",
+      "line": 486,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_NumberNode' doesn't follow snake_case convention",
+      "line": 491,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_StringNode' doesn't follow snake_case convention",
+      "line": 495,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_ArithmeticBinaryOpNode' doesn't follow snake_case convention",
+      "line": 499,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_BooleanBinaryOpNode' doesn't follow snake_case convention",
+      "line": 530,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_ComparisonNode' doesn't follow snake_case convention",
+      "line": 538,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_PredicateCallNode' doesn't follow snake_case convention",
+      "line": 546,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_PredicateDefinitionNode' doesn't follow snake_case convention",
+      "line": 567,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_FunctionDefinitionNode' doesn't follow snake_case convention",
+      "line": 622,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_QuantifierBlockNode' doesn't follow snake_case convention",
+      "line": 639,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    },
+    {
+      "criteria": "readability",
+      "passed": false,
+      "message": "Function '_visit_ConditionNode' doesn't follow snake_case convention",
+      "line": 661,
+      "suggestion": "Use snake_case for function names (e.g., 'my_function')",
+      "priority": "low"
+    }
+  ]
+}

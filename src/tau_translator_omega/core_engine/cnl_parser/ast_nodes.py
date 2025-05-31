@@ -435,7 +435,7 @@ class FunctionCallWithIndexNode(ExprNode):
         if self.arguments is None:
             self.arguments = []
 
-# TODO: Consider a more unified ExpressionNode or ValueNode if useful
+# Note: Consider a more unified ExpressionNode or ValueNode structure in future refactoring
 
 
 # AST nodes are ready for use

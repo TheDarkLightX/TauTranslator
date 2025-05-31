@@ -88,7 +88,7 @@ class GrammarPluginValidator(BasePluginValidator):
 
         try:
             validate(instance=manifest_data, schema=self.schema)
-            self.logger.debug(f"Manifest schema validation successful for plugin_id: {manifest_data.get('id', 'N/A')} in dir {plugin_dir}")
+            self.logger.info(f"Manifest schema validation successful for plugin_id: {manifest_data.get('id', 'N/A')} in dir {plugin_dir}")
         except ValidationError as e:
             error_message = f"Manifest schema validation error: {e.message} (path: {list(e.path)})"
             self.errors.append(error_message)
@@ -114,7 +114,7 @@ class GrammarPluginValidator(BasePluginValidator):
 
         try:
             grammar_file_path_unresolved = plugin_dir / str(grammar_file_relative)
-            self.logger.debug(f"Validating grammar file existence: {grammar_file_path_unresolved}")
+            self.logger.info(f"Validating grammar file existence: {grammar_file_path_unresolved}")
             if not grammar_file_path_unresolved.exists():
                 err_msg = f"Grammar file '{grammar_file_relative}' (path '{grammar_file_path_unresolved}') does not exist for plugin {manifest_data.get('id', 'N/A')}."
                 self.errors.append(err_msg)
@@ -122,7 +122,7 @@ class GrammarPluginValidator(BasePluginValidator):
                 return False, parsed_config, self.errors
 
             resolved_grammar_file = grammar_file_path_unresolved.resolve()
-            self.logger.debug(f"Validating grammar file type: {resolved_grammar_file}")
+            self.logger.info(f"Validating grammar file type: {resolved_grammar_file}")
             if not os.path.isfile(resolved_grammar_file):
                 err_msg = f"Grammar file '{grammar_file_relative}' (resolved to '{resolved_grammar_file}') does not exist or is not a file for plugin {manifest_data.get('id', 'N/A')}."
                 self.errors.append(err_msg)
@@ -139,7 +139,7 @@ class GrammarPluginValidator(BasePluginValidator):
             if grammar_details.get("ilr_construct_mappings_schema"):
                  mappings_schema_relative = grammar_details.get("ilr_construct_mappings_schema")
                  mappings_schema_path_unresolved = plugin_dir / str(mappings_schema_relative)
-                 self.logger.debug(f"Validating ILR mappings schema existence: {mappings_schema_path_unresolved}")
+                 self.logger.info(f"Validating ILR mappings schema existence: {mappings_schema_path_unresolved}")
                  if not mappings_schema_path_unresolved.exists():
                     err_msg = f"ILR construct mappings schema file '{mappings_schema_relative}' (path '{mappings_schema_path_unresolved}') does not exist for plugin {manifest_data.get('id', 'N/A')}."
                     self.errors.append(err_msg)
@@ -147,7 +147,7 @@ class GrammarPluginValidator(BasePluginValidator):
                     return False, parsed_config, self.errors
 
                  resolved_mappings_schema = mappings_schema_path_unresolved.resolve()
-                 self.logger.debug(f"Validating ILR mappings schema file type: {resolved_mappings_schema}")
+                 self.logger.info(f"Validating ILR mappings schema file type: {resolved_mappings_schema}")
                  if not os.path.isfile(resolved_mappings_schema):
                     err_msg = f"ILR construct mappings schema file '{mappings_schema_relative}' (resolved to '{resolved_mappings_schema}') does not exist or is not a file for plugin {manifest_data.get('id', 'N/A')}."
                     self.errors.append(err_msg)
@@ -166,7 +166,7 @@ class GrammarPluginValidator(BasePluginValidator):
                 # For now, let's return the current parsed_config, as it might give clues if this branch is hit.
                 return False, parsed_config, self.errors
 
-            self.logger.debug(f"Grammar file and details validated for plugin {manifest_data.get('id', 'N/A')}. Config: {parsed_config}")
+            self.logger.info(f"Grammar file and details validated for plugin {manifest_data.get('id', 'N/A')}. Config: {parsed_config}")
             return True, parsed_config, self.errors # self.errors should be empty here
 
         except FileNotFoundError: # Should be caught by is_file() check, but as a fallback

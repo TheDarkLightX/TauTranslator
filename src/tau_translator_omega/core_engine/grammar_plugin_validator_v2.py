@@ -50,7 +50,7 @@ class GrammarDetailsStage(ValidationStage):
             if antlr_version:
                 config_updates["antlr_version"] = antlr_version
         
-        self.logger.debug(f"Extracted grammar details for plugin {context.plugin_id}: {list(config_updates.keys())}")
+        self.logger.info(f"Extracted grammar details for plugin {context.plugin_id}: {list(config_updates.keys())}")
         return StageResult.success_with_data(config_updates)
 
 
@@ -82,7 +82,7 @@ class ILRMappingsStage(ValidationStage):
         resolved_path = str(mappings_schema_path.resolve())
         config_updates = {"resolved_ilr_construct_mappings_schema_path": resolved_path}
         
-        self.logger.debug(f"Validated ILR mappings schema for plugin {context.plugin_id}: {resolved_path}")
+        self.logger.info(f"Validated ILR mappings schema for plugin {context.plugin_id}: {resolved_path}")
         return StageResult.success_with_data(config_updates)
 
 
@@ -127,7 +127,7 @@ class GrammarPluginValidatorV2(BasePluginValidator):
         ]
         
         self.pipeline = ValidationPipeline(stages)
-        self.logger.debug(f"Setup validation pipeline with {len(stages)} stages")
+        self.logger.info(f"Setup validation pipeline with {len(stages)} stages")
     
     def validate_manifest(self, manifest_data: Dict[str, Any], plugin_dir: Path) -> Tuple[bool, Dict[str, Any], List[str]]:
         """
@@ -142,7 +142,7 @@ class GrammarPluginValidatorV2(BasePluginValidator):
             return False, {}, [error_msg]
         
         plugin_id = manifest_data.get('id', 'unknown')
-        self.logger.debug(f"Starting validation for grammar plugin {plugin_id}")
+        self.logger.info(f"Starting validation for grammar plugin {plugin_id}")
         
         # Run validation pipeline
         context = self.pipeline.validate(manifest_data, plugin_dir)

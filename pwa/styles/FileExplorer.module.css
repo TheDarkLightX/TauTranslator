@@ -1,0 +1,313 @@
+/* File Explorer Styles */
+.fileExplorer {
+  width: 280px;
+  height: 100%;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #dee2e6;
+  background: white;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.projectIcon {
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
+
+.actionButton {
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #6c757d;
+  transition: all 0.15s ease;
+}
+
+.actionButton:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* Empty Project State */
+.emptyProject {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  height: 100%;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.emptyText {
+  color: #6c757d;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.primaryButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.15s ease;
+}
+
+.primaryButton:hover {
+  background: #0056b3;
+}
+
+/* Folder Styles */
+.folder {
+  margin-bottom: 4px;
+}
+
+.folderHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.folderHeader:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.folderIcon {
+  font-size: 16px;
+}
+
+.folderName {
+  flex: 1;
+  font-weight: 500;
+  color: #495057;
+}
+
+.fileCount {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.folderContent {
+  margin-left: 24px;
+  border-left: 1px solid #e9ecef;
+}
+
+/* Empty Folder */
+.emptyFolder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.addButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addButton:hover {
+  background: #218838;
+}
+
+/* File Item Styles */
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.fileItem:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.fileItem.selected {
+  background: rgba(0, 123, 255, 0.15);
+  border-left-color: #007bff;
+}
+
+.fileIcon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileType {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.fileSize {
+  font-size: 11px;
+  color: #adb5bd;
+  flex-shrink: 0;
+}
+
+/* Context Menu */
+.contextMenu {
+  position: fixed;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 4px 0;
+  min-width: 150px;
+}
+
+.contextItem {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #495057;
+  transition: background-color 0.15s ease;
+}
+
+.contextItem:hover {
+  background: #f8f9fa;
+}
+
+.contextSeparator {
+  height: 1px;
+  background: #dee2e6;
+  margin: 4px 0;
+}
+
+/* File Type Colors */
+.fileItem[data-type="grammar"] .fileIcon {
+  color: #28a745;
+}
+
+.fileItem[data-type="cnl"] .fileIcon {
+  color: #007bff;
+}
+
+.fileItem[data-type="config"] .fileIcon {
+  color: #fd7e14;
+}
+
+.fileItem[data-type="example"] .fileIcon {
+  color: #6f42c1;
+}
+
+/* Dark Theme Support */
+.fileExplorer.dark {
+  background: #2d3748;
+  border-right-color: #4a5568;
+}
+
+.fileExplorer.dark .header {
+  background: #2d3748;
+  border-bottom-color: #4a5568;
+}
+
+.fileExplorer.dark .title {
+  color: #e2e8f0;
+}
+
+.fileExplorer.dark .folderContent {
+  border-left-color: #4a5568;
+}
+
+.fileExplorer.dark .fileName {
+  color: #e2e8f0;
+}
+
+.fileExplorer.dark .fileType {
+  color: #a0aec0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fileExplorer {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .fileExplorer.open {
+    transform: translateX(0);
+  }
+}

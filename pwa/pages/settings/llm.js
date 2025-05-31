@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import LLMConfigForm from '../../components/llm/LLMConfigForm';
 import LLMServiceListItem from '../../components/llm/LLMServiceListItem';
+import HuggingFaceModelManager from '../../components/llm/HuggingFaceModelManager';
+import GrammarFileManager from '../../components/llm/GrammarFileManager';
+import APIKeyManager from '../../components/llm/APIKeyManager';
 import styles from '../../styles/LLMConfig.module.css';
 import {
   getLLMServices,
@@ -17,6 +21,7 @@ import SystemResourcesDisplay from '../../components/llm/SystemResourcesDisplay'
 import ModelList from '../../components/llm/ModelList'; // Added for Model Management
 
 export default function LLMConfigurationPage() {
+  const router = useRouter();
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -168,7 +173,43 @@ export default function LLMConfigurationPage() {
 
   return (
     <div className={styles.pageContainer}>
-      <h1 className={styles.title}>LLM Configuration</h1>
+      {/* Navigation Header */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        marginBottom: '20px',
+        padding: '10px 0',
+        borderBottom: '1px solid #eee'
+      }}>
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          ← Back to Translator
+        </button>
+        
+        <h1 className={styles.title} style={{ margin: '0 0 0 20px' }}>
+          LLM Configuration
+        </h1>
+      </div>
+      
+      {/* API Key Management Section */}
+      <APIKeyManager />
+      
+      <hr className={styles.sectionDivider} />
+      
       {error && <p className={styles.errorMessage} style={{color: 'red', border: '1px solid red', padding: '10px', borderRadius: '4px'}}>Error: {error}</p>}
       {isLoading && <p>Loading LLM services...</p>}
       {!isLoading && !error && (
@@ -214,6 +255,11 @@ export default function LLMConfigurationPage() {
         {!modelManagementLoading && !modelManagementError && (
           <div>
             {systemResources && <SystemResourcesDisplay systemResources={systemResources} />}
+            <HuggingFaceModelManager onModelDownloaded={(model) => {
+              console.log('Model downloaded:', model);
+              fetchModelManagementData(); // Refresh system resources
+            }} />
+            <hr style={{ margin: '20px 0' }} />
             <ModelList 
               gemmaModels={gemmaModels}
               systemResources={systemResources}
@@ -226,10 +272,10 @@ export default function LLMConfigurationPage() {
 
       <hr className={styles.sectionDivider} />
 
+      {/* Grammar Configuration Section */}
       <div className={styles.settingsSection}>
         <h2 className={styles.sectionTitle}>Grammar Configuration</h2>
-        <p className={styles.placeholderText}>Interface for loading and managing .tgf files or other grammar definitions will go here.</p>
-        {/* Placeholder for grammar upload/selection components */}
+        <GrammarFileManager onGrammarSelected={(grammar) => console.log('Selected grammar:', grammar)} />
       </div>
 
       <hr className={styles.sectionDivider} />

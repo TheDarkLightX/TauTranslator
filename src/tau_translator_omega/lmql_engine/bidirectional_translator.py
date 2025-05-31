@@ -13,9 +13,12 @@ Key Features:
 """
 
 import re
+import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 # LMQL imports
 try:
@@ -23,7 +26,7 @@ try:
     LMQL_AVAILABLE = True
 except ImportError:
     LMQL_AVAILABLE = False
-    print("⚠️  LMQL not available - using pattern-based fallback")
+    logger.warning("LMQL not available - using pattern-based fallback")
 
 class TranslationDirection(Enum):
     """Direction of translation."""
@@ -131,7 +134,18 @@ class TCEPatternAnalyzer:
             'input_stream': r'input\s+stream\s+([a-zA-Z0-9_]+).*from\s+(.+)',
             'output_stream': r'output\s+stream\s+([a-zA-Z0-9_]+).*to\s+(.+)',
             
-            # Temporal expressions
+            # Constraint expressions (more specific patterns first)
+            'always_greater_than': r'(.+)\s+is\s+always\s+greater\s+than\s+(.+)',
+            'always_less_than': r'(.+)\s+is\s+always\s+less\s+than\s+(.+)', 
+            'always_equals': r'(.+)\s+is\s+always\s+equals?\s+(.+)',
+            'sometimes_greater_than': r'(.+)\s+is\s+sometimes\s+greater\s+than\s+(.+)',
+            'sometimes_less_than': r'(.+)\s+is\s+sometimes\s+less\s+than\s+(.+)',
+            'sometimes_equals': r'(.+)\s+is\s+sometimes\s+equals?\s+(.+)',
+            'greater_than': r'(.+)\s+(?:is\s+)?greater\s+than\s+(.+)',
+            'less_than': r'(.+)\s+(?:is\s+)?less\s+than\s+(.+)',
+            'equals_constraint': r'(.+)\s+(?:is\s+)?equals?\s+(.+)',
+            
+            # Temporal expressions (more general)
             'always_expr': r'always\s+(.+)',
             'sometimes_expr': r'sometimes\s+(.+)',
             
@@ -340,19 +354,55 @@ class LMQLBidirectionalTranslator:
                     warnings=[]
                 )
 
-            # Convert patterns to Tau
+            # Convert patterns to Tau - use first successful match for single sentences
             tau_lines = []
             detected_patterns = []
 
-            for pattern_type, matches in patterns.items():
-                detected_patterns.append(pattern_type)
+            # Priority order for pattern matching
+            pattern_priority = [
+                'always_greater_than', 'always_less_than', 'always_equals',
+                'sometimes_greater_than', 'sometimes_less_than', 'sometimes_equals',
+                'greater_than', 'less_than', 'equals_constraint',
+                'always_expr', 'sometimes_expr',
+                'and_expr', 'or_expr', 'not_expr', 'xor_expr',
+                'function_def', 'rule_def'
+            ]
 
-                for match_text, groups in matches:
-                    tau_line = self._convert_tce_pattern_to_tau(pattern_type, groups)
-                    if tau_line:
-                        tau_lines.append(tau_line)
+            # Try patterns in priority order
+            best_tau_line = None
+            best_pattern = None
+            
+            for pattern_type in pattern_priority:
+                if pattern_type in patterns:
+                    detected_patterns.append(pattern_type)
+                    matches = patterns[pattern_type]
+                    
+                    for match_text, groups in matches:
+                        tau_line = self._convert_tce_pattern_to_tau(pattern_type, groups)
+                        if tau_line and not best_tau_line:
+                            best_tau_line = tau_line
+                            best_pattern = pattern_type
+                            break
+                    
+                    if best_tau_line:
+                        break
 
-            tau_output = "\n".join(tau_lines)
+            # If no priority pattern found, use any available pattern
+            if not best_tau_line:
+                for pattern_type, matches in patterns.items():
+                    if pattern_type not in detected_patterns:
+                        detected_patterns.append(pattern_type)
+                    
+                    for match_text, groups in matches:
+                        tau_line = self._convert_tce_pattern_to_tau(pattern_type, groups)
+                        if tau_line:
+                            best_tau_line = tau_line
+                            break
+                    
+                    if best_tau_line:
+                        break
+
+            tau_output = best_tau_line if best_tau_line else ""
 
             return TranslationResult(
                 success=True,
@@ -459,23 +509,84 @@ class LMQLBidirectionalTranslator:
         return translations.get(stream_name, stream_name)
     
     def _convert_tce_pattern_to_tau(self, pattern_type: str, groups: List[str]) -> Optional[str]:
-        """Convert a TCE pattern to Tau using templates."""
-        if pattern_type == 'function_def' and len(groups) >= 2:
-            name = groups[0]
-            body = groups[1]
-            return f"{name}() := {body}"
+        """Convert a TCE pattern to Tau using registry-based approach."""
+        converter_registry = {
+            'function_def': self._convert_function_def,
+            'rule_def': self._convert_rule_def,
+            'always_greater_than': lambda g: self._convert_temporal_constraint('always', '>', g),
+            'always_less_than': lambda g: self._convert_temporal_constraint('always', '<', g),
+            'always_equals': lambda g: self._convert_temporal_constraint('always', '=', g),
+            'sometimes_greater_than': lambda g: self._convert_temporal_constraint('sometimes', '>', g),
+            'sometimes_less_than': lambda g: self._convert_temporal_constraint('sometimes', '<', g),
+            'sometimes_equals': lambda g: self._convert_temporal_constraint('sometimes', '=', g),
+            'always_expr': self._convert_always_expr,
+            'greater_than': lambda g: self._convert_binary_constraint('>', g),
+            'less_than': lambda g: self._convert_binary_constraint('<', g),
+            'equals_constraint': lambda g: self._convert_binary_constraint('=', g),
+            'and_expr': lambda g: self._convert_binary_expr('&', g),
+            'or_expr': lambda g: self._convert_binary_expr('|', g),
+            'not_expr': self._convert_not_expr,
+            'xor_expr': lambda g: self._convert_binary_expr('+', g),
+        }
         
-        elif pattern_type == 'rule_def' and len(groups) >= 1:
-            rule_text = groups[0]
-            # Simple heuristic conversion
-            return f"r o1[t] = {rule_text}"
+        converter = converter_registry.get(pattern_type)
+        if converter:
+            try:
+                return converter(groups)
+            except (IndexError, ValueError) as e:
+                logger.warning(f"Failed to convert pattern {pattern_type}: {e}")
+                return None
         
-        elif pattern_type == 'always_expr' and len(groups) >= 1:
-            expression = groups[0]
-            return f"always {expression}"
-        
-        # Add more pattern conversions as needed
         return None
+    
+    def _convert_function_def(self, groups: List[str]) -> Optional[str]:
+        """Convert function definition pattern."""
+        if len(groups) < 2:
+            return None
+        name, body = groups[0], groups[1]
+        return f"{name}() := {body}"
+    
+    def _convert_rule_def(self, groups: List[str]) -> Optional[str]:
+        """Convert rule definition pattern."""
+        if len(groups) < 1:
+            return None
+        rule_text = groups[0]
+        return f"r o1[t] = {rule_text}"
+    
+    def _convert_temporal_constraint(self, temporal: str, operator: str, groups: List[str]) -> Optional[str]:
+        """Convert temporal constraint patterns (always/sometimes)."""
+        if len(groups) < 2:
+            return None
+        var, val = groups[0].strip(), groups[1].strip()
+        return f"{temporal} ({var} {operator} {val})"
+    
+    def _convert_always_expr(self, groups: List[str]) -> Optional[str]:
+        """Convert always expression pattern."""
+        if len(groups) < 1:
+            return None
+        expression = groups[0].strip()
+        return f"always ({expression})"
+    
+    def _convert_binary_constraint(self, operator: str, groups: List[str]) -> Optional[str]:
+        """Convert binary constraint patterns."""
+        if len(groups) < 2:
+            return None
+        var, val = groups[0].strip(), groups[1].strip()
+        return f"{var} {operator} {val}"
+    
+    def _convert_binary_expr(self, operator: str, groups: List[str]) -> Optional[str]:
+        """Convert binary expression patterns."""
+        if len(groups) < 2:
+            return None
+        left, right = groups[0].strip(), groups[1].strip()
+        return f"{left} {operator} {right}"
+    
+    def _convert_not_expr(self, groups: List[str]) -> Optional[str]:
+        """Convert not expression pattern."""
+        if len(groups) < 1:
+            return None
+        expression = groups[0].strip()
+        return f"{expression}'"
 
     def _lmql_tau_to_tce_query(self, tau_text: str) -> str:
         """LMQL query for Tau to TCE translation."""
@@ -522,7 +633,7 @@ class LMQLBidirectionalTranslator:
             return self._enhanced_tau_to_tce_conversion(tau_text)
 
         except Exception as e:
-            print(f"Translation error: {e}")
+            logger.error(f"Translation error: {e}")
             return self._enhanced_tau_to_tce_conversion(tau_text)
 
     def _run_lmql_tce_to_tau(self, tce_text: str) -> str:
@@ -546,7 +657,7 @@ class LMQLBidirectionalTranslator:
             return self._enhanced_tce_to_tau_conversion(tce_text)
 
         except Exception as e:
-            print(f"Translation error: {e}")
+            logger.error(f"Translation error: {e}")
             return self._enhanced_tce_to_tau_conversion(tce_text)
 
     def _enhanced_tau_to_tce_conversion(self, tau_text: str) -> str:

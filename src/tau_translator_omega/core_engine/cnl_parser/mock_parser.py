@@ -6,7 +6,10 @@ without relying on Lark, allowing us to test the AST generation and transformer 
 """
 
 import re
+import logging
 from typing import Union, List, Optional
+
+logger = logging.getLogger(__name__)
 # Import AST nodes - handle both relative and absolute imports
 try:
     from .ast_nodes import (
@@ -94,7 +97,7 @@ class MockCNLParser:
         try:
             tokens = self.tokenize(text.strip())
             if self.debug:
-                print(f"Tokens: {tokens}")
+                logger.info(f"Tokens: {tokens}")
             
             # Parse the tokens into an AST
             ast = self._parse_sentence(tokens)

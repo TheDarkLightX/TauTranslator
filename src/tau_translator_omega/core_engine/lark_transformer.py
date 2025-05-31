@@ -74,7 +74,7 @@ class SimpleMathTransformer(Transformer):
         """Transforms the 'factor' rule.
         Handles various factor structures: numbers, parenthesized expressions, and unary operations.
         """
-        self.logger.debug(f"DEBUG: factor method received children: {children}, types: {[type(c) for c in children] if children else 'N/A'}")
+        # Log factor method inputs at info level if needed for diagnostics
 
         if not children:
             self.logger.error("FACTOR_METHOD_ERROR: No children received.")
@@ -88,11 +88,11 @@ class SimpleMathTransformer(Transformer):
             if operator_token.type == 'PLUS':
                 # For unary PLUS, effectively a no-op, return the operand directly
                 # This aligns with test_parse_unary_plus expecting LiteralNode for '+number'
-                self.logger.debug(f"Factor: Matched unary PLUS. Returning operand {type(operand_node)} directly.")
+                # Unary PLUS - return operand directly
                 return operand_node 
             elif operator_token.type == 'MINUS':
                 # For unary MINUS, create a UnaryExpressionNode
-                self.logger.debug(f"Factor: Matched unary MINUS. Creating UnaryExpressionNode for operand {type(operand_node)}.")
+                # Unary MINUS - create UnaryExpressionNode
                 return UnaryExpressionNode(operator=operator_token.value, 
                                            operand=operand_node, 
                                            location=self._get_location(operator_token))
@@ -106,13 +106,13 @@ class SimpleMathTransformer(Transformer):
         if len(children) == 3 and isinstance(children[0], Token) and children[0].type == 'LPAR' and \
            isinstance(children[1], ASTNode) and \
            isinstance(children[2], Token) and children[2].type == 'RPAR':
-            self.logger.debug(f"Factor: Matched parenthesized expression. Returning inner expression node: {type(children[1])}")
+            # Parenthesized expression - return inner expression
             # The middle child is the transformed expression node.
             return children[1] 
 
         # Case 3: Single ASTNode (e.g., a LiteralNode from NUMBER, or already processed factor)
         if len(children) == 1 and isinstance(children[0], ASTNode):
-            self.logger.debug(f"Factor: Matched single ASTNode child: {type(children[0])}")
+            # Single ASTNode child - pass through
             return children[0]
         
         # If none of the above, it's an unexpected structure
@@ -124,7 +124,7 @@ class SimpleMathTransformer(Transformer):
     @v_args(inline=False) # children are [factor_node, Token(OP), factor_node, Token(OP), factor_node ...]
     def term(self, children):
         """Handles 'term' rule: factor ( (TIMES|DIVIDE) factor )*"""
-        self.logger.debug(f"TERM_RECEIVED_CHILDREN: {children}, types: {[type(c) for c in children]}")
+        # Process term with received children
 
         left = children[0]
         if not isinstance(left, ASTNode):
@@ -147,16 +147,16 @@ class SimpleMathTransformer(Transformer):
             if not isinstance(right, ASTNode):
                 raise ValueError(f"Term expected ASTNode for right operand (from factor transform), got {type(right)}")
 
-            self.logger.debug(f"TERM_PROCESSING: current_result={current_result}, operator='{operator_token.value}', right_operand={right}")
+            # Process binary operation
             current_result = BinaryExpressionNode(left=current_result, operator=operator_token.value, right=right)
-            self.logger.debug(f"TERM_NEW_current_result: {current_result}")
+            # Binary operation completed
             i += 2
         return current_result
 
     @v_args(inline=False)
     def expr(self, children):
         """Handles 'expr' rule: term ( (ADD|SUB) term )*"""
-        self.logger.debug(f"EXPR_RECEIVED_CHILDREN: {children}, types: {[type(c) for c in children]}")
+        # Process expression with received children
 
         left = children[0]
         if not isinstance(left, ASTNode):
@@ -181,9 +181,9 @@ class SimpleMathTransformer(Transformer):
                 self.logger.error(f"EXPR_UNEXPECTED_RIGHT_OPERAND: Expected ASTNode at children[{i+1}] (from term transform), got {type(right)}. Children: {children}")
                 raise ValueError(f"Expr expected ASTNode for right operand (from term transform), got {type(right)}")
             
-            self.logger.debug(f"EXPR_PROCESSING: current_result={current_result}, operator='{operator_token.value}', right_operand={right}")
+            # Process binary operation
             current_result = BinaryExpressionNode(left=current_result, operator=operator_token.value, right=right)
-            self.logger.debug(f"EXPR_NEW_current_result: {current_result}")
+            # Binary operation completed
             i += 2
         return current_result
 
@@ -192,7 +192,7 @@ class SimpleMathTransformer(Transformer):
     def uminus(self, children):
         """Handles 'uminus' rule: MINUS factor"""
         # This method might be superseded if the main 'factor' method handles unary ops directly.
-        self.logger.debug(f"DEBUG: uminus received children: {children}")
+        # Process unary minus
         if len(children) == 2 and isinstance(children[0], Token) and children[0].type == 'MINUS' and isinstance(children[1], ASTNode):
             operator_token = children[0]
             operand_node = children[1]
@@ -205,7 +205,7 @@ class SimpleMathTransformer(Transformer):
     def uplus(self, children):
         """Handles 'uplus' rule: PLUS factor"""
         # This method might be superseded if the main 'factor' method handles unary ops directly.
-        self.logger.debug(f"DEBUG: uplus received children: {children}")
+        # Process unary plus
         if len(children) == 2 and isinstance(children[0], Token) and children[0].type == 'PLUS' and isinstance(children[1], ASTNode):
             operator_token = children[0]
             operand_node = children[1]
@@ -215,7 +215,7 @@ class SimpleMathTransformer(Transformer):
 
     @v_args(inline=True) # Assuming 'start: expr' means expr is the only child
     def start(self, top_expression_node):
-        self.logger.debug(f"START_RECEIVED_NODE: {top_expression_node}, type: {type(top_expression_node)}")
+        # Process start node with top expression
         # 'start: expr', so top_expression_node is the result of transforming 'expr'
         return top_expression_node
     # The 'start' rule of simple_math.lark is 'start: expr'.

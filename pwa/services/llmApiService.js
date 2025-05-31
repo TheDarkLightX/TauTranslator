@@ -45,7 +45,7 @@ export const deleteLLMService = (serviceId) => {
 };
 
 export const setDefaultLLMService = (serviceId) => {
-  return fetchAPI(`${API_BASE_URL}/llm-services/${serviceId}/set-default`, {
+  return fetchAPI(`${API_BASE_URL}/llm-services?id=set-default&serviceId=${encodeURIComponent(serviceId)}`, {
     method: 'POST',
   });
 };
@@ -61,7 +61,7 @@ export const getGemmaModels = () => {
 };
 
 export const downloadGemmaModel = (modelId, hfToken) => {
-  return fetchAPI(`${API_BASE_URL}/gemma-models/download`, {
+  return fetchAPI(`${API_BASE_URL}/gemma-models`, {
     method: 'POST',
     body: JSON.stringify({ model_id: modelId, hf_token: hfToken }),
   });
@@ -70,7 +70,7 @@ export const downloadGemmaModel = (modelId, hfToken) => {
 export const deleteGemmaModel = (modelId) => {
   // The backend expects slashes in modelId (e.g., 'google/gemma-3-2b-it'),
   // so direct inclusion is generally fine. fetch should handle encoding if needed.
-  return fetchAPI(`${API_BASE_URL}/gemma-models/${modelId}`, {
+  return fetchAPI(`${API_BASE_URL}/gemma-models?id=${encodeURIComponent(modelId)}`, {
     method: 'DELETE',
   });
 };

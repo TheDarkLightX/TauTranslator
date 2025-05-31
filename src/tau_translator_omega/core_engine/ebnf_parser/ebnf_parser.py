@@ -14,8 +14,11 @@ Features:
 """
 
 import re
+import logging
 from typing import List, Optional, Dict, Any
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from .ebnf_ast_nodes import (
     EBNFNode, GrammarNode, RuleNode, ChoiceNode, SequenceNode,
@@ -193,7 +196,7 @@ class EBNFParser:
         self.position = 0
         
         if self.debug:
-            print(f"Tokens: {self.tokens}")
+            logger.info(f"Tokens: {self.tokens}")
         
         # Parse grammar
         return self._parse_grammar()

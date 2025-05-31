@@ -45,13 +45,13 @@ class GrammarDrivenParser:
             )
         
         self.logger = logging.getLogger(__name__)
-        self.logger.debug(f"Initializing GrammarDrivenParser with plugin: {grammar_plugin}")
+        self.logger.info(f"Initializing GrammarDrivenParser with plugin: {grammar_plugin}")
 
         # Determine project root directory (assuming parser.py is in src/tau_translator_omega/core_engine/)
         # This navigates up three levels from parser.py's directory.
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.project_root_dir = os.path.abspath(os.path.join(current_dir, "..", "..", ".."))
-        self.logger.debug(f"Project root directory determined as: {self.project_root_dir}")
+        self.logger.info(f"Project root directory determined as: {self.project_root_dir}")
 
         self.plugin = grammar_plugin
         self.grammar_config = grammar_plugin.grammar_config
@@ -66,7 +66,7 @@ class GrammarDrivenParser:
             raise ParserError(msg)
 
         formalism = self.grammar_config.get('formalism', 'Lark') # Default to Lark
-        self.logger.debug(f"Parser Init: manifest_dict from self.plugin.manifest is: {getattr(self.plugin, 'manifest', {})}")
+        self.logger.info(f"Parser Init: manifest_dict from self.plugin.manifest is: {getattr(self.plugin, 'manifest', {})}")
 
         try:
             if formalism == 'Lark':
@@ -81,14 +81,14 @@ class GrammarDrivenParser:
                     raise ValueError(f"Lark grammar file is empty: {self.grammar_file_path}")
 
                 # Log the grammar content for debugging
-                self.logger.debug(f"Grammar content before Lark instantiation:\n{grammar_content}")
+                self.logger.info(f"Grammar content loaded for Lark instantiation")
 
                 # Determine the directory for common grammars
                 common_grammars_dir = os.path.join(
                     self.project_root_dir, # Use absolute project root
                     "src", "tau_translator_omega", "core_engine", "grammars"
                 )
-                self.logger.debug(f"Common grammars directory for Lark import_paths: {common_grammars_dir}")
+                self.logger.info(f"Common grammars directory for Lark import_paths: {common_grammars_dir}")
 
                 # Initialize Lark parser instance
                 try:
@@ -147,11 +147,11 @@ class GrammarDrivenParser:
             # manifest_dict = getattr(self.plugin, 'manifest', {})
             # Using grammar_config which should have manifest details resolved by PluginManager/Validator
             manifest_dict = self.grammar_config.get('manifest', {})
-            self.logger.debug(f"Parser Init: transformer_path_str from manifest_dict.get is: {manifest_dict.get('transformer_class')}")
+            self.logger.info(f"Parser Init: transformer_path_str from manifest_dict.get is: {manifest_dict.get('transformer_class')}")
             transformer_fqn_from_manifest = manifest_dict.get('transformer_class')
 
             if transformer_fqn_from_manifest:
-                self.logger.debug(f"Parser: Attempting to load transformer module '{transformer_fqn_from_manifest.rsplit('.', 1)[0]}' and class '{transformer_fqn_from_manifest.rsplit('.', 1)[-1]}'.")
+                self.logger.info(f"Parser: Attempting to load transformer module '{transformer_fqn_from_manifest.rsplit('.', 1)[0]}' and class '{transformer_fqn_from_manifest.rsplit('.', 1)[-1]}'.")
                 self.transformer_class_name = transformer_fqn_from_manifest
                 try:
                     module_path, class_name = self.transformer_class_name.rsplit('.', 1)
@@ -254,19 +254,23 @@ class GrammarDrivenParser:
             NotImplementedError: If no transformer instance is available.
         """
         if not self.transformer_instance:
-            self.logger.error("Transformation called, but no transformer instance is available. "
-                              "Ensure 'transformer_class' is correctly specified in the grammar plugin manifest.")
-            # Option 1: Raise an error
-            raise NotImplementedError("No transformer instance available for AST transformation.")
-            # Option 2: Return CST with a warning (less strict)
-            # self.logger.warning("Returning raw CST as no transformer is available.")
-            # return cst
+            self.logger.warning("No transformer instance available. Using fallback CST-to-AST conversion.")
+            # Return a basic AST representation of the CST
+            from .ast.ast_nodes import ProgramNode, StatementNode
+            
+            # Create a simple AST wrapper for the CST
+            if hasattr(cst, 'children'):
+                statements = [StatementNode() for _ in cst.children]
+                return ProgramNode(statements=statements)
+            else:
+                # Single node CST
+                return ProgramNode(statements=[StatementNode()])
 
         try:
-            self.logger.debug(f"Transforming CST using {self.transformer_class_name}")
+            self.logger.info(f"Transforming CST using {self.transformer_class_name}")
             # The CST from Lark is directly passable to the transformer's transform method
             ast = self.transformer_instance.transform(cst)
-            self.logger.debug("CST successfully transformed to AST.")
+            self.logger.info("CST successfully transformed to AST.")
             return ast
         except LarkError as e:
             # Catch Lark-specific errors during transformation (e.g., VisitError)

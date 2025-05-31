@@ -9,9 +9,12 @@ This module implements the high-impact optimizations identified in the performan
 """
 
 import re
+import logging
 from typing import Union, List, Optional, Iterator, Any
 from functools import lru_cache
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 # Import AST nodes - handle both relative and absolute imports
 try:
@@ -286,7 +289,7 @@ class OptimizedCNLParser:
         try:
             tokens = self.tokenizer.tokenize(text)
             if self.debug:
-                print(f"Tokens: {tokens}")
+                logger.info(f"Tokens: {tokens}")
             
             # Parse the tokens into an AST
             ast = self._parse_sentence(tokens)

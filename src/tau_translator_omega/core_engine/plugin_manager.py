@@ -194,14 +194,14 @@ class PluginManager:
                 existing_module_file = getattr(existing_module, '__file__', None)
                 if existing_module_file:
                     if Path(existing_module_file).resolve() != expected_module_file_path:
-                        logger.debug(
+                        logger.info(
                             f"Module '{module_name_to_import}' (ID: {plugin_id_for_logging}) already in sys.modules "
                             f"but from a different path ('{existing_module_file}' vs '{expected_module_file_path}'). "
                             f"Removing from cache for fresh import."
                         )
                         del sys.modules[module_name_to_import]
                     else:
-                        logger.debug(
+                        logger.info(
                             f"Module '{module_name_to_import}' (ID: {plugin_id_for_logging}) already in sys.modules "
                             f"and path matches. Using existing."
                         )
@@ -227,7 +227,7 @@ class PluginManager:
                 self._add_error("PLUGIN_ENTRY_NOT_CLASS", f"Entry point '{class_name}' in module '{module.__name__}' for plugin '{plugin_id_for_logging}' is not a class.", None) # Pass None for plugin_obj
                 return None
             # Removed issubclass check against BasePlugin as it's not defined for plugin instances
-            logger.debug(f"Successfully found class '{class_name}' for plugin '{plugin_id_for_logging}'.")
+            logger.info(f"Successfully found class '{class_name}' for plugin '{plugin_id_for_logging}'.")
             return plugin_class
         except AttributeError:
             self._add_error("PLUGIN_CLASS_NOT_FOUND", f"Class '{class_name}' not found in module '{module.__name__}' for plugin '{plugin_id_for_logging}'.", None) # Pass None for plugin_obj
@@ -258,7 +258,7 @@ class PluginManager:
                 if name in available_params:
                     init_args[name] = value
             
-            logger.debug(f"Prepared init args for {plugin_obj.id}: {init_args}")
+            logger.info(f"Prepared init args for {plugin_obj.id}: {init_args}")
             return init_args
         except Exception as e: # Broad catch for unexpected inspection issues
             self._add_error("PLUGIN_INIT_ARGS_PREP_ERROR", f"Error preparing __init__ arguments for plugin '{plugin_obj.id}': {e}", plugin_obj)
@@ -286,7 +286,7 @@ class PluginManager:
         Grammar definition plugins do not require instantiation by the PluginManager.
         """
         if plugin_obj.plugin_type == "grammar_definition":
-            logger.debug(f"Plugin '{plugin_obj.id}' is a grammar_definition type, no instance creation needed by PluginManager.")
+            logger.info(f"Plugin '{plugin_obj.id}' is a grammar_definition type, no instance creation needed by PluginManager.")
             return None # Grammar plugins don't have an instance managed this way
 
         if not plugin_obj.entry_point:
@@ -295,7 +295,7 @@ class PluginManager:
 
         # If entry point type is not 'module', no Python instance is loaded/created by PluginManager
         if plugin_obj.entry_point.type != 'module':
-            logger.debug(f"Plugin '{plugin_obj.id}' entry point type is '{plugin_obj.entry_point.type}', no Python module instantiation required by PluginManager.")
+            logger.info(f"Plugin '{plugin_obj.id}' entry point type is '{plugin_obj.entry_point.type}', no Python module instantiation required by PluginManager.")
             return None # For types like 'cli', instance is not managed this way
 
         # Check for missing module_path or class_name for 'module' type plugins
@@ -426,7 +426,7 @@ class PluginManager:
         try:
             is_valid, parsed_info, type_specific_errors = validator.validate_manifest(manifest_data, plugin_dir)
             if is_valid:
-                logger.debug(f"{plugin_type} validation successful for {plugin_candidate.id}.")
+                logger.info(f"{plugin_type} validation successful for {plugin_candidate.id}.")
                 return ValidationResult(success=True, config=parsed_info)
             else:
                 for error_msg in type_specific_errors:
@@ -444,7 +444,7 @@ class PluginManager:
             logger.warning(f"Plugin {plugin_candidate.id} has unknown type and no generic validator available. Plugin will not be loaded.")
             return False
 
-        logger.debug(f"Attempting generic validation for {plugin_candidate.id} of type {manifest_data.get('plugin_type')}.")
+        logger.info(f"Attempting generic validation for {plugin_candidate.id} of type {manifest_data.get('plugin_type')}.")
         try:
             is_valid_generic, parsed_config_generic, generic_errors = generic_validator.validate_manifest(manifest_data, plugin_dir)
             if is_valid_generic:
@@ -478,10 +478,10 @@ class PluginManager:
             logger.info(f"Scanning for plugins in: {plugin_root_dir}")
             # Recursively find all manifest.json files
             manifest_paths_found = list(plugin_root_dir.rglob("manifest.json"))
-            logger.debug(f"Manifests found in {plugin_root_dir}: {manifest_paths_found}")
+            logger.info(f"Manifests found in {plugin_root_dir}: {manifest_paths_found}")
 
             for manifest_path in manifest_paths_found:
-                logger.debug(f"Processing manifest_path: {manifest_path}")
+                logger.info(f"Processing manifest_path: {manifest_path}")
                 plugin_candidate_dir = manifest_path.parent
                 logger.info(f"Found potential plugin manifest: {manifest_path} in dir {plugin_candidate_dir}")
 
@@ -509,7 +509,7 @@ class PluginManager:
                 else:
                     # _process_manifest returned None, meaning some validation/check failed.
                     # Errors would have been logged by _process_manifest or its sub-methods.
-                    logger.debug(f"_process_manifest returned None for {manifest_path}. Plugin not loaded.")
+                    logger.info(f"_process_manifest returned None for {manifest_path}. Plugin not loaded.")
 
         if not self.plugins:
             logger.warning("No plugins were loaded after discovery.")
@@ -582,7 +582,7 @@ class PluginManager:
 
         # Check if registration was successful by seeing if it's in self.plugins
         if plugin_obj.id not in self.plugins:
-            logger.debug(f"Plugin '{plugin_obj.id}' was not added to manager.plugins after registration attempt. This typically means instantiation or a sub-step within registration failed (e.g., _load_and_instantiate_plugin returned None). Check previous logs for specific errors related to this plugin.")
+            logger.info(f"Plugin '{plugin_obj.id}' was not added to manager.plugins after registration attempt. This typically means instantiation or a sub-step within registration failed (e.g., _load_and_instantiate_plugin returned None). Check previous logs for specific errors related to this plugin.")
             return None # Explicitly return None if not actually registered
 
         return plugin_obj

@@ -284,3 +284,288 @@
   font-style: italic;
   font-size: 0.95rem;
 }
+
+/* Model Manager Styles */
+.modelManager {
+  margin-top: 20px;
+}
+
+.tokenSection {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.searchSection {
+  margin-bottom: 30px;
+}
+
+.searchResults {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.modelItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.badge {
+  background: #007bff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+.downloadBtn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.downloadBtn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.downloadedSection {
+  margin-top: 30px;
+}
+
+.modelsList {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.downloadedModel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.modelInfo {
+  flex: 1;
+}
+
+.modelActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusReady {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.statusMissing {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.deleteBtn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.popularSection {
+  margin-top: 30px;
+}
+
+.popularGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.popularModel {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.popularModel:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.1);
+}
+
+.popularModel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Grammar Manager Styles */
+.grammarManager {
+  margin-top: 20px;
+}
+
+.uploadArea {
+  border: 3px dashed #ddd;
+  border-radius: 10px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-bottom: 20px;
+}
+
+.uploadArea:hover, .uploadArea.dragOver {
+  border-color: #007bff;
+  background-color: #f0f8ff;
+}
+
+.uploadContent {
+  color: #666;
+}
+
+.spinner {
+  font-size: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.formatsInfo {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.formatsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.filesSection {
+  margin-top: 20px;
+}
+
+.filesList {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.grammarFile {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  padding: 15px;
+  transition: all 0.2s;
+}
+
+.grammarFile.activeFile {
+  border-color: #28a745;
+  background-color: #f8fff9;
+}
+
+.fileHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.fileIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.fileInfo {
+  flex: 1;
+}
+
+.fileName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.activeBadge {
+  background: #28a745;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.fileDetails {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.fileDescription {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.fileActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.activateBtn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.fileStatus {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.activeGrammarInfo {
+  margin-top: 20px;
+  padding: 15px;
+  background: #e7f5e7;
+  border: 1px solid #28a745;
+  border-radius: 6px;
+}
+
+.activeGrammarDetails {
+  margin-top: 10px;
+}

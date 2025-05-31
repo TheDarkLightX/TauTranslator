@@ -91,7 +91,7 @@ class TGFPreprocessor:
             processed_grammar = self.to_lark(current_input_source)
             return processed_grammar
         except PreprocessorError as e:
-            print(f"DEBUG TGFPP: preprocess caught PreprocessorError: {type(e).__name__}: {e}") # ADDED FOR DEBUG
+            # Debug: PreprocessorError caught in preprocess
             raise # Re-raise the original PreprocessorError
         except Exception as e:
             raise PreprocessorError(f"An unexpected error occurred during preprocessing: {e}") from e
@@ -121,7 +121,7 @@ class TGFPreprocessor:
             self._process_tgf_block(content.splitlines(), initial_processing_path)
             return "\n".join(sorted(list(self.lark_grammar_lines))) # Ensure consistent output order
         except PreprocessorError as e:
-            print(f"DEBUG TGFPP: to_lark caught PreprocessorError: {type(e).__name__}: {e}") # ADDED FOR DEBUG
+            # Debug: PreprocessorError caught in to_lark
             raise  # Re-raises PreprocessorError and its children
         except Exception as e:
             raise PreprocessorError(f"An unexpected error occurred during TGF to_lark conversion: {e}") from e
@@ -275,7 +275,7 @@ class TGFPreprocessor:
                 if self.current_rule_name:
                     self.current_rule_lines.append(line)
         except PreprocessorError as e:
-            print(f"DEBUG TGFPP: _process_line caught PreprocessorError: {type(e).__name__}: {e}") # ADDED FOR DEBUG
+            # Debug: PreprocessorError caught in _process_line
             raise
         except Exception as e:
             # Log unexpected errors before wrapping them

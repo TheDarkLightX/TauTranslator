@@ -1,32 +1,26 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-dev-debug.log
-
-# Dependency directories
-node_modules/
-
-# Environment variables
+# Security-critical files - NEVER commit
 .env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
 
-# Editor directories and files
-.idea
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# System prompts and internal documentation
+*system_prompt*
+*vibearchitect*
+vibearchitect*
+compressed_vibearchitect_prompt.md
+system_prompts/
+internal_docs/
+CLAUDE.md
 
-# OS specific
-.DS_Store
-
-# Task files
-tasks.json
-tasks/
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
 
 # Python
 __pycache__/
@@ -51,55 +45,64 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
-.venv/
-venv/
-tau_env/
-ENV/
-env/
-
 # Testing
 .coverage
-.pytest_cache/
-.tox/
+.coverage.*
 htmlcov/
-.nox/
+.tox/
+.pytest_cache/
+.hypothesis/
+test-results/
+mutation-testing-report/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
 
-# pyenv
-.python-version
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
 
-# Secrets and API keys
-*.key
-*.pem
-api_keys.json
-secrets.json
+# Logs - but track structure
+logs/*
+!logs/.gitkeep
+sessions/*
+!sessions/.gitkeep
 
-# Model files (large)
-models/gemma3/
-*.bin
-*.safetensors
-*.gguf
+# Security artifacts
+security-scan-results/
+vulnerability-report.json
+
+# Performance profiling
+*.prof
+*.stats
+flame-graphs/
+
+# Documentation builds
+docs/_build/
+site/
 
 # Temporary files
 *.tmp
 *.temp
+*.bak
 .cache/
 
-# IDE specific
-.cursor/
-.roo/
-.roomodes
-.taskmasterconfig
-.windsurfrules
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
-# OS specific
-.DS_Store
-Thumbs.db
-
-# Backup files
-*.bak
-*.backup
-*~
+# Model files (large)
+models/*
+!models/.gitkeep
+*.bin
+*.onnx
+*.pt
+*.h5

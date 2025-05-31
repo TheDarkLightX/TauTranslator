@@ -6,6 +6,7 @@ export default function BackendStatusChecker() {
     llmService: 'checking',
     proxy: 'checking'
   });
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     checkBackendStatus();
@@ -57,6 +58,8 @@ export default function BackendStatusChecker() {
     }
   };
 
+  if (!isVisible) return null;
+
   return (
     <div style={{
       position: 'fixed',
@@ -71,7 +74,22 @@ export default function BackendStatusChecker() {
       zIndex: 9999,
       minWidth: '200px'
     }}>
-      <h4 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>Backend Status</h4>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <h4 style={{ margin: 0, fontSize: '14px' }}>Backend Status</h4>
+        <button 
+          onClick={() => setIsVisible(false)}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '16px',
+            cursor: 'pointer',
+            padding: '0',
+            color: '#666'
+          }}
+        >
+          ×
+        </button>
+      </div>
       
       <div style={{ marginBottom: '4px' }}>
         {getStatusIcon(status.mainBackend)} Main Backend (Port 8000): {getStatusText(status.mainBackend)}

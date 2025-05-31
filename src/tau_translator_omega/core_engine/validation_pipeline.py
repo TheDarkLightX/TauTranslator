@@ -38,7 +38,7 @@ class ValidationContext:
     def update_config(self, updates: Dict[str, Any]) -> None:
         """Update the configuration with new values."""
         self.config.update(updates)
-        logger.debug(f"Updated config for plugin {self.plugin_id}: {list(updates.keys())}")
+        logger.info(f"Updated config for plugin {self.plugin_id}: {list(updates.keys())}")
 
 
 @dataclass
@@ -91,7 +91,7 @@ class SchemaValidationStage(ValidationStage):
         try:
             from jsonschema import validate, ValidationError
             validate(instance=context.manifest_data, schema=self.schema)
-            self.logger.debug(f"Schema validation passed for plugin {context.plugin_id}")
+            self.logger.info(f"Schema validation passed for plugin {context.plugin_id}")
             return StageResult.success_with_data({})
         except ValidationError as e:
             error_msg = f"Schema validation failed: {e.message} (path: {list(e.path)})"
@@ -131,7 +131,7 @@ class FileExistenceStage(ValidationStage):
             # Store resolved path
             resolved_key = f"resolved_{field_path.replace('.', '_')}_path"
             config_updates[resolved_key] = str(full_path.resolve())
-            self.logger.debug(f"Validated file existence: {full_path}")
+            self.logger.info(f"Validated file existence: {full_path}")
         
         return StageResult.success_with_data(config_updates)
     
@@ -159,10 +159,10 @@ class ValidationPipeline:
         """Run all validation stages and return the final context."""
         context = ValidationContext(manifest_data, plugin_dir)
         
-        self.logger.debug(f"Starting validation pipeline for plugin {context.plugin_id} with {len(self.stages)} stages")
+        self.logger.info(f"Starting validation pipeline for plugin {context.plugin_id} with {len(self.stages)} stages")
         
         for stage in self.stages:
-            self.logger.debug(f"Running stage: {stage.name}")
+            self.logger.info(f"Running stage: {stage.name}")
             result = stage.validate(context)
             
             if not result.success:
@@ -172,7 +172,7 @@ class ValidationPipeline:
             
             # Update context with stage results
             context.update_config(result.data)
-            self.logger.debug(f"Stage {stage.name} completed successfully for plugin {context.plugin_id}")
+            self.logger.info(f"Stage {stage.name} completed successfully for plugin {context.plugin_id}")
         
         success = len(context.errors) == 0
         self.logger.info(f"Validation pipeline {'succeeded' if success else 'failed'} for plugin {context.plugin_id}")

@@ -60,7 +60,7 @@ class VersionHandler:
         supported_versions_list = getattr(plugin, 'ilr_versions_supported', None)
 
         if not supported_versions_list: # Handles None or empty list
-            logger.debug(f"Plugin '{plugin_id}' specifies no ILR version constraints (ilr_versions_supported is missing or empty). Assuming compatibility.")
+            logger.info(f"Plugin '{plugin_id}' specifies no ILR version constraints (ilr_versions_supported is missing or empty). Assuming compatibility.")
             return True, []
 
         if not isinstance(supported_versions_list, list):
@@ -89,7 +89,7 @@ class VersionHandler:
                 # However, SpecifierSet itself will raise InvalidSpecifier for non-versions, which is cleaner here.
                 # Let's assume if no operator, it's intended as an exact version.
                 current_spec_str = f"=={current_spec_str}"
-                logger.debug(f"Plain version string '{version_specifier_str}' detected. Interpreting as '{current_spec_str}'.")
+                logger.info(f"Plain version string '{version_specifier_str}' detected. Interpreting as '{current_spec_str}'.")
 
             try:
                 specifier_set = SpecifierSet(current_spec_str) # Use modified string

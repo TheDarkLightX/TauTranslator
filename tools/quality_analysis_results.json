@@ -1,0 +1,641 @@
+{
+  "project_metrics": {
+    "total_files": 11,
+    "total_functions": 103,
+    "average_complexity": 3.08,
+    "max_complexity": 13,
+    "files_needing_attention": 0
+  },
+  "most_complex_functions": [
+    {
+      "name": "analyze_quality",
+      "file_path": "~/TauTranslator/tools/dev_tools.py",
+      "start_line": 151,
+      "end_line": 205,
+      "cyclomatic_complexity": 13,
+      "cognitive_complexity": 21,
+      "lines_of_code": 55,
+      "parameters": 1,
+      "nesting_depth": 4,
+      "issues": [
+        "High cyclomatic complexity: 13",
+        "High cognitive complexity: 21",
+        "Long function: 55 lines",
+        "High nesting: 4 levels"
+      ]
+    },
+    {
+      "name": "analyze_complexity",
+      "file_path": "~/TauTranslator/tools/dev_tools.py",
+      "start_line": 56,
+      "end_line": 110,
+      "cyclomatic_complexity": 10,
+      "cognitive_complexity": 26,
+      "lines_of_code": 55,
+      "parameters": 1,
+      "nesting_depth": 6,
+      "issues": [
+        "High cognitive complexity: 26",
+        "Long function: 55 lines",
+        "Deep nesting: 6 levels"
+      ]
+    },
+    {
+      "name": "_identify_function_issues",
+      "file_path": "~/TauTranslator/tools/code_quality_tool.py",
+      "start_line": 204,
+      "end_line": 231,
+      "cyclomatic_complexity": 10,
+      "cognitive_complexity": 13,
+      "lines_of_code": 28,
+      "parameters": 4,
+      "nesting_depth": 2,
+      "issues": []
+    },
+    {
+      "name": "main",
+      "file_path": "~/TauTranslator/tools/check_backend_status.py",
+      "start_line": 54,
+      "end_line": 98,
+      "cyclomatic_complexity": 9,
+      "cognitive_complexity": 15,
+      "lines_of_code": 45,
+      "parameters": 0,
+      "nesting_depth": 3,
+      "issues": []
+    },
+    {
+      "name": "main",
+      "file_path": "~/TauTranslator/tools/dev_tools.py",
+      "start_line": 506,
+      "end_line": 553,
+      "cyclomatic_complexity": 9,
+      "cognitive_complexity": 29,
+      "lines_of_code": 48,
+      "parameters": 0,
+      "nesting_depth": 7,
+      "issues": [
+        "High cognitive complexity: 29",
+        "Deep nesting: 7 levels"
+      ]
+    },
+    {
+      "name": "analyze_project",
+      "file_path": "~/TauTranslator/tools/analyze_complexity.py",
+      "start_line": 118,
+      "end_line": 188,
+      "cyclomatic_complexity": 9,
+      "cognitive_complexity": 18,
+      "lines_of_code": 71,
+      "parameters": 0,
+      "nesting_depth": 4,
+      "issues": [
+        "High cognitive complexity: 18",
+        "Long function: 71 lines",
+        "High nesting: 4 levels"
+      ]
+    },
+    {
+      "name": "find_code_smells",
+      "file_path": "~/TauTranslator/tools/dev_tools.py",
+      "start_line": 399,
+      "end_line": 442,
+      "cyclomatic_complexity": 8,
+      "cognitive_complexity": 12,
+      "lines_of_code": 44,
+      "parameters": 1,
+      "nesting_depth": 3,
+      "issues": []
+    },
+    {
+      "name": "_identify_code_smells",
+      "file_path": "~/TauTranslator/tools/code_quality_tool.py",
+      "start_line": 281,
+      "end_line": 310,
+      "cyclomatic_complexity": 8,
+      "cognitive_complexity": 14,
+      "lines_of_code": 30,
+      "parameters": 2,
+      "nesting_depth": 3,
+      "issues": []
+    },
+    {
+      "name": "validate_test_file",
+      "file_path": "~/TauTranslator/tools/validate_tests.py",
+      "start_line": 88,
+      "end_line": 139,
+      "cyclomatic_complexity": 8,
+      "cognitive_complexity": 9,
+      "lines_of_code": 52,
+      "parameters": 0,
+      "nesting_depth": 2,
+      "issues": [
+        "Long function: 52 lines"
+      ]
+    },
+    {
+      "name": "run_basic_test",
+      "file_path": "~/TauTranslator/tools/validate_tests.py",
+      "start_line": 161,
+      "end_line": 221,
+      "cyclomatic_complexity": 8,
+      "cognitive_complexity": 8,
+      "lines_of_code": 61,
+      "parameters": 0,
+      "nesting_depth": 2,
+      "issues": [
+        "Long function: 61 lines"
+      ]
+    }
+  ],
+  "file_metrics": {
+    "check_backend_status.py": {
+      "cyclomatic_complexity": 6.333333333333333,
+      "cognitive_complexity": 8.333333333333334,
+      "maintainability_index": 0,
+      "lines_of_code": 106,
+      "logical_lines": 92,
+      "comment_ratio": 1.8867924528301887,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 1.9000000000000001,
+      "code_smells": [
+        "Line 15: Magic number 127",
+        "Line 16: Magic number 200",
+        "Line 22: Deep nesting (level 5)",
+        "Line 23: Deep nesting (level 5)",
+        "Line 40: Magic number 127",
+        "Line 40: Magic number 3000",
+        "Line 41: Magic number 200",
+        "Line 42: Magic number 3000",
+        "Line 45: Magic number 3000",
+        "Line 48: Magic number 3000",
+        "Line 51: Magic number 3000",
+        "Line 60: Magic number 8000",
+        "Line 61: Magic number 45311",
+        "Line 92: Magic number 8000",
+        "Line 92: Magic number 45311",
+        "Line 92: Magic number 3000",
+        "Line 93: Magic number 8000",
+        "Line 93: Magic number 45311",
+        "Line 93: Magic number 3000"
+      ]
+    },
+    "debug_nlp_integration.py": {
+      "cyclomatic_complexity": 4.0,
+      "cognitive_complexity": 5.0,
+      "maintainability_index": 45.87732122064007,
+      "lines_of_code": 52,
+      "logical_lines": 40,
+      "comment_ratio": 3.8461538461538463,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.0,
+      "code_smells": []
+    },
+    "debug_ilr_cnl.py": {
+      "cyclomatic_complexity": 0,
+      "cognitive_complexity": 0,
+      "maintainability_index": 41.400000000000006,
+      "lines_of_code": 64,
+      "logical_lines": 52,
+      "comment_ratio": 4.6875,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.6000000000000001,
+      "code_smells": [
+        "Line 11: Magic number 8003",
+        "Line 16: Magic number 200",
+        "Line 24: Magic number 8003",
+        "Line 29: Magic number 200",
+        "Line 53: Magic number 8003",
+        "Line 58: Magic number 200"
+      ]
+    },
+    "dev_tools.py": {
+      "cyclomatic_complexity": 3.3461538461538463,
+      "cognitive_complexity": 4.923076923076923,
+      "maintainability_index": 0,
+      "lines_of_code": 557,
+      "logical_lines": 434,
+      "comment_ratio": 3.7701974865350087,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 8.5,
+      "code_smells": [
+        "Line 69: Deep nesting (level 5)",
+        "Line 71: Deep nesting (level 5)",
+        "Line 79: Deep nesting (level 5)",
+        "Line 80: Deep nesting (level 6)",
+        "Line 81: Deep nesting (level 7)",
+        "Line 82: Deep nesting (level 8)",
+        "Line 83: Deep nesting (level 8)",
+        "Line 84: Deep nesting (level 8)",
+        "Line 85: Deep nesting (level 8)",
+        "Line 86: Deep nesting (level 8)",
+        "Line 87: Deep nesting (level 8)",
+        "Line 88: Deep nesting (level 9)",
+        "Line 89: Deep nesting (level 10)",
+        "Line 90: Deep nesting (level 10)",
+        "Line 91: Deep nesting (level 10)",
+        "Line 92: Deep nesting (level 10)",
+        "Line 93: Deep nesting (level 9)",
+        "Line 96: Deep nesting (level 5)",
+        "Line 98: Deep nesting (level 5)",
+        "Line 101: Deep nesting (level 5)",
+        "Line 102: Deep nesting (level 5)",
+        "Line 103: Deep nesting (level 5)",
+        "Line 104: Deep nesting (level 5)",
+        "Line 105: Deep nesting (level 5)",
+        "Line 129: Deep nesting (level 5)",
+        "Line 130: Deep nesting (level 5)",
+        "Line 131: Deep nesting (level 6)",
+        "Line 132: Deep nesting (level 5)",
+        "Line 135: Deep nesting (level 5)",
+        "Line 139: Deep nesting (level 5)",
+        "Line 140: Deep nesting (level 5)",
+        "Line 141: Deep nesting (level 5)",
+        "Line 142: Deep nesting (level 5)",
+        "Line 143: Deep nesting (level 5)",
+        "Line 144: Deep nesting (level 5)",
+        "Line 166: Deep nesting (level 5)",
+        "Line 167: Deep nesting (level 6)",
+        "Line 168: Deep nesting (level 6)",
+        "Line 169: Deep nesting (level 7)",
+        "Line 170: Deep nesting (level 8)",
+        "Line 171: Deep nesting (level 8)",
+        "Line 172: Deep nesting (level 8)",
+        "Line 173: Deep nesting (level 8)",
+        "Line 174: Deep nesting (level 7)",
+        "Line 195: Deep nesting (level 5)",
+        "Line 196: Deep nesting (level 6)",
+        "Line 218: Deep nesting (level 5)",
+        "Line 219: Deep nesting (level 6)",
+        "Line 240: Deep nesting (level 5)",
+        "Line 241: Deep nesting (level 6)",
+        "Line 271: Deep nesting (level 5)",
+        "Line 272: Deep nesting (level 5)",
+        "Line 273: Deep nesting (level 6)",
+        "Line 274: Deep nesting (level 6)",
+        "Line 275: Deep nesting (level 7)",
+        "Line 276: Deep nesting (level 7)",
+        "Line 277: Deep nesting (level 7)",
+        "Line 278: Deep nesting (level 7)",
+        "Line 279: Deep nesting (level 6)",
+        "Line 409: Magic number 120",
+        "Line 410: Deep nesting (level 5)",
+        "Line 411: Deep nesting (level 6)",
+        "Line 412: Deep nesting (level 6)",
+        "Line 413: Deep nesting (level 6)",
+        "Line 414: Magic number 120",
+        "Line 414: Deep nesting (level 6)",
+        "Line 415: Deep nesting (level 5)",
+        "Line 417: Technical debt marker",
+        "Line 418: Technical debt marker",
+        "Line 419: Deep nesting (level 5)",
+        "Line 420: Technical debt marker",
+        "Line 420: Deep nesting (level 6)",
+        "Line 421: Deep nesting (level 6)",
+        "Line 422: Technical debt marker",
+        "Line 422: Deep nesting (level 6)",
+        "Line 423: Deep nesting (level 5)",
+        "Line 428: Deep nesting (level 5)",
+        "Line 429: Deep nesting (level 6)",
+        "Line 430: Deep nesting (level 7)",
+        "Line 431: Deep nesting (level 7)",
+        "Line 432: Deep nesting (level 7)",
+        "Line 433: Deep nesting (level 7)",
+        "Line 434: Deep nesting (level 6)",
+        "Line 525: Deep nesting (level 5)",
+        "Line 528: Deep nesting (level 5)"
+      ]
+    },
+    "debug_amr_detailed.py": {
+      "cyclomatic_complexity": 5.0,
+      "cognitive_complexity": 7.0,
+      "maintainability_index": 51.986748950746474,
+      "lines_of_code": 46,
+      "logical_lines": 36,
+      "comment_ratio": 2.1739130434782608,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.0,
+      "code_smells": []
+    },
+    "code_quality_tool.py": {
+      "cyclomatic_complexity": 2.925925925925926,
+      "cognitive_complexity": 2.5925925925925926,
+      "maintainability_index": 0,
+      "lines_of_code": 597,
+      "logical_lines": 438,
+      "comment_ratio": 6.532663316582915,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 2.1,
+      "code_smells": [
+        "Line 47: Deep nesting (level 5)",
+        "Line 246: Deep nesting (level 5)",
+        "Line 248: Deep nesting (level 5)",
+        "Line 262: Magic number 171",
+        "Line 263: Deep nesting (level 7)",
+        "Line 288: Magic number 120",
+        "Line 291: Technical debt marker",
+        "Line 292: Technical debt marker",
+        "Line 299: Deep nesting (level 5)",
+        "Line 342: Deep nesting (level 5)",
+        "Line 343: Deep nesting (level 5)",
+        "Line 344: Deep nesting (level 5)",
+        "Line 345: Deep nesting (level 5)",
+        "Line 371: Deep nesting (level 5)",
+        "Line 372: Deep nesting (level 5)",
+        "Line 373: Deep nesting (level 5)",
+        "Line 499: Deep nesting (level 8)",
+        "Line 500: Deep nesting (level 8)",
+        "Line 519: Deep nesting (level 10)",
+        "Line 536: Deep nesting (level 6)",
+        "Line 542: Deep nesting (level 8)"
+      ]
+    },
+    "debug_utilities.py": {
+      "cyclomatic_complexity": 2.185185185185185,
+      "cognitive_complexity": 1.7407407407407407,
+      "maintainability_index": 0,
+      "lines_of_code": 450,
+      "logical_lines": 346,
+      "comment_ratio": 4.0,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 8.700000000000001,
+      "code_smells": [
+        "Line 52: Deep nesting (level 5)",
+        "Line 53: Deep nesting (level 5)",
+        "Line 54: Deep nesting (level 5)",
+        "Line 55: Deep nesting (level 5)",
+        "Line 56: Deep nesting (level 5)",
+        "Line 61: Deep nesting (level 5)",
+        "Line 62: Deep nesting (level 5)",
+        "Line 66: Deep nesting (level 5)",
+        "Line 67: Deep nesting (level 5)",
+        "Line 68: Deep nesting (level 5)",
+        "Line 69: Deep nesting (level 5)",
+        "Line 70: Deep nesting (level 6)",
+        "Line 71: Deep nesting (level 6)",
+        "Line 72: Deep nesting (level 6)",
+        "Line 73: Deep nesting (level 5)",
+        "Line 74: Deep nesting (level 5)",
+        "Line 75: Deep nesting (level 5)",
+        "Line 76: Deep nesting (level 5)",
+        "Line 77: Deep nesting (level 6)",
+        "Line 78: Deep nesting (level 5)",
+        "Line 79: Deep nesting (level 5)",
+        "Line 80: Deep nesting (level 5)",
+        "Line 83: Deep nesting (level 5)",
+        "Line 84: Deep nesting (level 5)",
+        "Line 85: Deep nesting (level 6)",
+        "Line 86: Deep nesting (level 6)",
+        "Line 87: Deep nesting (level 6)",
+        "Line 88: Deep nesting (level 6)",
+        "Line 89: Deep nesting (level 6)",
+        "Line 90: Deep nesting (level 5)",
+        "Line 91: Deep nesting (level 5)",
+        "Line 92: Deep nesting (level 5)",
+        "Line 93: Deep nesting (level 5)",
+        "Line 94: Deep nesting (level 5)",
+        "Line 119: Deep nesting (level 5)",
+        "Line 120: Deep nesting (level 5)",
+        "Line 121: Deep nesting (level 5)",
+        "Line 122: Deep nesting (level 5)",
+        "Line 123: Deep nesting (level 5)",
+        "Line 124: Deep nesting (level 5)",
+        "Line 125: Deep nesting (level 5)",
+        "Line 126: Deep nesting (level 5)",
+        "Line 133: Deep nesting (level 5)",
+        "Line 136: Deep nesting (level 5)",
+        "Line 145: Deep nesting (level 5)",
+        "Line 146: Deep nesting (level 5)",
+        "Line 147: Deep nesting (level 5)",
+        "Line 148: Deep nesting (level 5)",
+        "Line 149: Deep nesting (level 5)",
+        "Line 150: Deep nesting (level 5)",
+        "Line 151: Deep nesting (level 5)",
+        "Line 199: Long line (125 chars)",
+        "Line 202: Long line (131 chars)",
+        "Line 217: Deep nesting (level 5)",
+        "Line 218: Deep nesting (level 5)",
+        "Line 219: Deep nesting (level 5)",
+        "Line 220: Long line (139 chars)",
+        "Line 220: Deep nesting (level 5)",
+        "Line 269: Deep nesting (level 5)",
+        "Line 270: Deep nesting (level 5)",
+        "Line 271: Deep nesting (level 5)",
+        "Line 272: Deep nesting (level 8)",
+        "Line 293: Deep nesting (level 5)",
+        "Line 294: Deep nesting (level 5)",
+        "Line 295: Deep nesting (level 5)",
+        "Line 296: Deep nesting (level 5)",
+        "Line 328: Deep nesting (level 5)",
+        "Line 329: Deep nesting (level 5)",
+        "Line 330: Deep nesting (level 5)",
+        "Line 331: Deep nesting (level 5)",
+        "Line 332: Deep nesting (level 6)",
+        "Line 333: Deep nesting (level 7)",
+        "Line 334: Long line (129 chars)",
+        "Line 334: Deep nesting (level 7)",
+        "Line 335: Deep nesting (level 7)",
+        "Line 336: Deep nesting (level 6)",
+        "Line 337: Deep nesting (level 6)",
+        "Line 338: Deep nesting (level 5)",
+        "Line 343: Deep nesting (level 5)",
+        "Line 349: Deep nesting (level 5)",
+        "Line 350: Deep nesting (level 5)",
+        "Line 351: Deep nesting (level 5)",
+        "Line 352: Deep nesting (level 5)",
+        "Line 383: Deep nesting (level 5)",
+        "Line 384: Deep nesting (level 5)",
+        "Line 385: Deep nesting (level 5)",
+        "Line 439: Magic number 200"
+      ]
+    },
+    "debug_cnl_parser.py": {
+      "cyclomatic_complexity": 3.0,
+      "cognitive_complexity": 3.0,
+      "maintainability_index": 70.55322924888284,
+      "lines_of_code": 33,
+      "logical_lines": 26,
+      "comment_ratio": 3.0303030303030303,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.0,
+      "code_smells": []
+    },
+    "debug_cnl_proper.py": {
+      "cyclomatic_complexity": 3.0,
+      "cognitive_complexity": 3.0,
+      "maintainability_index": 73.41736144495256,
+      "lines_of_code": 31,
+      "logical_lines": 24,
+      "comment_ratio": 3.225806451612903,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.0,
+      "code_smells": []
+    },
+    "analyze_complexity.py": {
+      "cyclomatic_complexity": 2.5,
+      "cognitive_complexity": 2.5,
+      "maintainability_index": 0,
+      "lines_of_code": 191,
+      "logical_lines": 141,
+      "comment_ratio": 7.329842931937172,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.1,
+      "code_smells": [
+        "Line 186: Deep nesting (level 5)"
+      ]
+    },
+    "validate_tests.py": {
+      "cyclomatic_complexity": 5.5,
+      "cognitive_complexity": 5.666666666666667,
+      "maintainability_index": 0,
+      "lines_of_code": 271,
+      "logical_lines": 199,
+      "comment_ratio": 7.380073800738007,
+      "test_coverage": 0.0,
+      "duplication_percentage": 0.0,
+      "technical_debt_ratio": 0.0,
+      "code_smells": []
+    }
+  },
+  "repository_structure": {
+    "directory_structure": {
+      "directories": [],
+      "total_directories": 0,
+      "missing_standard_dirs": [
+        "src",
+        "scripts",
+        "docs",
+        "tests"
+      ]
+    },
+    "file_organization": {
+      "root_files": [
+        {
+          "name": "check_backend_status.py",
+          "size": 3799,
+          "extension": ".py"
+        },
+        {
+          "name": "debug_nlp_integration.py",
+          "size": 1623,
+          "extension": ".py"
+        },
+        {
+          "name": "debug_ilr_cnl.py",
+          "size": 1875,
+          "extension": ".py"
+        },
+        {
+          "name": "dev_tools.py",
+          "size": 19963,
+          "extension": ".py"
+        },
+        {
+          "name": "debug_amr_detailed.py",
+          "size": 1382,
+          "extension": ".py"
+        },
+        {
+          "name": "code_quality_tool.py",
+          "size": 22277,
+          "extension": ".py"
+        },
+        {
+          "name": "quality_analysis_results.json",
+          "size": 20945,
+          "extension": ".json"
+        },
+        {
+          "name": "debug_utilities.py",
+          "size": 17704,
+          "extension": ".py"
+        },
+        {
+          "name": "debug_cnl_parser.py",
+          "size": 809,
+          "extension": ".py"
+        },
+        {
+          "name": "debug_cnl_proper.py",
+          "size": 779,
+          "extension": ".py"
+        },
+        {
+          "name": "analyze_complexity.py",
+          "size": 6510,
+          "extension": ".py"
+        },
+        {
+          "name": "validate_tests.py",
+          "size": 8631,
+          "extension": ".py"
+        }
+      ],
+      "root_file_count": 12,
+      "files_by_type": {
+        ".py": [
+          "check_backend_status.py",
+          "debug_nlp_integration.py",
+          "debug_ilr_cnl.py",
+          "dev_tools.py",
+          "debug_amr_detailed.py",
+          "code_quality_tool.py",
+          "debug_utilities.py",
+          "debug_cnl_parser.py",
+          "debug_cnl_proper.py",
+          "analyze_complexity.py",
+          "validate_tests.py"
+        ],
+        ".json": [
+          "quality_analysis_results.json"
+        ]
+      },
+      "code_files_in_root": 11
+    },
+    "naming_conventions": {
+      "naming_issues": [],
+      "snake_case_files": 12,
+      "kebab_case_files": 0
+    },
+    "documentation_structure": {
+      "readme_files": [],
+      "documentation_files": 0,
+      "has_docs_directory": false
+    },
+    "test_organization": {
+      "test_files": 0,
+      "test_directories": 0,
+      "has_tests_directory": false
+    },
+    "issues": [
+      "Missing standard directories: {'src', 'scripts', 'docs', 'tests'}",
+      "Too many code files in root directory",
+      "Missing README file"
+    ],
+    "recommendations": [
+      "Create 'src' directory for source code",
+      "Create 'tests' directory for test files",
+      "Create 'docs' directory for documentation",
+      "Move Python files to 'src' directory",
+      "Add README.md file"
+    ]
+  },
+  "recommendations": [
+    "Improve maintainability of 8 files",
+    "Create 'src' directory for source code",
+    "Create 'tests' directory for test files",
+    "Create 'docs' directory for documentation",
+    "Move Python files to 'src' directory",
+    "Add README.md file"
+  ]
+}

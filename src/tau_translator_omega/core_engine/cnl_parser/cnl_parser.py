@@ -14,8 +14,11 @@ Features:
 """
 
 import re
+import logging
 from typing import List, Union, Optional, Any, Dict
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 # Token patterns for O(n) tokenization
 TOKEN_PATTERNS = {
@@ -86,27 +89,23 @@ class ArithmeticNode(ExprNode):
 @dataclass
 class ConstantNode(AtomNode, ArithmeticNode):
     """Memory-optimized constant node."""
-    __slots__ = ('value', 'value_type')
     value: Any
     value_type: str
 
 @dataclass  
 class VariableNode(AtomNode, ArithmeticNode):
     """Memory-optimized variable node."""
-    __slots__ = ('name',)
     name: str
 
 @dataclass
 class PredicateCallNode(ArithmeticNode):
     """Memory-optimized predicate call node."""
-    __slots__ = ('name', 'args')
     name: str
     args: List[ExprNode]
 
 @dataclass
 class ComparisonNode(ExprNode):
     """Memory-optimized comparison node."""
-    __slots__ = ('left', 'operator', 'right')
     left: ArithmeticNode
     operator: str
     right: ArithmeticNode
@@ -114,7 +113,6 @@ class ComparisonNode(ExprNode):
 @dataclass
 class BooleanBinaryOpNode(ExprNode):
     """Memory-optimized boolean binary operation node."""
-    __slots__ = ('left', 'operator', 'right')
     left: ExprNode
     operator: str
     right: ExprNode
@@ -122,7 +120,6 @@ class BooleanBinaryOpNode(ExprNode):
 @dataclass
 class ArithmeticBinaryOpNode(ArithmeticNode):
     """Memory-optimized arithmetic binary operation node."""
-    __slots__ = ('left', 'operator', 'right')
     left: ArithmeticNode
     operator: str
     right: ArithmeticNode
@@ -130,26 +127,22 @@ class ArithmeticBinaryOpNode(ArithmeticNode):
 @dataclass
 class FactNode(ASTNode):
     """Memory-optimized fact node."""
-    __slots__ = ('statement',)
     statement: ExprNode
 
 @dataclass
 class SentenceNode(ASTNode):
     """Memory-optimized sentence node."""
-    __slots__ = ('content',)
     content: Union[FactNode, 'RuleNode', 'DefinitionNode']
 
 @dataclass
 class RuleNode(ASTNode):
     """Memory-optimized rule node."""
-    __slots__ = ('condition', 'consequent')
     condition: 'ConditionNode'
     consequent: PredicateCallNode
 
 @dataclass
 class DefinitionNode(ASTNode):
     """Memory-optimized definition node."""
-    __slots__ = ('name', 'parameters', 'body', 'is_function', 'return_type')
     name: str
     parameters: List['ParameterNode']
     body: ASTNode
@@ -159,21 +152,18 @@ class DefinitionNode(ASTNode):
 @dataclass
 class ParameterNode(ASTNode):
     """Memory-optimized parameter node."""
-    __slots__ = ('name', 'param_type')
     name: str
     param_type: Optional[str] = None
 
 @dataclass
 class ConditionNode(ASTNode):
     """Memory-optimized condition node."""
-    __slots__ = ('expression', 'quantifier')
     expression: ExprNode
     quantifier: Optional['QuantifierBlockNode'] = None
 
 @dataclass
 class QuantifierBlockNode(ASTNode):
     """Memory-optimized quantifier block node."""
-    __slots__ = ('quant_type', 'variables', 'condition')
     quant_type: str
     variables: List[VariableNode]
     condition: Optional[ExprNode]
@@ -181,7 +171,6 @@ class QuantifierBlockNode(ASTNode):
 @dataclass
 class StreamReferenceNode(AtomNode):
     """Memory-optimized stream reference node."""
-    __slots__ = ('name', 'time_spec', 'stream_type')
     name: str
     time_spec: Optional['TimeSpecNode'] = None
     stream_type: Optional[str] = None
@@ -189,7 +178,6 @@ class StreamReferenceNode(AtomNode):
 @dataclass
 class TimeSpecNode(ASTNode):
     """Memory-optimized time specification node."""
-    __slots__ = ('base', 'operator', 'offset')
     base: str
     operator: Optional[str] = None
     offset: Optional[int] = None
@@ -197,7 +185,6 @@ class TimeSpecNode(ASTNode):
 
 class Token:
     """Simple token class for O(n) tokenizer."""
-    __slots__ = ('type', 'value', 'position')
 
     def __init__(self, token_type: str, value: str, position: int):
         self.type = token_type
@@ -470,7 +457,7 @@ class CNLParser:
         tokens = self.tokenizer.tokenize(text)
 
         if self.debug:
-            print(f"Tokens: {tokens}")
+            logger.info(f"Tokens: {tokens}")
 
         # Parse sentence structure
         return self._parse_sentence(tokens)
