@@ -8,12 +8,25 @@ Author: DarkLightX / Dana Edwards
 
 import os
 from typing import Optional, List
-from pydantic import BaseSettings, Field, validator
 from pathlib import Path
 
+# Try to load settings with pydantic, fallback to simple if it fails
+try:
+    from pydantic_settings import BaseSettings
+    from pydantic import Field, validator
+    PYDANTIC_AVAILABLE = True
+except ImportError:
+    try:
+        # Fallback for older pydantic versions
+        from pydantic import BaseSettings, Field, validator
+        PYDANTIC_AVAILABLE = True
+    except:
+        PYDANTIC_AVAILABLE = False
 
-class BackendSettings(BaseSettings):
-    """Configuration settings for the TauTranslator backend."""
+
+if PYDANTIC_AVAILABLE:
+    class BackendSettings(BaseSettings):
+        """Configuration settings for the TauTranslator backend."""
     
     # Server configuration
     host: str = Field(default="0.0.0.0", env="TAU_HOST")
@@ -26,11 +39,11 @@ class BackendSettings(BaseSettings):
     secret_key: str = Field(default="tau-translator-secret-key", env="TAU_SECRET_KEY")
     session_expire_hours: int = Field(default=24, env="TAU_SESSION_EXPIRE_HOURS")
     
-    # Translation engines
-    enable_lmql: bool = Field(default=True, env="TAU_ENABLE_LMQL")
+    # Translation engines (optimized for parser-first approach)
+    enable_lmql: bool = Field(default=False, env="TAU_ENABLE_LMQL")  # Disabled by default for stability
     enable_gemma3: bool = Field(default=False, env="TAU_ENABLE_GEMMA3")
-    enable_nlp: bool = Field(default=True, env="TAU_ENABLE_NLP")
-    enable_grammar: bool = Field(default=True, env="TAU_ENABLE_GRAMMAR")
+    enable_nlp: bool = Field(default=False, env="TAU_ENABLE_NLP")  # Disabled by default for stability  
+    enable_grammar: bool = Field(default=True, env="TAU_ENABLE_GRAMMAR")  # Parser-first approach
     
     # File paths
     project_root: Path = Field(default_factory=lambda: Path(__file__).parent.parent.parent.parent)
@@ -99,4 +112,12 @@ class BackendSettings(BaseSettings):
 
 
 # Global settings instance
-settings = BackendSettings()
+if PYDANTIC_AVAILABLE:
+    try:
+        settings = BackendSettings()
+    except:
+        # Fallback to simple settings if pydantic fails
+        from .simple_config import settings
+else:
+    # Use simple settings if pydantic not available
+    from .simple_config import settings

@@ -78,7 +78,8 @@ class PatternTranslationEngine(TranslationEngine):
         
         try:
             if direction == TranslationDirection.TO_TAU:
-                translated_text = self._apply_patterns(text.lower(), self.tce_to_tau_patterns)
+                # Apply patterns with smart case normalization 
+                translated_text = self._apply_patterns_normalize_ascii_case(text, self.tce_to_tau_patterns)
             elif direction == TranslationDirection.TO_TCE:
                 translated_text = self._apply_patterns(text, self.tau_to_tce_patterns)
             else:
@@ -92,7 +93,7 @@ class PatternTranslationEngine(TranslationEngine):
                 )
             
             # Clean up the result
-            translated_text = self._clean_translation(translated_text)
+            translated_text = self._clean_translation(translated_text, direction)
             
             # Calculate confidence based on how much the text changed
             confidence = self._calculate_confidence(text, translated_text)
@@ -127,14 +128,75 @@ class PatternTranslationEngine(TranslationEngine):
             result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
         return result
     
-    def _clean_translation(self, text: str) -> str:
+    def _apply_patterns_normalize_ascii_case(self, text: str, patterns: List[tuple]) -> str:
+        """Apply patterns and normalize ASCII letters to lowercase while preserving unicode."""
+        result = text
+        
+        # Apply patterns case-insensitively
+        for pattern, replacement in patterns:
+            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+        
+        # Normalize ASCII identifiers to lowercase while preserving unicode and operators
+        # Split on operators and spaces, then process each part
+        def normalize_token(token):
+            # If it's a pure ASCII identifier, lowercase it
+            if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', token) and token.isascii():
+                return token.lower()
+            else:
+                # Keep operators, numbers, unicode, etc. as-is
+                return token
+        
+        # Split on operators and spaces, process each part, then rejoin
+        # Use regex to split while keeping delimiters
+        # Split more carefully to avoid regex issues
+        tokens = re.split(r'([&|=!+*\/\[\]\s-]+)', result)
+        normalized_tokens = [normalize_token(token) for token in tokens if token]
+        
+        return ''.join(normalized_tokens)
+    
+    def _apply_patterns_preserve_case(self, text: str, patterns: List[tuple]) -> str:
+        """Apply patterns case-insensitively but preserve case of identifiers."""
+        result = text
+        
+        # Create a mapping to preserve original case of identifiers
+        import re
+        words = re.findall(r'\b\w+\b', text)
+        word_map = {word.lower(): word for word in words}
+        
+        for pattern, replacement in patterns:
+            # Apply pattern case-insensitively
+            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+        
+        # Restore original case for identifiers that weren't keywords
+        for lower_word, original_word in word_map.items():
+            if lower_word not in ['and', 'or', 'not', 'equals', 'plus', 'minus', 'times', 'divided', 'by', 'the', 'at', 'time']:
+                # Only replace if it's a standalone word
+                result = re.sub(r'\b' + re.escape(lower_word) + r'\b', original_word, result, flags=re.IGNORECASE)
+        
+        return result
+    
+    def _clean_translation(self, text: str, direction: TranslationDirection) -> str:
         """Clean up the translated text."""
         # Remove multiple spaces
         text = re.sub(r'\s+', ' ', text)
-        # Remove leading/trailing spaces
-        text = text.strip()
-        # Remove spaces around operators
-        text = re.sub(r'\s*([&|!+=\-*/])\s*', r'\1', text)
+        # Remove leading/trailing spaces - but preserve leading space for TO_TCE
+        if direction == TranslationDirection.TO_TAU:
+            text = text.strip()
+        else:
+            text = text.rstrip()  # Only remove trailing spaces for TO_TCE
+        # Remove spaces around logical operators
+        text = re.sub(r'\s*([&|!])\s*', r'\1', text)
+        
+        # Remove spaces around equals (but not >= or <=)
+        text = re.sub(r'(?<!>)(?<!<)\s*(=)\s*(?![>])', r'\1', text)
+        
+        # Remove spaces around math operators carefully
+        # Don't break >= <= etc.
+        text = re.sub(r'(?<!>)\s*([+\-*])\s*', r'\1', text)  # Not after >
+        text = re.sub(r'(?<!<)\s*(/)\s*', r'\1', text)  # Division not after <
+        
+        # Remove spaces around and inside brackets
+        text = re.sub(r'\s*\[\s*(\w+)\s*\]', r'[\1]', text)
         return text
     
     def _calculate_confidence(self, original: str, translated: str) -> float:
@@ -142,22 +204,29 @@ class PatternTranslationEngine(TranslationEngine):
         if not translated:
             return 0.0
         
-        # Simple heuristic: more changes usually mean better translation
-        # but avoid giving high confidence to very short outputs
         original_words = len(original.split())
         translated_words = len(translated.split())
         
         if translated_words == 0:
             return 0.0
         
-        # Base confidence on word count ratio and presence of operators
-        word_ratio = min(translated_words / max(original_words, 1), 1.0)
+        # Base confidence starts at 0.5
+        base_confidence = 0.5
         
-        # Boost confidence if we have operators (suggests successful pattern matching)
-        has_operators = bool(re.search(r'[&|!+=\-*/\[\]]', translated))
-        operator_boost = 0.2 if has_operators else 0.0
+        # Boost confidence based on number of operators (more operators = higher confidence)
+        operator_count = len(re.findall(r'[&|!+=\-*/\[\]]', translated))
+        operator_boost = min(operator_count * 0.1, 0.3)  # Max 0.3 boost
         
-        confidence = (word_ratio * 0.6) + 0.2 + operator_boost
+        # Small boost for successful translation (non-empty result)
+        translation_boost = 0.1 if translated != original else 0.0
+        
+        # Extra boost if we significantly reduced word count (successful compression)
+        if original_words > translated_words:
+            compression_boost = 0.1
+        else:
+            compression_boost = 0.0
+        
+        confidence = base_confidence + operator_boost + translation_boost + compression_boost
         return min(confidence, 0.95)  # Cap at 95% for pattern-based translation
     
     def _get_patterns_for_direction(self, direction: TranslationDirection) -> List[tuple]:
