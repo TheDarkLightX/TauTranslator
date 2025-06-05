@@ -37,7 +37,7 @@ class TauTranslatorApp:
     
     def setup_window(self):
         """Configure the main window with modern styling."""
-        self.root.title("TauTranslatorOmega - Professional Edition")
+        self.root.title("Tau Translator Alpha")
         self.root.geometry("1500x1000")
         self.root.minsize(1300, 900)
 
@@ -1033,8 +1033,8 @@ Performance:
 
 def main():
     """Launch the application."""
-    print("🚀 Launching TauTranslatorOmega Professional Edition")
-    print("Professional translation tool with modern UX/UI")
+    print("🚀 Launching Tau Translator Alpha")
+    print("Alpha version - Modern translation tool with enhanced UI")
 
     app = TauTranslatorApp()
     app.run()

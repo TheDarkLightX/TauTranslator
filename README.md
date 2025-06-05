@@ -1,4 +1,4 @@
-# TauTranslator Professional 🚀
+# Tau Translator Alpha 🚀
 
 **A comprehensive natural language interface to the IDNI Tau Language ecosystem.**
 
@@ -11,27 +11,28 @@
 
 **Current Development Status:**
 - ✅ **Translation Engine**: Pattern-based translation with LMQL fallback working
-- ✅ **Multiple Backend Options**: Simple, FastAPI, Grammar-aware, and NLP backends
+- ✅ **Unified Backend**: FastAPI-based unified backend with modular translators
 - ✅ **Frontend Integration**: PWA web interface with working translation
 - ✅ **Organized Codebase**: Clean project structure with proper separation
 - ✅ **Testing Suite**: Comprehensive tests across all components
 - ✅ **Documentation**: Complete docs in organized structure
 
 ### 🖥️ **Available Interfaces**
-1. **PWA Web Interface**: `http://localhost:3000` (Next.js + React) - **Primary**
-2. **Qt Desktop GUI**: `src/tau_translator_omega/desktop_gui/main_window.py`
-3. **Multiple Backend APIs**: Choose from simple, FastAPI, or specialized backends
+1. **PWA Web Interface**: `http://localhost:3000` (Next.js + React)
+2. **PyQt6 Desktop GUI**: `ui/tau_translator_desktop_qt.py` - **Recommended**
+3. **Tkinter Desktop GUI**: `ui/tau_translator_desktop_tkinter.py` - Lightweight option
+4. **Unified Backend API**: `backend/unified/server.py` - FastAPI backend
 
 ### 🔧 **Quick Start Commands**
 ```bash
-# Start the working backend (recommended)
-python3 backend/simple_backend.py
+# Start the unified backend
+python3 backend/unified/server.py
 
 # Start PWA (in another terminal)
 cd pwa && npm run dev
 
-# Start all backends (comprehensive)
-python3 scripts/start_all_backends.py
+# Or run the desktop GUI (PyQt6)
+python3 ui/tau_translator_desktop_qt.py
 
 # Run tests
 pytest tests/ -v
@@ -39,7 +40,7 @@ pytest tests/ -v
 
 ## 🎯 Overview
 
-TauTranslatorOmega provides **TCE (Tau Controlled English)** - a natural language interface that translates to the formal Tau Language. The system includes multiple translation engines, comprehensive testing, and an alpha-ready web interface.
+Tau Translator Alpha provides **TCE (Tau Controlled English)** - a natural language interface that translates to the formal Tau Language. The system includes multiple translation engines, comprehensive testing, and both web and desktop interfaces.
 
 ## 🔑 Key Features
 
@@ -49,11 +50,12 @@ TauTranslatorOmega provides **TCE (Tau Controlled English)** - a natural languag
 - **Fallback Mechanisms**: Multiple translation strategies for reliability
 - **Real-time Translation**: Working web interface with live translation
 
-### **Multiple Backend Options**
-- **Simple Backend** (`backend/simple_backend.py`): Basic HTTP server - **Recommended for testing**
-- **FastAPI Backend** (`backend/backend_server.py`): Full-featured production backend
-- **Grammar-aware Backend** (`backend/grammar_aware_backend.py`): Grammar file integration
-- **Integrated NLP Backend** (`backend/integrated_nlp_backend.py`): Advanced NLP features
+### **Unified Backend Architecture**
+- **Unified Backend** (`backend/unified/server.py`): Production-ready FastAPI server with modular translator system
+- **Pattern Translator**: Fast pattern-based translation for common constructs
+- **Grammar Translator**: Grammar-aware translation with Lark parser integration
+- **NLP Translator**: Advanced natural language processing capabilities
+- **LMQL Translator**: AI-powered translation with Language Model Query Language
 
 ### **Comprehensive Architecture**
 - **Organized Structure**: Clean separation of concerns in organized directories
@@ -64,21 +66,28 @@ TauTranslatorOmega provides **TCE (Tau Controlled English)** - a natural languag
 ## 🏗️ Project Structure
 
 ```
-TauTranslatorOmega/
-├── backend/                  # Multiple backend server options
+TauTranslator/
+├── backend/unified/         # Unified FastAPI backend
+│   ├── server.py           # Main server application
+│   ├── api/                # API endpoints (auth, translate, grammar, nlp)
+│   ├── core/               # Core functionality (config, auth, responses)
+│   └── translators/        # Modular translator implementations
 ├── pwa/                     # Progressive Web App (Next.js)
 ├── src/tau_translator_omega/ # Core translation engine
-│   ├── core_engine/         # CNL parser, semantic analyzer, translators
+│   ├── core_engine/         # CNL parser, semantic analyzer, AST
 │   ├── lmql_engine/         # LMQL-based translation
-│   └── gemma3/              # Gemma 3 model integration
+│   └── llm_services/        # LLM integration services
 ├── scripts/                 # Startup and utility scripts
 ├── security/                # API key management and security
 ├── tests/                   # Comprehensive test suite
 ├── docs/                    # Complete documentation
 ├── tools/                   # Development and analysis tools
 ├── examples/                # Usage examples and demos
-├── translators/             # Various translator implementations
+├── translators/             # Legacy translator implementations
 └── ui/                      # Desktop GUI applications
+    ├── tau_translator_desktop_qt.py     # PyQt6 interface
+    ├── tau_translator_desktop_tkinter.py # Tkinter interface
+    └── tau_translator_desktop_modern.py  # Modern UI concept
 ```
 
 ## 🚀 Quick Start
@@ -92,15 +101,12 @@ pip install -r docs/requirements.txt
 
 ### **Start the System**
 ```bash
-# Option 1: Simple setup (recommended for testing)
-python3 backend/simple_backend.py &
-cd pwa && npm run dev
-
-# Option 2: Full production setup
-python3 scripts/start_all_backends.py &
+# Start the unified backend and web interface
+python3 backend/unified/server.py &
 cd pwa && npm run dev
 
 # Access the web interface at http://localhost:3000
+# API documentation available at http://localhost:8000/docs
 ```
 
 ### **Basic Usage**
@@ -158,7 +164,7 @@ pytest --cov=src tests/ --cov-report=html
 
 ### **Core Documents**
 - **[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)**: Current project status
-- **[docs/PRODUCTION_README.md](docs/PRODUCTION_README.md)**: Production deployment guide
+- **[docs/PRODUCTION_READY_SUMMARY.md](docs/PRODUCTION_READY_SUMMARY.md)**: Production deployment guide
 - **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)**: Comprehensive testing documentation
 - **[docs/FASTAPI_BACKEND_GUIDE.md](docs/FASTAPI_BACKEND_GUIDE.md)**: Backend setup guide
 
@@ -181,11 +187,12 @@ python3 tools/check_backend_status.py
 
 ## 🔮 Roadmap
 
-### **Current: Production Deployment**
-- ✅ Multiple working backends
+### **Current: Alpha Release**
+- ✅ Unified backend architecture
 - ✅ Production-ready PWA interface
 - ✅ Comprehensive testing suite
 - ✅ Complete documentation
+- ✅ Multiple desktop GUI options (PyQt6, Tkinter)
 
 ### **Next: Enhanced Features**
 - LLM provider integration
@@ -217,6 +224,13 @@ Feel free to:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## 🛡️ Security & Privacy
+
+- **Local-first**: All core translation runs locally
+- **API Key Management**: Secure storage for LLM providers
+- **No telemetry**: Your code stays private
+- **Open source**: Full transparency
+
 ## 🙏 Acknowledgments
 
 - **IDNI Team**: For the innovative Tau Language
@@ -227,4 +241,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Author: DarkLightX / Dana Edwards**
 
-**TauTranslatorOmega: An alpha-ready bridge between natural language and formal Tau Language specifications.**
+**Tau Translator Alpha: An alpha-ready bridge between natural language and formal Tau Language specifications.**

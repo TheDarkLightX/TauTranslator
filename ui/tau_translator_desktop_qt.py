@@ -206,7 +206,7 @@ class TauTranslatorQt(QMainWindow):
         
     def init_ui(self):
         """Initialize the user interface."""
-        self.setWindowTitle("TauTranslator Professional")
+        self.setWindowTitle("Tau Translator Alpha")
         self.setGeometry(100, 100, 1600, 900)
         
         # Set application style
@@ -672,7 +672,7 @@ class TauTranslatorQt(QMainWindow):
         """Show about dialog."""
         QMessageBox.about(
             self, "About TauTranslator",
-            "<h2>TauTranslator Professional</h2>"
+            "<h2>Tau Translator Alpha</h2>"
             "<p>Version 3.0.0</p>"
             "<p>A professional tool for translating between Tau language "
             "and natural language specifications.</p>"
@@ -709,7 +709,7 @@ def main():
     # Set application metadata
     app.setApplicationName("TauTranslator")
     app.setOrganizationName("TauTranslator")
-    app.setApplicationDisplayName("TauTranslator Professional")
+    app.setApplicationDisplayName("Tau Translator Alpha")
     
     # Load custom fonts if available (QFontDatabase is static in PyQt6)
     

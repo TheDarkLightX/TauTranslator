@@ -95,7 +95,7 @@ class SplashScreen:
         # Version and credits
         version_label = tk.Label(
             top_frame,
-            text="v3.0 • Professional Edition",
+            text="v3.0 • Alpha Edition",
             font=('Segoe UI', 10),
             bg=self.colors['primary'],
             fg=self.colors['light']

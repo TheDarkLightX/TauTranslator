@@ -45,7 +45,7 @@ class ModernTauTranslatorApp:
         
     def setup_modern_window(self):
         """Configure the main window with modern design."""
-        self.root.title("TauTranslator Professional")
+        self.root.title("Tau Translator Alpha")
         
         # Set window size and center
         window_width = 1600
@@ -166,7 +166,7 @@ class ModernTauTranslatorApp:
                         bg=self.colors['light']['header_bg'])
         title.pack(side='left', pady=10)
         
-        subtitle = tk.Label(logo_frame, text="Professional", 
+        subtitle = tk.Label(logo_frame, text="Alpha", 
                           font=self.fonts['small'],
                           fg=self.colors['light']['text_secondary'],
                           bg=self.colors['light']['header_bg'])
@@ -609,7 +609,7 @@ class ModernTauTranslatorApp:
 
 def main():
     """Launch the modern GUI application."""
-    print("🚀 Launching TauTranslator Professional")
+    print("🚀 Launching Tau Translator Alpha")
     print("Modern desktop interface with enhanced design")
     
     app = ModernTauTranslatorApp()
