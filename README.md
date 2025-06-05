@@ -2,12 +2,12 @@
 
 **A comprehensive natural language interface to the IDNI Tau Language ecosystem.**
 
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-green)](#-current-status)
+[![Status](https://img.shields.io/badge/Status-Alpha%20Ready-yellow)](#-current-status)
 [![Translation Tests](https://img.shields.io/badge/Translation%20Tests-Working-green)](#-testing-results)
 [![Backend](https://img.shields.io/badge/Backend-Multiple%20Options-blue)](#-backend-integration)
 [![GUI](https://img.shields.io/badge/GUI-PWA%20%2B%20Qt%20%2B%20Desktop-orange)](#-available-interfaces)
 
-## ✅ **Current Status: PRODUCTION READY**
+## ⚡ **Current Status: ALPHA READY**
 
 **Current Development Status:**
 - ✅ **Translation Engine**: Pattern-based translation with LMQL fallback working
@@ -39,7 +39,7 @@ pytest tests/ -v
 
 ## 🎯 Overview
 
-TauTranslatorOmega provides **TCE (Tau Controlled English)** - a natural language interface that translates to the formal Tau Language. The system includes multiple translation engines, comprehensive testing, and a production-ready web interface.
+TauTranslatorOmega provides **TCE (Tau Controlled English)** - a natural language interface that translates to the formal Tau Language. The system includes multiple translation engines, comprehensive testing, and an alpha-ready web interface.
 
 ## 🔑 Key Features
 
@@ -227,4 +227,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Author: DarkLightX / Dana Edwards**
 
-**TauTranslatorOmega: A production-ready bridge between natural language and formal Tau Language specifications.**
+**TauTranslatorOmega: An alpha-ready bridge between natural language and formal Tau Language specifications.**
