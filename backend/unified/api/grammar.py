@@ -6,12 +6,15 @@ Handles grammar loading, validation, and switching (when grammar feature is enab
 Author: DarkLightX / Dana Edwards
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 from pathlib import Path
 import json
 from typing import List, Dict, Optional
 from ..core.responses import create_success_response, create_error_response
 from ..core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -104,6 +107,52 @@ async def get_grammar(grammar_name: str):
         raise
     except Exception as e:
         return create_error_response(f"Failed to get grammar details: {str(e)}")
+
+
+@router.post("/load-from-path")
+async def load_grammar_from_path(request: Request, grammar_path: str):
+    """Load a Tau grammar from a file path on the server."""
+    try:
+        if not hasattr(request.app.state, 'grammar_engine'):
+            raise HTTPException(
+                status_code=503,
+                detail="Grammar engine not available"
+            )
+        
+        grammar_engine = request.app.state.grammar_engine
+        
+        # Validate path
+        path = Path(grammar_path)
+        if not path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Grammar file not found: {grammar_path}"
+            )
+        
+        if not path.suffix in ['.lark', '.ebnf', '.tgf']:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file format"
+            )
+        
+        # Load the grammar
+        success = grammar_engine.load_tau_grammar(grammar_path)
+        
+        if success:
+            return create_success_response({
+                "message": "Grammar loaded successfully",
+                "path": grammar_path
+            })
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to load grammar"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        return create_error_response(f"Failed to load grammar: {str(e)}")
 
 
 @router.post("/reload")
@@ -203,3 +252,91 @@ def extract_grammar_rules(content: str, format: str) -> List[str]:
         pass
     
     return rules
+
+
+@router.post("/load-tau-grammar")
+async def load_tau_grammar(request: Request, file: UploadFile = File(...)):
+    """Load a user-provided Tau grammar file for translation."""
+    try:
+        # Validate file extension
+        if not file.filename.endswith(('.lark', '.ebnf', '.tgf')):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file format. Please upload a .lark, .ebnf, or .tgf file"
+            )
+        
+        # Read file content
+        content = await file.read()
+        grammar_text = content.decode('utf-8')
+        
+        # Get the grammar engine from app state
+        if not hasattr(request.app.state, 'grammar_engine'):
+            raise HTTPException(
+                status_code=503,
+                detail="Grammar engine not available. Please enable grammar feature in settings."
+            )
+        
+        grammar_engine = request.app.state.grammar_engine
+        
+        # Save grammar file temporarily
+        temp_dir = settings.project_root / "temp" / "grammars"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        
+        temp_file = temp_dir / file.filename
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            f.write(grammar_text)
+        
+        # Load the grammar into the engine
+        success = grammar_engine.load_tau_grammar(str(temp_file))
+        
+        if success:
+            # Extract rules for metadata
+            format = file.filename.split('.')[-1]
+            rules = extract_grammar_rules(grammar_text, format)
+            
+            return create_success_response({
+                "message": "Tau grammar loaded successfully",
+                "filename": file.filename,
+                "format": format,
+                "rules_found": len(rules),
+                "rules": rules[:20],  # First 20 rules
+                "can_translate_to_tce": True
+            })
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to load grammar. Please check the grammar syntax."
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error loading Tau grammar: {e}")
+        return create_error_response(f"Failed to load grammar: {str(e)}")
+
+
+@router.get("/tau-grammar-status")
+async def get_tau_grammar_status(request: Request):
+    """Check if a Tau grammar is loaded and ready for translation."""
+    try:
+        if not hasattr(request.app.state, 'grammar_engine'):
+            return create_success_response({
+                "loaded": False,
+                "message": "Grammar engine not available"
+            })
+        
+        grammar_engine = request.app.state.grammar_engine
+        
+        # Check if Tau parser is loaded
+        tau_loaded = grammar_engine.tau_parser is not None
+        
+        return create_success_response({
+            "loaded": tau_loaded,
+            "can_translate_to_tau": grammar_engine.tce_parser is not None,
+            "can_translate_to_tce": tau_loaded,
+            "message": "Tau grammar loaded" if tau_loaded else "No Tau grammar loaded"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking grammar status: {e}")
+        return create_error_response(f"Failed to check grammar status: {str(e)}")

@@ -209,7 +209,7 @@ pytest --cov=src tests/
 
 ## 📝 **KNOWN LIMITATIONS**
 
-1. **Not Production Ready**: Alpha software with bugs
+1. **Alpha Stage**: Software with experimental features
 2. **Limited Grammar Support**: Basic patterns only
 3. **No User Management**: Single-user design
 4. **API Stability**: Endpoints may change

@@ -51,24 +51,31 @@ async def lifespan(app: FastAPI):
     # Initialize translation manager
     translation_manager = TranslationManager()
     
-    # Register translation engines based on settings
-    try:
-        if settings.enable_lmql:
-            from .translators.lmql_translator import LMQLTranslationEngine
-            lmql_engine = LMQLTranslationEngine()
-            translation_manager.register_engine(lmql_engine, is_default=True, is_fallback=True)
-            logger.info("Registered LMQL translation engine")
-    except Exception as e:
-        logger.warning(f"Could not load LMQL engine: {e}")
+    # Register translation engines with priority order: Grammar -> LMQL -> Pattern
     
+    # 1. Grammar engine (highest priority when available)
     try:
         if settings.enable_grammar:
             from .translators.grammar_translator import GrammarTranslationEngine
             grammar_engine = GrammarTranslationEngine()
-            translation_manager.register_engine(grammar_engine, is_fallback=True)
-            logger.info("Registered Grammar translation engine")
+            translation_manager.register_engine(grammar_engine, is_default=True)
+            logger.info("Registered Grammar translation engine as default")
+            # Store reference for grammar loading
+            app.state.grammar_engine = grammar_engine
     except Exception as e:
         logger.warning(f"Could not load Grammar engine: {e}")
+    
+    # 2. LMQL engine (second priority)
+    try:
+        if settings.enable_lmql:
+            from .translators.lmql_translator import LMQLTranslationEngine
+            lmql_engine = LMQLTranslationEngine()
+            # Only set as default if grammar engine wasn't loaded
+            is_default = not hasattr(app.state, 'grammar_engine')
+            translation_manager.register_engine(lmql_engine, is_default=is_default, is_fallback=True)
+            logger.info(f"Registered LMQL translation engine (default={is_default})")
+    except Exception as e:
+        logger.warning(f"Could not load LMQL engine: {e}")
     
     try:
         if settings.enable_nlp:
@@ -79,12 +86,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Could not load NLP engine: {e}")
     
+    # 3. Pattern engine (always available as fallback)
     try:
-        # Always register pattern-based fallback
         from .translators.pattern_translator import PatternTranslationEngine
         pattern_engine = PatternTranslationEngine()
         translation_manager.register_engine(pattern_engine, is_fallback=True)
-        logger.info("Registered Pattern translation engine")
+        logger.info("Registered Pattern translation engine as fallback")
     except Exception as e:
         logger.warning(f"Could not load Pattern engine: {e}")
     
@@ -143,9 +150,8 @@ app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(translate.router, prefix="/api/translate", tags=["Translation"])
 
-# Conditionally include routers based on enabled features
-if settings.enable_grammar:
-    app.include_router(grammar.router, prefix="/api/grammar", tags=["Grammar"])
+# Always include grammar router for grammar loading
+app.include_router(grammar.router, prefix="/api/grammar", tags=["Grammar"])
 
 if settings.enable_nlp:
     app.include_router(nlp.router, prefix="/api/nlp", tags=["NLP"])
