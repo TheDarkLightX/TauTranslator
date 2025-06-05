@@ -1,343 +1,389 @@
-# FastAPI Backend Integration Guide
-**Secure Backend for TauTranslatorOmega PWA**
+# FastAPI Unified Backend Guide
+**Production-Ready Backend for Tau Translator**
 
-## 🎯 **WHY FASTAPI IS PERFECT FOR THIS PROJECT**
+## 🎯 **UNIFIED BACKEND ARCHITECTURE**
 
-### **✅ FastAPI Advantages**
-- **Automatic API Documentation** - Swagger UI at `/docs`
-- **Type Safety** - Pydantic models with validation
-- **Async/Await Support** - High performance for AI API calls
-- **Built-in Validation** - Request/response validation
-- **Easy CORS** - Simple PWA integration
-- **Modern Python** - Type hints and async support
-- **Production Ready** - Uvicorn ASGI server
+The Tau Translator uses a unified FastAPI backend that consolidates all translation functionality into a single, well-organized application located at `backend/unified/server.py`.
 
-### **✅ Perfect for TauTranslatorOmega**
-- **Secure API Key Management** - Integrates with our encrypted storage
-- **AI Provider Integration** - Async calls to OpenRouter, OpenAI, etc.
-- **PWA Backend** - CORS-enabled for React frontend
-- **Type-Safe Translation** - Pydantic models for requests/responses
-- **Authentication** - Master password protection
-- **Documentation** - Auto-generated API docs
+### **✅ Why FastAPI?**
+- **Automatic API Documentation** - Interactive Swagger UI at `/docs`
+- **Type Safety** - Pydantic models with automatic validation
+- **High Performance** - Async/await support for AI operations
+- **Modern Python** - Full type hints and async support
+- **Production Ready** - Built on Starlette and Uvicorn
+- **Easy Integration** - CORS support for PWA and desktop apps
 
-## 🚀 **FASTAPI BACKEND FEATURES**
+### **✅ Unified Architecture Benefits**
+- **Single Service** - One backend instead of 6 separate files
+- **Consistent APIs** - Standardized request/response formats
+- **Modular Design** - Pluggable translation engines
+- **Better Testing** - Comprehensive test coverage
+- **Easy Deployment** - Single process to manage
 
-### **✅ Complete API Implementation**
+## 🚀 **BACKEND FEATURES**
+
+### **Core Components**
+```
+backend/unified/
+├── server.py              # Main FastAPI application
+├── core/
+│   ├── config.py         # Environment-based configuration
+│   ├── auth.py           # Authentication and sessions
+│   └── responses.py      # Standardized API responses
+├── api/
+│   ├── translate.py      # Translation endpoints
+│   ├── health.py         # Health monitoring
+│   ├── auth.py           # Authentication endpoints
+│   ├── grammar.py        # Grammar management
+│   └── nlp.py           # NLP features
+└── translators/
+    ├── manager.py        # Translation orchestration
+    ├── pattern_translator.py  # Pattern-based engine
+    ├── lmql_translator.py     # AI-powered engine
+    ├── grammar_translator.py  # Grammar-aware engine
+    └── nlp_translator.py      # NLP engine
+```
+
+### **API Endpoints**
+
+#### Translation
 ```python
-# FastAPI app with all features
-app = FastAPI(
-    title="TauTranslatorOmega Backend",
-    description="Secure backend for Tau Language translation",
-    version="1.0.0"
-)
-
-# Automatic CORS for PWA
-app.add_middleware(CORSMiddleware, ...)
-
-# Type-safe endpoints with Pydantic models
-@app.post("/api/translate", response_model=TranslationResponse)
+@app.post("/api/translate/", response_model=TranslationResponse)
 async def translate(request: TranslationRequest):
-    # Secure translation with encrypted API keys
-```
-
-### **✅ Secure Integration**
-- **Encrypted API Keys** - Uses our SecureStorage class
-- **Master Password Auth** - Protects all operations
-- **Session Management** - Bearer token authentication
-- **Input Validation** - Pydantic model validation
-- **Error Handling** - Proper HTTP status codes
-
-### **✅ AI Provider Support**
-- **OpenRouter Integration** - 100+ models with one key
-- **Direct Provider APIs** - OpenAI, Anthropic, Google
-- **Automatic Provider Selection** - Prefers OpenRouter
-- **Key Format Validation** - Ensures correct API key formats
-- **Provider Management** - Add/remove keys securely
-
-## 🔧 **INSTALLATION & SETUP**
-
-### **Option 1: Install FastAPI Dependencies**
-```bash
-# Install FastAPI and related packages
-pip install -r backend_requirements.txt
-
-# OR install individually
-pip install fastapi uvicorn cryptography pydantic httpx
-```
-
-### **Option 2: System Packages (Ubuntu/Debian)**
-```bash
-# Install via apt (if available)
-sudo apt update
-sudo apt install python3-fastapi python3-uvicorn python3-cryptography
-```
-
-### **Option 3: Virtual Environment**
-```bash
-# Create virtual environment
-python3 -m venv fastapi_env
-source fastapi_env/bin/activate
-
-# Install dependencies
-pip install -r backend_requirements.txt
-```
-
-## 🚀 **RUNNING THE FASTAPI BACKEND**
-
-### **Quick Start**
-```bash
-# Easy startup with dependency checking
-python3 start_backend.py
-```
-
-### **Direct FastAPI Launch**
-```bash
-# Run the FastAPI server directly
-python3 backend_server.py
-```
-
-### **Manual Uvicorn Launch**
-```bash
-# Run with uvicorn directly
-uvicorn backend_server:app --host 127.0.0.1 --port 8000 --reload
-```
-
-### **Expected Output**
-```
-🚀 Starting TauTranslatorOmega Backend Server
-🔐 Crypto Available: True
-🔧 Secure Storage Available: True
-📡 Server will be available at: http://localhost:8000
-📖 API Documentation: http://localhost:8000/docs
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-```
-
-## 📚 **API DOCUMENTATION**
-
-### **✅ Automatic Documentation**
-FastAPI automatically generates interactive API documentation:
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
-
-### **✅ API Endpoints**
-
-#### **Authentication**
-```http
-POST /auth
-Content-Type: application/json
-
+    """Main translation endpoint with intelligent engine selection."""
+    
+# Request:
 {
-  "password": "your_master_password"
+    "sourceText": "always x and y",
+    "direction": "to_tau",  # or "to_tce"
+    "options": {
+        "useCache": true,
+        "preferredEngine": "auto"
+    }
 }
 
-Response:
+# Response:
 {
-  "authenticated": true,
-  "sessionToken": "session_token_here"
+    "success": true,
+    "data": {
+        "translated_text": "always (x & y)",
+        "confidence": 0.85,
+        "translation_method": "pattern",
+        "patterns_detected": ["temporal_always", "logical_and"]
+    },
+    "timestamp": "2024-01-01T12:00:00Z"
 }
 ```
 
-#### **Translation**
-```http
-POST /api/translate
-Authorization: Bearer session_token_here
-Content-Type: application/json
-
-{
-  "sourceText": "Hello world",
-  "sourceLangKey": "PLAIN_ENGLISH",
-  "targetLangKey": "TAU",
-  "sourceLangLabel": "Plain English",
-  "targetLangLabel": "Tau Language"
-}
-
-Response:
-{
-  "translatedText": "// Tau Language translation...",
-  "provider": "openrouter",
-  "model": "openrouter_model",
-  "processingTime": 0.5
-}
-```
-
-#### **Provider Management**
-```http
-GET /api/providers
-Authorization: Bearer session_token_here
-
-Response:
-[
-  {
-    "provider": "openrouter",
-    "configured": true,
-    "models": ["openai/gpt-4-turbo", "anthropic/claude-3-5-sonnet"]
-  }
-]
-
-POST /api/providers/openrouter/key
-Authorization: Bearer session_token_here
-Content-Type: application/json
-
-{
-  "provider": "openrouter",
-  "apiKey": "sk-or-v1-your-key-here"
-}
-```
-
-#### **Health Check**
-```http
-GET /health
-
-Response:
-{
-  "status": "healthy",
-  "secureStorageAvailable": true,
-  "cryptoAvailable": true,
-  "configuredProviders": ["openrouter", "openai"]
-}
-```
-
-## 🔗 **PWA INTEGRATION**
-
-### **✅ CORS Configuration**
+#### Health Monitoring
 ```python
-# Configured for PWA development
+# Basic health check
+GET /health/
+
+# Detailed metrics
+GET /health/detailed
+
+# Translation engine status
+GET /health/engines
+```
+
+#### Authentication (Optional)
+```python
+# Login
+POST /auth/login
+{
+    "password": "master_password"
+}
+
+# Get current user
+GET /auth/me
+
+# Manage API keys
+POST /auth/api-keys
+GET /auth/api-keys/{provider}
+```
+
+### **Translation Engines**
+
+1. **Pattern Engine** ✅
+   - Fast regex-based translation
+   - Handles common TCE ↔ Tau patterns
+   - No external dependencies
+   - 60-95% confidence
+
+2. **LMQL Engine** ✅
+   - AI-powered translation
+   - Bidirectional with caching
+   - Fallback mechanisms
+   - 85%+ confidence
+
+3. **Grammar Engine** 🚧
+   - Lark parser integration
+   - TGF/EBNF grammar support
+   - Currently stubbed
+
+4. **NLP Engine** 🚧
+   - Advanced language features
+   - Autocomplete and validation
+   - Currently stubbed
+
+## 🔧 **CONFIGURATION**
+
+### **Environment Variables**
+```bash
+# Server Configuration
+TAU_HOST=0.0.0.0            # Bind address
+TAU_PORT=8000               # Port number
+TAU_DEBUG=true              # Debug mode (enables /docs)
+
+# Security
+TAU_MASTER_PASSWORD=secret  # Optional auth
+TAU_SECRET_KEY=random_key   # Session encryption
+TAU_SESSION_EXPIRE_HOURS=24 # Session timeout
+
+# Feature Flags
+TAU_ENABLE_LMQL=true       # Enable LMQL engine
+TAU_ENABLE_GRAMMAR=true    # Enable grammar features
+TAU_ENABLE_NLP=true        # Enable NLP features
+
+# Paths
+TAU_GRAMMAR_DIR=./grammars      # Grammar files
+TAU_SESSIONS_DIR=./sessions     # Session storage
+TAU_CACHE_DIR=./cache          # Translation cache
+```
+
+### **Using .env File**
+```ini
+# backend/unified/.env
+TAU_HOST=localhost
+TAU_PORT=8000
+TAU_DEBUG=true
+TAU_ENABLE_LMQL=true
+TAU_MASTER_PASSWORD=development
+```
+
+## 🚀 **QUICK START**
+
+### **1. Install Dependencies**
+```bash
+cd backend/unified
+pip install -r requirements.txt
+```
+
+### **2. Start the Server**
+```bash
+# Development mode
+python server.py
+
+# Production mode
+uvicorn backend.unified.server:app --host 0.0.0.0 --port 8000
+```
+
+### **3. Access Documentation**
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Health: http://localhost:8000/health/
+
+### **4. Test Translation**
+```bash
+curl -X POST http://localhost:8000/api/translate/ \
+  -H "Content-Type: application/json" \
+  -d '{"sourceText": "always x and y", "direction": "to_tau"}'
+```
+
+## 🔒 **SECURITY FEATURES**
+
+### **API Key Management**
+- Encrypted storage using Fernet
+- Provider-specific keys (OpenRouter, HuggingFace, etc.)
+- Secure retrieval through authenticated endpoints
+
+### **Session Management**
+- Optional master password protection
+- JWT-like session tokens
+- Configurable expiration
+- Secure cookie handling
+
+### **Input Validation**
+- Pydantic models for all requests
+- Automatic validation and sanitization
+- Clear error messages
+- SQL injection protection
+
+### **CORS Configuration**
+```python
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000"],  # PWA origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 ```
 
-### **✅ Frontend Integration**
-The PWA can now call the FastAPI backend:
+## 📊 **MONITORING & DEBUGGING**
 
+### **Logging**
+```python
+# Structured logging with context
+logger.info("Translation request", extra={
+    "source_text_length": len(source_text),
+    "direction": direction,
+    "engine": engine_name
+})
+```
+
+### **Metrics**
+- Request count and latency
+- Translation success/failure rates
+- Engine performance comparison
+- Cache hit rates
+
+### **Debug Mode**
+When `TAU_DEBUG=true`:
+- Swagger UI enabled
+- Detailed error messages
+- Request/response logging
+- Performance profiling
+
+## 🚢 **DEPLOYMENT**
+
+### **Docker**
+```dockerfile
+FROM python:3.9-slim
+WORKDIR /app
+COPY backend/unified/ ./backend/unified/
+RUN pip install -r backend/unified/requirements.txt
+EXPOSE 8000
+CMD ["uvicorn", "backend.unified.server:app", "--host", "0.0.0.0"]
+```
+
+### **Production Settings**
+```bash
+# Use production ASGI server
+gunicorn backend.unified.server:app \
+  -w 4 \
+  -k uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8000
+
+# Enable HTTPS (reverse proxy recommended)
+# Use environment variables for secrets
+# Set TAU_DEBUG=false
+# Configure proper CORS origins
+```
+
+### **Health Checks**
+```yaml
+# Kubernetes example
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8000
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8000
+```
+
+## 🧪 **TESTING**
+
+### **Run Test Suite**
+```bash
+python backend/test_unified_backend.py
+```
+
+### **Test Coverage**
+- ✅ Health endpoints
+- ✅ Basic translation
+- ✅ Pattern engine
+- ✅ LMQL engine
+- ✅ Error handling
+- ✅ Authentication
+- 🚧 Grammar features
+- 🚧 NLP features
+
+### **Performance Testing**
+```bash
+# Load testing with locust
+locust -f tests/load_test.py --host http://localhost:8000
+```
+
+## 📝 **API EXAMPLES**
+
+### **Basic Translation**
 ```javascript
-// Authenticate
-const authResponse = await fetch('http://localhost:8000/auth', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ password: masterPassword })
+// JavaScript/React example
+const response = await fetch('http://localhost:8000/api/translate/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        sourceText: 'always x and y',
+        direction: 'to_tau'
+    })
 });
+const result = await response.json();
+console.log(result.data.translated_text); // "always (x & y)"
+```
 
-// Translate with session token
-const translateResponse = await fetch('http://localhost:8000/api/translate', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${sessionToken}`
-  },
-  body: JSON.stringify(translationRequest)
+### **With Authentication**
+```javascript
+// Login first
+const authResponse = await fetch('http://localhost:8000/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'master_password' })
+});
+const { session_token } = await authResponse.json();
+
+// Use token for subsequent requests
+const response = await fetch('http://localhost:8000/api/translate/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session_token}`
+    },
+    body: JSON.stringify({ sourceText: 'x or y', direction: 'to_tau' })
 });
 ```
 
-## 🔐 **SECURITY FEATURES**
-
-### **✅ Authentication Flow**
-1. **Master Password** - User enters master password
-2. **Backend Authentication** - FastAPI validates with SecureStorage
-3. **Session Token** - Backend returns session token
-4. **Bearer Authentication** - All API calls use Bearer token
-5. **Encrypted Storage** - API keys stored with AES-256-GCM
-
-### **✅ Security Layers**
-- **Input Validation** - Pydantic models validate all inputs
-- **Authentication Required** - All sensitive endpoints protected
-- **Encrypted API Keys** - Keys never stored in plaintext
-- **HTTPS Ready** - Production deployment with SSL
-- **Error Handling** - No sensitive data in error messages
-
-## 🎨 **FASTAPI ADVANTAGES IN ACTION**
-
-### **✅ Type Safety**
-```python
-class TranslationRequest(BaseModel):
-    sourceText: str = Field(..., description="Text to translate")
-    sourceLangKey: str = Field(..., description="Source language key")
-    targetLangKey: str = Field(..., description="Target language key")
-
-# FastAPI automatically validates this!
+### **Batch Translation**
+```javascript
+// Coming soon - translate multiple texts
+const response = await fetch('http://localhost:8000/api/translate/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        texts: ['always x', 'sometimes y', 'never z'],
+        direction: 'to_tau'
+    })
+});
 ```
 
-### **✅ Async Performance**
-```python
-async def translate_text(self, request: TranslationRequest) -> TranslationResponse:
-    # Async AI API calls for better performance
-    async with httpx.AsyncClient() as client:
-        response = await client.post(ai_api_url, ...)
+## 🔄 **MIGRATION GUIDE**
+
+### **From Old Backends**
+- `simple_backend.py` → Use unified backend
+- `backend_server.py` → Same auth concepts
+- `integrated_backend.py` → Grammar features coming
+- `working_backend.py` → Pattern engine included
+
+### **Frontend Updates**
+```javascript
+// Old: Multiple backend URLs
+const BACKEND_URL = 'http://localhost:8000';
+const GRAMMAR_URL = 'http://localhost:8001';
+
+// New: Single unified backend
+const API_URL = 'http://localhost:8000/api';
 ```
 
-### **✅ Dependency Injection**
-```python
-async def get_authenticated_backend(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    # Automatic authentication checking
-    if not backend.authenticated:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return backend
-```
+## 📚 **ADDITIONAL RESOURCES**
 
-### **✅ Automatic Documentation**
-- **Interactive API docs** at `/docs`
-- **Request/response examples** automatically generated
-- **Try it out** functionality built-in
-- **Schema validation** documented
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Pydantic Documentation](https://docs.pydantic.dev/)
+- [Backend README](../backend/unified/README.md)
+- [API Test Suite](../backend/test_unified_backend.py)
 
-## 🚀 **DEVELOPMENT WORKFLOW**
+---
 
-### **1. Start Backend**
-```bash
-python3 start_backend.py
-```
-
-### **2. Start PWA**
-```bash
-cd pwa
-npm run dev
-```
-
-### **3. Test Integration**
-- **Backend**: http://localhost:8000/docs
-- **PWA**: http://localhost:3000
-- **Health Check**: http://localhost:8000/health
-
-### **4. Development Features**
-- **Auto-reload** - Backend reloads on code changes
-- **Interactive docs** - Test APIs directly in browser
-- **Type checking** - Pydantic validates all data
-- **Error details** - Clear error messages for debugging
-
-## 🎯 **NEXT STEPS**
-
-### **✅ Current Status**
-- ✅ **FastAPI backend** with secure API key management
-- ✅ **PWA integration** with CORS and authentication
-- ✅ **Type-safe APIs** with Pydantic models
-- ✅ **Automatic documentation** with Swagger UI
-- ✅ **Mock translation** for testing
-
-### **🔄 Ready for Enhancement**
-- **Real AI Integration** - Connect to actual AI APIs
-- **Advanced Authentication** - JWT tokens, refresh tokens
-- **Database Integration** - SQLAlchemy for persistence
-- **Caching** - Redis for performance
-- **Rate Limiting** - Protect against abuse
-- **Monitoring** - Prometheus metrics
-
-**The FastAPI backend provides a modern, secure, and well-documented foundation for the TauTranslatorOmega PWA!** 🚀✨
-
-## 📋 **QUICK START CHECKLIST**
-
-- [ ] Install FastAPI: `pip install -r backend_requirements.txt`
-- [ ] Start backend: `python3 start_backend.py`
-- [ ] Check docs: http://localhost:8000/docs
-- [ ] Test health: http://localhost:8000/health
-- [ ] Start PWA: `cd pwa && npm run dev`
-- [ ] Test integration: Authenticate and translate in PWA
-
-**Your FastAPI backend is ready to power the TauTranslatorOmega PWA with secure, type-safe, and well-documented APIs!** 🎯🔐
+**The unified FastAPI backend provides a solid foundation for the Tau Translator system, with room for growth as new features are implemented.**
