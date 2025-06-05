@@ -1,0 +1,9 @@
+category,key,canonical,variants,context,examples
+logical_operator,also_and,and also,"and also,plus,in addition to",conjunction,"A and also B"
+quantifier,some_users,some users,"some users,certain users,a few users",existential,"some users prefer dark mode"
+predicate,data_processed,data is processed,"data processed,processing complete,data handled",action,"when data is processed successfully"
+state,system_ready,system is ready,"system ready,ready state,system available",availability,"if system is ready then accept requests"
+action,user_clicks,user clicks,"user clicks,user selects,user chooses",interaction,"when user clicks the button"
+artifact,test_case,test case,"test case,test scenario,test condition",testing,"each test case must pass"
+role,admin_user,administrator,"administrator,admin,system admin",user_role,"as an administrator I need access"
+condition,error_occurs,error occurs,"error happens,failure occurs,exception thrown",error_handling,"if error occurs then log message"

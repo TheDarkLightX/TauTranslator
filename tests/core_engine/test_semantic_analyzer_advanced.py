@@ -70,8 +70,8 @@ class TestAdvancedSemanticAnalysis(unittest.TestCase):
         self.assertEqual(len(errors), 0, f"Unexpected errors: {errors}")
         
         # Check inferred types
-        x_symbol = self.analyzer.symbol_table.lookup("x")
-        y_symbol = self.analyzer.symbol_table.lookup("y")
+        x_symbol = self.analyzer.symbol_table.lookup_symbol("x")
+        y_symbol = self.analyzer.symbol_table.lookup_symbol("y")
         
         self.assertIsNotNone(x_symbol)
         self.assertEqual(x_symbol.var_type, "integer", "Should infer x as integer")
@@ -150,9 +150,14 @@ class TestAdvancedSemanticAnalysis(unittest.TestCase):
         
         # Should detect variable out of scope
         self.assertGreater(len(errors), 0, "Should detect variable out of scope")
-        self.assertTrue(any("scope" in str(e).lower() or "undefined" in str(e).lower()
+        
+        # Check error messages
+        error_messages = [str(e) for e in errors]
+        print(f"Errors found: {error_messages}")
+        
+        self.assertTrue(any("not declared" in str(e).lower() or "undefined" in str(e).lower()
                            for e in errors),
-                       "Error should mention scope or undefined variable")
+                       f"Error should mention undefined variable. Got: {error_messages}")
     
     def test_nested_quantifiers(self):
         """Test nested quantifier scoping"""

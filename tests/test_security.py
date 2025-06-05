@@ -19,7 +19,7 @@ import json
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from production_translator import ProductionTranslator
+from translators.production_translator import ProductionTranslator
 
 
 class TestInputValidation:
@@ -131,7 +131,7 @@ class TestFileSystemSecurity:
     @pytest.mark.security
     def test_no_arbitrary_file_write(self):
         """Test that system doesn't write to arbitrary locations."""
-        from requirements_to_tau_system import RequirementsToTauSystem
+        from utilities.requirements_to_tau_system import RequirementsToTauSystem
         
         # Try to trick system into writing to sensitive location
         malicious_session_dir = Path("/etc")
@@ -146,7 +146,7 @@ class TestFileSystemSecurity:
     @pytest.mark.security  
     def test_file_path_sanitization(self):
         """Test that file paths are properly sanitized."""
-        from requirements_to_tau_system import RequirementsToTauSystem
+        from utilities.requirements_to_tau_system import RequirementsToTauSystem
         
         with tempfile.TemporaryDirectory() as temp_dir:
             system = RequirementsToTauSystem(
@@ -172,9 +172,9 @@ class TestCryptographySecurity:
         """Test that no secrets are hardcoded in source."""
         # Scan production files for potential secrets
         source_files = [
-            "production_translator.py",
-            "refactored_llm_translator.py", 
-            "requirements_to_tau_system.py"
+            "translators/production_translator.py",
+            "translators/refactored_llm_translator.py", 
+            "utilities/requirements_to_tau_system.py"
         ]
         
         secret_patterns = [
@@ -219,7 +219,7 @@ class TestAuthenticationSecurity:
     @pytest.mark.security
     def test_sensitive_data_not_logged(self, caplog):
         """Test that sensitive data is not logged."""
-        from production_translator import ProductionTranslator
+        from translators.production_translator import ProductionTranslator
         
         translator = ProductionTranslator()
         
@@ -241,7 +241,7 @@ class TestDenialOfServiceProtection:
     @pytest.mark.slow
     def test_recursive_pattern_protection(self):
         """Test protection against patterns that could cause infinite recursion."""
-        from refactored_llm_translator import TauPatternValidator
+        from translators.refactored_llm_translator import TauPatternValidator
         
         validator = TauPatternValidator()
         
@@ -273,7 +273,7 @@ class TestDenialOfServiceProtection:
         import psutil
         import os
         
-        from production_translator import ProductionTranslator
+        from translators.production_translator import ProductionTranslator
         
         translator = ProductionTranslator()
         

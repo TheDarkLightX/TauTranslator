@@ -211,6 +211,6 @@ class TestPluginManagerDiscovery:
         manager = PluginManager(plugin_dirs=tmp_path, core_ilr_version="1.0.0")
         manager.discover_plugins()
         
-        # Only first plugin should be loaded
+        # Only first plugin should be loaded (duplicate IDs are skipped)
         assert len(manager.plugins) == 1
-        assert manager.plugins["duplicate-id"].name == "Plugin 2"
+        assert manager.plugins["duplicate-id"].name == "Plugin 1"

@@ -8,8 +8,8 @@ Provides enhanced translations, auto-complete, and vocabulary search.
 """
 
 from typing import Dict, List, Any, Optional
-from nlp_vocabulary import TauVocabulary, AutoCompleteEngine, EnhancedEnglishGenerator
-from dictionary_manager import DictionaryManager
+from .nlp_vocabulary import TauVocabulary, AutoCompleteEngine, EnhancedEnglishGenerator
+from .dictionary_manager import DictionaryManager
 
 class NLPTranslationService:
     """Service that integrates NLP features with translation system"""

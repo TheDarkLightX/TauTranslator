@@ -1,0 +1,4 @@
+[tool.mutmut]
+paths_to_mutate = ["src/tau_translator_omega/core_engine/ast/ast_nodes.py"]
+backup = false
+runner = "PYTHONPATH=src python -m pytest tests/core_engine/ast_tests/test_boolean_literal_node_mutation_hardened.py::TestBooleanLiteralNodeMutationHardened -x --tb=no --disable-warnings -q"

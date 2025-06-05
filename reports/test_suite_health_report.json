@@ -1,0 +1,172 @@
+{
+  "timestamp": 1749011735.573559,
+  "health_score": 68.75,
+  "summary": {
+    "total": 16,
+    "working": 11,
+    "failing": 5,
+    "missing": 0
+  },
+  "results": [
+    {
+      "path": "tests/core_engine/ast_tests/test_boolean_literal_node.py",
+      "description": "Boolean Literal Node (Original)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.29041194915771484,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 5 items\n\ntests/core_engine/ast_tests/test_boolean_literal_node.py .....           [100%]\n\n============================== 5 passed in 0.08s ===============================\n",
+      "summary": "============================== 5 passed in 0.08s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_boolean_literal_node_fixed.py",
+      "description": "Boolean Literal Node (Fixed)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.2964189052581787,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 7 items\n\ntests/core_engine/ast_tests/test_boolean_literal_node_fixed.py .......   [100%]\n\n============================== 7 passed in 0.09s ===============================\n",
+      "summary": "============================== 7 passed in 0.09s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_boolean_literal_node_mutation_hardened.py",
+      "description": "Boolean Literal Node (Hardened)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.29698896408081055,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 10 items\n\ntests/core_engine/ast_tests/test_boolean_literal_node_mutation_hardened.py . [ 10%]\n.........                                                                [100%]\n\n============================== 10 passed in 0.09s ================",
+      "summary": "============================== 10 passed in 0.09s ==============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_identifier_node.py",
+      "description": "Identifier Node (Original)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.29026317596435547,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 8 items\n\ntests/core_engine/ast_tests/test_identifier_node.py ........             [100%]\n\n============================== 8 passed in 0.08s ===============================\n",
+      "summary": "============================== 8 passed in 0.08s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_binary_op_node.py",
+      "description": "Binary Op Node (Original)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.2929511070251465,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 6 items\n\ntests/core_engine/ast_tests/test_binary_op_node.py ......                [100%]\n\n============================== 6 passed in 0.08s ===============================\n",
+      "summary": "============================== 6 passed in 0.08s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_number_literal_node.py",
+      "description": "Number Literal Node (Original)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.3085486888885498,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 5 items\n\ntests/core_engine/ast_tests/test_number_literal_node.py .....            [100%]\n\n============================== 5 passed in 0.08s ===============================\n",
+      "summary": "============================== 5 passed in 0.08s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_unary_op_node.py",
+      "description": "Unary Op Node (Original)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.29190707206726074,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 6 items\n\ntests/core_engine/ast_tests/test_unary_op_node.py ......                 [100%]\n\n============================== 6 passed in 0.08s ===============================\n",
+      "summary": "============================== 6 passed in 0.08s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ast_tests/test_stream_variable_node.py",
+      "description": "Stream Variable Node (Original)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.2905879020690918,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 7 items\n\ntests/core_engine/ast_tests/test_stream_variable_node.py .......         [100%]\n\n============================== 7 passed in 0.08s ===============================\n",
+      "summary": "============================== 7 passed in 0.08s ===============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/test_semantic_analyzer_refactored.py",
+      "description": "Semantic Analyzer (Refactored)",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.3003571033477783,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 15 items\n\ntests/core_engine/test_semantic_analyzer_refactored.py ...............   [100%]\n\n============================== 15 passed in 0.09s ==============================\n",
+      "summary": "============================== 15 passed in 0.09s ==============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/test_parser.py",
+      "description": "Core Parser",
+      "status": "\u274c FAIL",
+      "return_code": 2,
+      "time": 0.3804030418395996,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 0 items / 1 error\n\n=========================== short test summary info ============================\nERROR tests/core_engine/test_parser.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=====================",
+      "summary": "=============================== 1 error in 0.16s ===============================",
+      "working": false
+    },
+    {
+      "path": "tests/core_engine/cnl_parser/test_mock_parser.py",
+      "description": "Mock CNL Parser",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.30016207695007324,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 19 items\n\ntests/core_engine/cnl_parser/test_mock_parser.py ...................     [100%]\n\n============================== 19 passed in 0.09s ==============================\n",
+      "summary": "============================== 19 passed in 0.09s ==============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/ebnf_parser/test_ebnf_parser.py",
+      "description": "EBNF Parser",
+      "status": "\u2705 PASS",
+      "return_code": 0,
+      "time": 0.31928396224975586,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 63 items\n\ntests/core_engine/ebnf_parser/test_ebnf_parser.py ...................... [ 34%]\n.........................................                                [100%]\n\n============================== 63 passed in 0.10s ====================",
+      "summary": "============================== 63 passed in 0.10s ==============================",
+      "working": true
+    },
+    {
+      "path": "tests/core_engine/test_grammar_plugin_validator.py",
+      "description": "Grammar Plugin Validator",
+      "status": "\u274c FAIL",
+      "return_code": 2,
+      "time": 0.36281704902648926,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 0 items / 1 error\n\n=========================== short test summary info ============================\nERROR tests/core_engine/test_grammar_plugin_validator.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n===",
+      "summary": "=============================== 1 error in 0.14s ===============================",
+      "working": false
+    },
+    {
+      "path": "tests/core_engine/test_tgf_preprocessor.py",
+      "description": "TGF Preprocessor",
+      "status": "\u274c FAIL",
+      "return_code": 1,
+      "time": 0.2906980514526367,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 7 items\n\ntests/core_engine/test_tgf_preprocessor.py FFFFFFF                       [100%]\n\n=========================== short test summary info ============================\nFAILED tests/core_engine/test_tgf_preprocessor.py::TestTgfPreprocessor",
+      "summary": "============================== 7 failed in 0.08s ===============================",
+      "working": false
+    },
+    {
+      "path": "tests/test_advanced_translator.py",
+      "description": "Advanced Translator",
+      "status": "\u274c FAIL",
+      "return_code": 2,
+      "time": 0.3467249870300293,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 0 items / 1 error\n\n=========================== short test summary info ============================\nERROR tests/test_advanced_translator.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n====================",
+      "summary": "=============================== 1 error in 0.13s ===============================",
+      "working": false
+    },
+    {
+      "path": "tests/test_security.py",
+      "description": "Security Tests",
+      "status": "\u274c FAIL",
+      "return_code": 2,
+      "time": 0.3400299549102783,
+      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.9.6, pytest-8.4.0, pluggy-1.6.0\nrootdir: ~/TauTranslator\nplugins: anyio-4.9.0, hypothesis-6.135.0, bdd-8.1.0, cov-6.1.1\ncollected 0 items / 1 error\n\n=========================== short test summary info ============================\nERROR tests/test_security.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n===============================",
+      "summary": "=============================== 1 error in 0.13s ===============================",
+      "working": false
+    }
+  ]
+}

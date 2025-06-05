@@ -8,7 +8,8 @@ Test the translator with larger, more complex Tau specifications.
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add the translators directory to the path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "translators"))
 
 from production_translator import ProductionTranslator
 

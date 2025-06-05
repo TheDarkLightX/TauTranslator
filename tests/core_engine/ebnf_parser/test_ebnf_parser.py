@@ -243,7 +243,7 @@ class TestEBNFParserAtomParsing:
         ]
         parser.position = 0
         
-        with pytest.raises(RuntimeError, match="Expected RPAREN"):
+        with pytest.raises(RuntimeError, match="Unexpected end of input"):
             parser._parse_atom()
     
     def test_parse_atom_unexpected_token(self, parser):

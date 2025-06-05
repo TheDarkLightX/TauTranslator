@@ -2,13 +2,30 @@
 Defines the core domain models for the vocabulary system, such as EntityType and FieldDefinition.
 """
 
+from typing import Optional
+
 class FieldDefinition:
     """
     Represents the definition of a single field within an EntityType.
-    Placeholder for now, will be expanded.
     """
-    # TODO: Implement based on sample_entity_types.json field structure
-    pass
+    def __init__(self, name: str, field_data: dict):
+        """
+        Initialize a field definition from its data.
+        
+        Args:
+            name: The field name
+            field_data: Dictionary containing field properties
+        """
+        self.name = name
+        self.type = field_data.get("type", "string")
+        self.required = field_data.get("required", False)
+        self.description = field_data.get("description", "")
+        self.default = field_data.get("default")
+        self.constraints = field_data.get("constraints", {})
+        self.examples = field_data.get("examples", [])
+        
+    def __repr__(self):
+        return f"FieldDefinition(name={self.name}, type={self.type}, required={self.required})"
 
 class EntityType:
     """
@@ -24,16 +41,16 @@ class EntityType:
                              typically loaded from a JSON file.
         """
         self.name: str = name
-        self.description: str | None = definition_data.get("description")
-        self.schema_version: str | None = definition_data.get("schema_version")
+        self.description: Optional[str] = definition_data.get("description")
+        self.schema_version: Optional[str] = definition_data.get("schema_version")
         
-        # For now, we'll store the raw fields data.
-        # In a later step, these will be parsed into FieldDefinition objects.
+        # Parse fields data into FieldDefinition objects
         self.raw_fields_data: dict = definition_data.get("fields", {})
         self.fields: dict[str, FieldDefinition] = {}
-
-        # TODO: Implement parsing of self.raw_fields_data into self.fields
-        #       where keys are field names and values are FieldDefinition objects.
+        
+        # Parse each field definition
+        for field_name, field_data in self.raw_fields_data.items():
+            self.fields[field_name] = FieldDefinition(field_name, field_data)
 
     def __repr__(self) -> str:
         return f"<EntityType(name='{self.name}')>"

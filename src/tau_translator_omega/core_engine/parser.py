@@ -10,9 +10,9 @@ import logging # Import logging
 import importlib # Import importlib
 
 # Assuming Plugin class is in plugin_manager
-from tau_translator_omega.core_engine.plugin_manager import Plugin 
-from tau_translator_omega.core_engine.ast_nodes import ASTNode # ModuleNode removed as transformer returns expression node directly for simple_math
-from tau_translator_omega.core_engine.lark_transformer import SimpleMathTransformer # Import the transformer
+from .plugin_manager import Plugin 
+from .ast_nodes import ASTNode # ModuleNode removed as transformer returns expression node directly for simple_math
+from .lark_transformer import SimpleMathTransformer # Import the transformer
 
 # Import Lark exceptions for specific handling
 from lark import Lark, Tree, UnexpectedInput, ParseError as LarkParseError, LarkError
@@ -208,7 +208,7 @@ class GrammarDrivenParser:
         logging.debug(f"Attempting to parse source code: '{source_code}'")
         try:
             cst = self.parser_instance.parse(source_code)
-            logging.debug(f"Successfully parsed source code. CST:\n{cst.pretty() if cst else 'None'}")
+            logging.debug(f"Successfully parsed source code. CST:\n{cst.pretty() if hasattr(cst, 'pretty') else str(cst)}")
         except LarkError as e:
             # Catching generic LarkError and providing more context
             error_message = f"Lark parsing error: {e}\n"
@@ -229,7 +229,7 @@ class GrammarDrivenParser:
             if source_code == "-5": # Log specific details for a known failing case
                 logging.error(f"DIAGNOSTIC (for input '-5'): Transformer type: {type(self.transformer_instance)}")
                 logging.error(f"DIAGNOSTIC (for input '-5'): Transformer methods: {dir(self.transformer_instance)}")
-                logging.error(f"DIAGNOSTIC (for input '-5'): CST for '-5':\n{cst.pretty()}")
+                logging.error(f"DIAGNOSTIC (for input '-5'): CST for '-5':\n{cst.pretty() if hasattr(cst, 'pretty') else str(cst)}")
             try:
                 ast = self.transformer_instance.transform(cst) # CST is lark.Tree
                 logging.debug(f"Successfully transformed CST to AST. AST root type: {type(ast)}")

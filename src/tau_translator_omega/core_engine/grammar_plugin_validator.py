@@ -8,7 +8,7 @@ import json
 import os
 import logging
 from jsonschema import validate, ValidationError
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Union, Optional
 from pathlib import Path
 
 from .plugin import BasePluginValidator
@@ -39,10 +39,10 @@ class GrammarPluginValidator(BasePluginValidator):
             logger_instance: The logger instance to use.
         """
         super().__init__(core_ilr_version, logger_instance) 
-        self.schema: Dict[str, Any] | None = self._load_schema()
+        self.schema: Optional[Dict[str, Any]] = self._load_schema()
         self.errors: List[str] = [] 
 
-    def _load_schema(self) -> Dict[str, Any] | None:
+    def _load_schema(self) -> Optional[Dict[str, Any]]:
         """
         Loads the grammar plugin manifest JSON schema.
         Returns the schema as a dictionary, or None if loading fails.

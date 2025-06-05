@@ -103,7 +103,6 @@ class OptionalNode(ExpressionNode):
 @dataclass
 class RepetitionNode(ExpressionNode):
     """Node representing repetition: {A} or A* or A+"""
-    __slots__ = ('expression', 'min_count', 'max_count')
     
     expression: ExpressionNode
     min_count: int = 0  # 0 for *, 1 for +
@@ -139,7 +138,6 @@ class TerminalNode(ExpressionNode):
 @dataclass
 class LiteralNode(TerminalNode):
     """Node representing string literal: "hello" or 'hello'"""
-    __slots__ = ('value', 'quote_type')
     
     value: str
     quote_type: str = '"'  # " or '
@@ -154,7 +152,6 @@ class LiteralNode(TerminalNode):
 @dataclass
 class RegexNode(TerminalNode):
     """Node representing regex pattern: /pattern/"""
-    __slots__ = ('pattern', 'flags')
     
     pattern: str
     flags: str = ''

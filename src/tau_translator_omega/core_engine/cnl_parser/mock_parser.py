@@ -141,7 +141,7 @@ class MockCNLParser:
                 return ComparisonNode(left=left, operator=value, right=right)
         
         # Look for function calls (identifier followed by parentheses)
-        if (len(tokens) >= 4 and 
+        if (len(tokens) >= 3 and 
             tokens[0][0] == 'IDENTIFIER' and 
             tokens[1][0] == 'LPAREN' and 
             tokens[-1][0] == 'RPAREN'):

@@ -41,7 +41,7 @@ class TestMockCNLParserBasics:
 
     def test_missing_period_error(self, parser):
         """Test that missing period raises error."""
-        with pytest.raises(ValueError, match="Sentence must end with period"):
+        with pytest.raises(RuntimeError, match="Failed to parse CNL text.*Sentence must end with period"):
             parser.parse("true")
 
 

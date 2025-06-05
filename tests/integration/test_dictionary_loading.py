@@ -20,8 +20,8 @@ import os
 from typing import Dict, List, Any
 
 # These imports will work once we implement the dictionary system
-from nlp_vocabulary import TauVocabulary, VocabularyEntry
-from dictionary_manager import DictionaryManager, DictionaryLoader
+from nlp.nlp_vocabulary import TauVocabulary, VocabularyEntry
+from nlp.dictionary_manager import DictionaryManager, DictionaryLoader
 
 class TestDictionaryFileFormats(unittest.TestCase):
     """Test different dictionary file format support"""
@@ -387,7 +387,7 @@ class TestIntegrationWithAutoComplete(unittest.TestCase):
     
     def test_custom_dictionary_in_autocomplete(self):
         """Test that custom dictionary entries appear in auto-complete"""
-        from nlp_integration import NLPTranslationService
+        from nlp.nlp_integration import NLPTranslationService
         
         # Create custom dictionary with domain terms
         temp_dir = tempfile.mkdtemp()

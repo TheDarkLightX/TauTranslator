@@ -18,8 +18,6 @@ export default async function handler(req, res) {
     }
 
     try {
-      console.log(`API: Translating from ${sourceLangLabel} (${sourceLangKey}) to ${targetLangLabel} (${targetLangKey}): ${sourceText}`);
-
       // Use simple pattern-based translation (always works, no dependencies)
       const translatedText = translateText(sourceText, sourceLangKey, targetLangKey);
       
@@ -33,15 +31,15 @@ export default async function handler(req, res) {
       });
       
     } catch (translationError) {
-      console.log('Pattern translation error:', translationError.message);
+      // Log error internally without exposing details
       
-      // Absolute fallback
-      return res.status(200).json({
-        translatedText: `${targetLangKey}: ${sourceText}`,
-        provider: 'Fallback',
-        model: 'passthrough',
+      // Return error instead of mock data
+      return res.status(500).json({
+        error: 'Translation failed',
+        message: translationError.message,
+        translatedText: sourceText, // Return original text
+        provider: 'Error',
         secure: true,
-        mock: true,
         processingTime: 0.01
       });
     }
@@ -83,18 +81,18 @@ function translateText(text, sourceLang, targetLang) {
 function translateTceToTau(text) {
   let result = text.toLowerCase();
   
-  // Grammar rules for TCE to TAU translation
+  // Grammar rules for proper TAU translation (based on tau.tgf)
   const rules = {
     // Temporal operators
     'always': 'always',
     'sometimes': 'sometimes',
-    'eventually': 'eventually',
-    'never': 'never',
+    'eventually': '<>',
+    'never': '!(<>',
     
-    // Boolean operators
-    ' and ': ' & ',
-    ' or ': ' | ',
-    ' not ': ' ! ',
+    // Boolean operators (proper Tau syntax)
+    ' and ': ' && ',
+    ' or ': ' || ',
+    ' not ': ' !',
     ' implies ': ' -> ',
     ' if and only if ': ' <-> ',
     ' iff ': ' <-> ',

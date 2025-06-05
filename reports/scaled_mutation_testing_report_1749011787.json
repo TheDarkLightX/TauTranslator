@@ -1,0 +1,210 @@
+{
+  "timestamp": 1749011787.064341,
+  "summary": {
+    "total_tests": 8,
+    "successful_tests": 0,
+    "failed_tests": 8,
+    "meeting_expectations": 0,
+    "avg_mutation_score": 0,
+    "max_mutation_score": 0,
+    "min_mutation_score": 0,
+    "quality_level": "NEEDS WORK",
+    "total_time": 7.5662078857421875,
+    "results": [
+      {
+        "test_file": "tests/core_engine/ast_tests/test_identifier_node.py",
+        "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+        "description": "Identifier Node (Original)",
+        "mutation_score": null,
+        "expected_score": 75.0,
+        "test_time": 0.9335789680480957,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 70ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/ast_tests/test_boolean_literal_node_fixed.py",
+        "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+        "description": "Boolean Literal Node (Enhanced)",
+        "mutation_score": null,
+        "expected_score": 85.0,
+        "test_time": 0.9309449195861816,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 70ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/ast_tests/test_number_literal_node.py",
+        "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+        "description": "Number Literal Node (Original)",
+        "mutation_score": null,
+        "expected_score": 70.0,
+        "test_time": 0.9294781684875488,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 71ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/ast_tests/test_binary_op_node.py",
+        "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+        "description": "Binary Op Node (Original)",
+        "mutation_score": null,
+        "expected_score": 70.0,
+        "test_time": 0.9296116828918457,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 71ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/test_semantic_analyzer_refactored.py",
+        "source_file": "src/tau_translator_omega/core_engine/semantic_analyzer.py",
+        "description": "Semantic Analyzer (Refactored)",
+        "mutation_score": null,
+        "expected_score": 60.0,
+        "test_time": 0.9169809818267822,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/ast_tests/test_boolean_literal_node_mutation_hardened.py",
+        "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+        "description": "Boolean Literal Node (Hardened)",
+        "mutation_score": null,
+        "expected_score": 85.0,
+        "test_time": 0.9140322208404541,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/cnl_parser/test_mock_parser.py",
+        "source_file": "src/tau_translator_omega/core_engine/cnl_parser/mock_parser.py",
+        "description": "Mock CNL Parser",
+        "mutation_score": null,
+        "expected_score": 70.0,
+        "test_time": 0.9894390106201172,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      },
+      {
+        "test_file": "tests/core_engine/ebnf_parser/test_ebnf_parser.py",
+        "source_file": "src/tau_translator_omega/core_engine/ebnf_parser/ebnf_parser.py",
+        "description": "EBNF Parser",
+        "mutation_score": null,
+        "expected_score": 65.0,
+        "test_time": 1.022141933441162,
+        "status": "FAILED",
+        "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+        "results_output": "",
+        "meets_expectation": false
+      }
+    ]
+  },
+  "detailed_results": [
+    {
+      "test_file": "tests/core_engine/ast_tests/test_identifier_node.py",
+      "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+      "description": "Identifier Node (Original)",
+      "mutation_score": null,
+      "expected_score": 75.0,
+      "test_time": 0.9335789680480957,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 70ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/ast_tests/test_boolean_literal_node_fixed.py",
+      "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+      "description": "Boolean Literal Node (Enhanced)",
+      "mutation_score": null,
+      "expected_score": 85.0,
+      "test_time": 0.9309449195861816,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 70ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/ast_tests/test_number_literal_node.py",
+      "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+      "description": "Number Literal Node (Original)",
+      "mutation_score": null,
+      "expected_score": 70.0,
+      "test_time": 0.9294781684875488,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 71ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/ast_tests/test_binary_op_node.py",
+      "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+      "description": "Binary Op Node (Original)",
+      "mutation_score": null,
+      "expected_score": 70.0,
+      "test_time": 0.9296116828918457,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 71ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/test_semantic_analyzer_refactored.py",
+      "source_file": "src/tau_translator_omega/core_engine/semantic_analyzer.py",
+      "description": "Semantic Analyzer (Refactored)",
+      "mutation_score": null,
+      "expected_score": 60.0,
+      "test_time": 0.9169809818267822,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/ast_tests/test_boolean_literal_node_mutation_hardened.py",
+      "source_file": "src/tau_translator_omega/core_engine/ast/ast_nodes.py",
+      "description": "Boolean Literal Node (Hardened)",
+      "mutation_score": null,
+      "expected_score": 85.0,
+      "test_time": 0.9140322208404541,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/cnl_parser/test_mock_parser.py",
+      "source_file": "src/tau_translator_omega/core_engine/cnl_parser/mock_parser.py",
+      "description": "Mock CNL Parser",
+      "mutation_score": null,
+      "expected_score": 70.0,
+      "test_time": 0.9894390106201172,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    },
+    {
+      "test_file": "tests/core_engine/ebnf_parser/test_ebnf_parser.py",
+      "source_file": "src/tau_translator_omega/core_engine/ebnf_parser/ebnf_parser.py",
+      "description": "EBNF Parser",
+      "mutation_score": null,
+      "expected_score": 65.0,
+      "test_time": 1.022141933441162,
+      "status": "FAILED",
+      "mutmut_output": "\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n\u2819 Generating mutants\n\u2839 Generating mutants\n\u2838 Generating mutants\n\u283c Generating mutants\n\u2834 Generating mutants\n\u2826 Generating mutants\n\u2827 Generating mutants\n\u2807 Generating mutants\n\u280f Generating mutants\n\u280b Generating mutants\n    done in 72ms\n\n\u2819 Running stats     \n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n\u2827 Running stats\n\u2807 Running stats\n\u280f Running stats\n\u280b Running stats\n\u2819 Running stats\n\u2839 Running stats\n\u2838 Running stats\n\u283c Running stats\n\u2834 Running stats\n\u2826 Running stats\n==================================== ERRORS ====================================\n_______ ERROR collecting tests/behavior/test_user_behavior_scenarios.py ________\nImportError while importing test module '~/TauTranslator/mutants/tests/behavior/test_user_behavior_scenarios.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/behavior/test_user_behavior_scenarios.py:23: in <module>\n    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator\nE   ModuleNotFoundError: No module named 'src.tau_translator_omega.lmql_engine'\n=========================== short test summary info ============================\nERROR tests/behavior/test_user_behavior_scenarios.py\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 error in 0.12s\nfailed to collect stats. runner returned 1\n\n",
+      "results_output": "",
+      "meets_expectation": false
+    }
+  ]
+}

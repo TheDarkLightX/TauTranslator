@@ -51,7 +51,7 @@ class TestSemanticAnalyzerPerformance(unittest.TestCase):
         for i in range(num_symbols):
             name = f"var_{i}"
             symbol = Symbol(name, "variable", 0)
-            symbol_table.define(symbol)
+            symbol_table.declare_symbol(symbol)
             symbols.append(name)
         
         # Measure lookup time
@@ -60,7 +60,7 @@ class TestSemanticAnalyzerPerformance(unittest.TestCase):
             # Random lookup
             target = random.choice(symbols)
             start_time = time.perf_counter()
-            result = symbol_table.lookup(target)
+            result = symbol_table.lookup_symbol(target)
             end_time = time.perf_counter()
             lookup_times.append(end_time - start_time)
         
@@ -77,14 +77,14 @@ class TestSemanticAnalyzerPerformance(unittest.TestCase):
         for size in sizes:
             table = SymbolTable()
             for i in range(size):
-                table.define(Symbol(f"var_{i}", "variable", 0))
+                table.declare_symbol(Symbol(f"var_{i}", "variable", 0))
             
             # Measure average lookup time
             times = []
             for _ in range(100):
                 target = f"var_{random.randint(0, size-1)}"
                 start = time.perf_counter()
-                table.lookup(target)
+                table.lookup_symbol(target)
                 end = time.perf_counter()
                 times.append(end - start)
             
@@ -166,7 +166,7 @@ class TestSemanticAnalyzerPerformance(unittest.TestCase):
         # Add 1000 symbols
         for i in range(1000):
             symbol = Symbol(f"var_{i}", "variable", 0)
-            analyzer.symbol_table.define(symbol)
+            analyzer.symbol_table.declare_symbol(symbol)
         
         # Measure after adding symbols
         total_size = sys.getsizeof(analyzer) + sys.getsizeof(analyzer.symbol_table)

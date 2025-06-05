@@ -1,0 +1,573 @@
+{
+  "complexity": {
+    "error": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named radon\n"
+  },
+  "security": {
+    "total_issues": 0,
+    "message": "No security issues found"
+  },
+  "quality": {
+    "flake8": {
+      "total_issues": 0,
+      "issues": []
+    },
+    "mypy": {
+      "total_issues": 0,
+      "issues": []
+    }
+  },
+  "dead_code": {
+    "dead_code_items": 0,
+    "items": [],
+    "confidence_threshold": 80
+  },
+  "documentation": {
+    "documentation_issues": 0,
+    "issues": []
+  },
+  "performance": {
+    "performance_issues": 90,
+    "issues": [
+      {
+        "file": "final_tau_translator.py",
+        "line": 1095,
+        "pattern": "inefficient_membership",
+        "code": "in [':=', 'always', 'sometimes', 'r ', 'sbf']"
+      },
+      {
+        "file": "working_backend.py",
+        "line": 265,
+        "pattern": "inefficient_membership",
+        "code": "in [' & ', ' | ', ' -> ', ' <-> ', ' ^ ']"
+      },
+      {
+        "file": "dev_tools.py",
+        "line": 257,
+        "pattern": "string_concatenation",
+        "code": "+=.*str"
+      },
+      {
+        "file": "dev_tools.py",
+        "line": 428,
+        "pattern": "inefficient_membership",
+        "code": "in ['1000', '1024']"
+      },
+      {
+        "file": "demo_lmql_translator.py",
+        "line": 44,
+        "pattern": "nested_loops",
+        "code": "for pattern_type, matches in patterns.items():\n                for"
+      },
+      {
+        "file": "api_key_manager.py",
+        "line": 176,
+        "pattern": "inefficient_membership",
+        "code": "in [200, 401]"
+      },
+      {
+        "file": "integrated_backend.py",
+        "line": 172,
+        "pattern": "inefficient_membership",
+        "code": "in [' & ', ' | ', ' -> ']"
+      },
+      {
+        "file": "setup_gemma3.py",
+        "line": 312,
+        "pattern": "inefficient_membership",
+        "code": "in [':=', '=', '&', '|', 'r ', 'sbf', 'always']"
+      },
+      {
+        "file": "test_api_backend.py",
+        "line": 65,
+        "pattern": "inefficient_membership",
+        "code": "in [\"TAU\", \"ILR\", \"CNL\"]"
+      },
+      {
+        "file": "test_api_backend.py",
+        "line": 67,
+        "pattern": "inefficient_membership",
+        "code": "in [\"TAU\", \"ILR\", \"CNL\"]"
+      },
+      {
+        "file": "model_manager.py",
+        "line": 174,
+        "pattern": "inefficient_membership",
+        "code": "in ['transformers', 'huggingface_hub']]"
+      },
+      {
+        "file": "requirements_to_tau_system.py",
+        "line": 221,
+        "pattern": "inefficient_membership",
+        "code": "in [spec1, spec2]"
+      },
+      {
+        "file": "requirements_to_tau_system.py",
+        "line": 304,
+        "pattern": "inefficient_membership",
+        "code": "in ['yes', 'y', 'done']"
+      },
+      {
+        "file": "requirements_to_tau_system.py",
+        "line": 456,
+        "pattern": "inefficient_membership",
+        "code": "in ['always', 'sometimes', 'never']"
+      },
+      {
+        "file": "advanced_llm_translator.py",
+        "line": 610,
+        "pattern": "string_concatenation",
+        "code": "+= f\"\\n\\nalways {lines[0].split('=')[0].str"
+      },
+      {
+        "file": "advanced_llm_translator.py",
+        "line": 544,
+        "pattern": "inefficient_membership",
+        "code": "in ['openai', 'anthropic', 'transformers']"
+      },
+      {
+        "file": "nlp_requirements_engine.py",
+        "line": 234,
+        "pattern": "inefficient_membership",
+        "code": "in ['state', 'mode', 'status']"
+      },
+      {
+        "file": "nlp_requirements_engine.py",
+        "line": 255,
+        "pattern": "inefficient_membership",
+        "code": "in ['PERSON', 'ORG']"
+      },
+      {
+        "file": "nlp_requirements_engine.py",
+        "line": 257,
+        "pattern": "inefficient_membership",
+        "code": "in ['CARDINAL', 'QUANTITY']"
+      },
+      {
+        "file": "nlp_requirements_engine.py",
+        "line": 397,
+        "pattern": "inefficient_membership",
+        "code": "in [RequirementType.FUNCTIONAL, RequirementType.BEHAVIOR]"
+      },
+      {
+        "file": "test_gemma_models.py",
+        "line": 166,
+        "pattern": "inefficient_membership",
+        "code": "in ['always', 'temperature', '[t]', '>=', '<=']"
+      },
+      {
+        "file": "simple_backend.py",
+        "line": 228,
+        "pattern": "inefficient_membership",
+        "code": "in ['/health']"
+      },
+      {
+        "file": "nlp_vocabulary.py",
+        "line": 217,
+        "pattern": "nested_loops",
+        "code": "for category_name, category in categories_to_search:\n            for"
+      },
+      {
+        "file": "nlp_vocabulary.py",
+        "line": 236,
+        "pattern": "inefficient_membership",
+        "code": "in [\"define\", \"let\"]"
+      },
+      {
+        "file": "compile_executable.py",
+        "line": 343,
+        "pattern": "inefficient_membership",
+        "code": "in ['tau_translator_app.py', 'splash_screen.py']"
+      },
+      {
+        "file": "test_secure_core.py",
+        "line": 144,
+        "pattern": "inefficient_membership",
+        "code": "in [1, 16, 32, 64, 128]"
+      },
+      {
+        "file": "test_secure_core.py",
+        "line": 714,
+        "pattern": "inefficient_membership",
+        "code": "in [secure_storage.salt_file, secure_storage.auth_file, secure_storage.keys_file]"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 279,
+        "pattern": "inefficient_membership",
+        "code": "in ['TAU', 'CNL']"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 289,
+        "pattern": "inefficient_membership",
+        "code": "in ['TAU', 'CNL']"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 297,
+        "pattern": "inefficient_membership",
+        "code": "in ['TAU', 'CNL']"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 347,
+        "pattern": "inefficient_membership",
+        "code": "in ['function', 'define', 'equals', 'plus', 'minus']"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 350,
+        "pattern": "inefficient_membership",
+        "code": "in ['if', 'when', 'then', 'rule']"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 353,
+        "pattern": "inefficient_membership",
+        "code": "in ['input', 'output', 'stream', 'file']"
+      },
+      {
+        "file": "backend_server.py",
+        "line": 365,
+        "pattern": "inefficient_membership",
+        "code": "in ['r ', 'sbf', '->']"
+      },
+      {
+        "file": "dictionary_manager.py",
+        "line": 50,
+        "pattern": "inefficient_membership",
+        "code": "in ['.yaml', '.yml']"
+      },
+      {
+        "file": "dictionary_manager.py",
+        "line": 118,
+        "pattern": "inefficient_membership",
+        "code": "in ['logical_operator', 'quantifier', 'temporal_operator']"
+      },
+      {
+        "file": "dictionary_manager.py",
+        "line": 133,
+        "pattern": "inefficient_membership",
+        "code": "in ['logical_operator', 'quantifier', 'temporal_operator']"
+      },
+      {
+        "file": "dictionary_manager.py",
+        "line": 239,
+        "pattern": "inefficient_membership",
+        "code": "in ['.yaml', '.yml']"
+      },
+      {
+        "file": "dictionary_manager.py",
+        "line": 299,
+        "pattern": "inefficient_membership",
+        "code": "in ['logical_operator', 'quantifier', 'temporal_operator']"
+      },
+      {
+        "file": "tests/test_security.py",
+        "line": 198,
+        "pattern": "inefficient_membership",
+        "code": "in ['example', 'placeholder', 'your-', 'change-this'])]"
+      },
+      {
+        "file": "tests/test_security.py",
+        "line": 217,
+        "pattern": "inefficient_membership",
+        "code": "in ['600', '400']"
+      },
+      {
+        "file": "tests/test_nlp_autocomplete.py",
+        "line": 574,
+        "pattern": "nested_loops",
+        "code": "for suggestion in suggestions:\n            for"
+      },
+      {
+        "file": "tests/test_nlp_autocomplete.py",
+        "line": 109,
+        "pattern": "inefficient_membership",
+        "code": "in ['and', 'or']"
+      },
+      {
+        "file": "tests/test_nlp_autocomplete.py",
+        "line": 116,
+        "pattern": "inefficient_membership",
+        "code": "in ['define', 'let', 'suppose']"
+      },
+      {
+        "file": "tests/test_nlp_autocomplete.py",
+        "line": 431,
+        "pattern": "inefficient_membership",
+        "code": "in ['=', '>', '<']"
+      },
+      {
+        "file": "tests/test_nlp_autocomplete.py",
+        "line": 453,
+        "pattern": "inefficient_membership",
+        "code": "in ['+', '*', '/']"
+      },
+      {
+        "file": "tests/test_nlp_translation_variants.py",
+        "line": 602,
+        "pattern": "nested_loops",
+        "code": "for variant in variants:\n            for"
+      },
+      {
+        "file": "tests/test_nlp_translation_variants.py",
+        "line": 209,
+        "pattern": "inefficient_membership",
+        "code": "in ['for all', 'there exists']"
+      },
+      {
+        "file": "tests/test_advanced_translator.py",
+        "line": 79,
+        "pattern": "inefficient_membership",
+        "code": "in [RequirementType.CONSTRAINT, RequirementType.INVARIANT]"
+      },
+      {
+        "file": "tests/core_engine/test_semantic_analyzer_type_system.py",
+        "line": 146,
+        "pattern": "inefficient_membership",
+        "code": "in ['+', '-', '*', '/', '%']"
+      },
+      {
+        "file": "tests/core_engine/test_semantic_analyzer_type_system.py",
+        "line": 156,
+        "pattern": "inefficient_membership",
+        "code": "in ['<', '>', '<=', '>=', '==', '!=']"
+      },
+      {
+        "file": "tests/core_engine/test_semantic_analyzer_type_system.py",
+        "line": 163,
+        "pattern": "inefficient_membership",
+        "code": "in ['and', 'or']"
+      },
+      {
+        "file": "tests/core_engine/test_semantic_analyzer_type_system.py",
+        "line": 173,
+        "pattern": "inefficient_membership",
+        "code": "in ['integer', 'real', 'number']"
+      },
+      {
+        "file": "tests/core_engine/test_symmetric_parsing.py",
+        "line": 146,
+        "pattern": "inefficient_membership",
+        "code": "in [complex_text, english_result.output]"
+      },
+      {
+        "file": "tests/core_engine/test_semantic_analyzer_performance.py",
+        "line": 217,
+        "pattern": "inefficient_membership",
+        "code": "in [\"x\", \"y\", \"z\", \"result\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 68,
+        "pattern": "inefficient_membership",
+        "code": "in [RequirementType.BEHAVIOR, RequirementType.SECURITY, RequirementType.VALIDATION]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 91,
+        "pattern": "inefficient_membership",
+        "code": "in [\"any\", \"all\", \"forall\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 129,
+        "pattern": "inefficient_membership",
+        "code": "in [\"\u2200\", \"forall\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 132,
+        "pattern": "inefficient_membership",
+        "code": "in [\"\u2192\", \"implies\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 137,
+        "pattern": "inefficient_membership",
+        "code": "in [\">\", \"greater\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 157,
+        "pattern": "inefficient_membership",
+        "code": "in [\"\u2200\", \"forall\", \"every\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 160,
+        "pattern": "inefficient_membership",
+        "code": "in [\"\u2227\", \"and\", \"\u2228\", \"or\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 163,
+        "pattern": "inefficient_membership",
+        "code": "in [\"\u2192\", \"implies\", \"if\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 168,
+        "pattern": "inefficient_membership",
+        "code": "in [pred]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 183,
+        "pattern": "inefficient_membership",
+        "code": "in [\"within\", \"time\", \"5\"]"
+      },
+      {
+        "file": "tests/core_engine/test_requirements_to_tau.py",
+        "line": 318,
+        "pattern": "inefficient_membership",
+        "code": "in [\"except\", \"unless\", \"\u2228\", \"or\"]"
+      },
+      {
+        "file": "tests/core_engine/cnl_parser/test_o_n_cnl_parser.py",
+        "line": 85,
+        "pattern": "inefficient_membership",
+        "code": "in [100, 1000, 10000]"
+      },
+      {
+        "file": "src/tau_translator_omega/gemma3/translator.py",
+        "line": 153,
+        "pattern": "inefficient_membership",
+        "code": "in [':=', '=', '&', '|', 'r ', 'sbf', 'always']"
+      },
+      {
+        "file": "src/tau_translator_omega/lmql_engine/bidirectional_translator.py",
+        "line": 674,
+        "pattern": "nested_loops",
+        "code": "for pattern_type, matches in patterns.items():\n            for"
+      },
+      {
+        "file": "src/tau_translator_omega/lmql_engine/bidirectional_translator.py",
+        "line": 718,
+        "pattern": "nested_loops",
+        "code": "for pattern_type, matches in patterns.items():\n            for"
+      },
+      {
+        "file": "src/tau_translator_omega/lmql_engine/bidirectional_translator.py",
+        "line": 477,
+        "pattern": "inefficient_membership",
+        "code": "in ['AND', 'OR', 'XOR', 'NOT']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/lark_transformer.py",
+        "line": 84,
+        "pattern": "inefficient_membership",
+        "code": "in ['MINUS', 'PLUS'] and isinstance(children[1]"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/tgf_preprocessor.py",
+        "line": 172,
+        "pattern": "string_concatenation",
+        "code": "+= line_content[:len(str"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/tgf_grammar_loader.py",
+        "line": 155,
+        "pattern": "nested_loops",
+        "code": "for alt in rule_def['alternatives']:\n                for"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/tgf_grammar_loader.py",
+        "line": 132,
+        "pattern": "inefficient_membership",
+        "code": "in ['?', '*', '+']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/version_handler.py",
+        "line": 85,
+        "pattern": "inefficient_membership",
+        "code": "in ['=', '<', '>', '!', '~', ',']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/plugin_manager.py",
+        "line": 397,
+        "pattern": "inefficient_membership",
+        "code": "in [\"grammar_definition\", \"semantic_construct\"]"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/nlp_enhanced/amr_semantic_layer.py",
+        "line": 516,
+        "pattern": "inefficient_membership",
+        "code": "in [AMRRelation.ARG0, AMRRelation.ARG1]"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/nlp_enhanced/english_to_tau_translator.py",
+        "line": 639,
+        "pattern": "nested_loops",
+        "code": "formal_constraints:\n                for"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/nlp_enhanced/symmetric_translator.py",
+        "line": 281,
+        "pattern": "inefficient_membership",
+        "code": "in ['is', 'are', 'for', 'all', 'if', 'then']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/nlp_enhanced/requirements_analyzer.py",
+        "line": 268,
+        "pattern": "nested_loops",
+        "code": "for req_type, indicators in self.requirement_indicators.items():\n            for"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/nlp_enhanced/requirements_analyzer.py",
+        "line": 310,
+        "pattern": "inefficient_membership",
+        "code": "in ['VERB', 'ADJ']]"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/cnl_parser/cnl_parser.py",
+        "line": 288,
+        "pattern": "inefficient_membership",
+        "code": "in ['AND', 'OR', 'XOR']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/cnl_parser/cnl_parser.py",
+        "line": 316,
+        "pattern": "inefficient_membership",
+        "code": "in ['AND', 'OR', 'XOR']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/cnl_parser/parser.py",
+        "line": 443,
+        "pattern": "inefficient_membership",
+        "code": "in [\"PLUS\", \"MINUS\"]"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/cnl_parser/parser.py",
+        "line": 475,
+        "pattern": "inefficient_membership",
+        "code": "in [\"INPUT_KW\", \"OUTPUT_KW\"]"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/ebnf_parser/ebnf_parser.py",
+        "line": 118,
+        "pattern": "inefficient_membership",
+        "code": "in ['WHITESPACE', 'COMMENT']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/ebnf_parser/ebnf_parser.py",
+        "line": 249,
+        "pattern": "inefficient_membership",
+        "code": "in ['PERIOD', 'SEMICOLON']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/ebnf_parser/ebnf_parser.py",
+        "line": 273,
+        "pattern": "inefficient_membership",
+        "code": "in ['PIPE', 'RPAREN', 'RBRACKET', 'RBRACE', 'PERIOD', 'SEMICOLON']"
+      },
+      {
+        "file": "src/tau_translator_omega/core_engine/ebnf_parser/ebnf_parser.py",
+        "line": 287,
+        "pattern": "inefficient_membership",
+        "code": "in ['QUESTION', 'STAR', 'PLUS']"
+      }
+    ]
+  }
+}

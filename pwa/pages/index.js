@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
 import styles from '../styles/Editor.module.css';
-import AuthenticationModal from '../components/AuthenticationModal';
-import SimpleAuthModal from '../components/SimpleAuthModal';
+import UnifiedAuthModal from '../components/UnifiedAuthModal';
 import BackendStatusChecker from '../components/BackendStatusChecker';
+import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../hooks/useAuth';
 
 const outputFormats = {
   ILR: 'ILR (Intermediate Logic Representation)',
@@ -18,144 +20,73 @@ const languageTypes = {
 export default function EditorPage() {
   const [leftText, setLeftText] = useState('');
   const [rightText, setRightText] = useState('');
-  const [leftIsPlainEnglish, setLeftIsPlainEnglish] = useState(true);
-  const [machineFormat, setMachineFormat] = useState('ILR'); // Default machine format
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [sessionToken, setSessionToken] = useState(null);
+  const [leftLanguage, setLeftLanguage] = useState('PLAIN_ENGLISH');
+  const [rightLanguage, setRightLanguage] = useState('TAU');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Check for existing authentication on component mount
-  useEffect(() => {
-    const storedToken = localStorage.getItem('sessionToken');
-    const storedAuth = localStorage.getItem('authenticated');
-
-    if (storedToken && storedAuth === 'true') {
-      setSessionToken(storedToken);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  const handleAuthenticate = (token) => {
-    setSessionToken(token);
-    setIsAuthenticated(true);
-    setShowAuthModal(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('sessionToken');
-    localStorage.removeItem('authenticated');
-    setSessionToken(null);
-    setIsAuthenticated(false);
-  };
+  // Use custom hooks
+  const { isAuthenticated, logout } = useAuth();
+  const { translate, isLoading, error, clearError } = useTranslation();
 
   const handleSwapLanguages = () => {
-    setLeftIsPlainEnglish(prev => !prev);
-    setLeftText(rightText); // Swap text content
-    setRightText(leftText);
+    // Swap languages
+    const tempLang = leftLanguage;
+    setLeftLanguage(rightLanguage);
+    setRightLanguage(tempLang);
+    
+    // Swap text content
+    const tempText = leftText;
+    setLeftText(rightText);
+    setRightText(tempText);
   };
 
   const handleTranslate = async () => {
-    // Check if authentication is required for backend features
-    if (!isAuthenticated) {
+    const result = await translate({
+      sourceText: leftText,
+      sourceLang: leftLanguage,
+      targetLang: rightLanguage
+    });
+
+    if (result.success) {
+      setRightText(result.translatedText);
+    } else if (result.requiresAuth) {
       setShowAuthModal(true);
-      return;
     }
-
-    setIsLoading(true);
-
-    const currentSourceText = leftIsPlainEnglish ? leftText : rightText;
-    const currentSourceLangKey = leftIsPlainEnglish ? 'PLAIN_ENGLISH' : machineFormat;
-    const currentTargetLangKey = leftIsPlainEnglish ? machineFormat : 'PLAIN_ENGLISH';
-
-    const sourceLangLabel = languageTypes[currentSourceLangKey];
-    const targetLangLabel = languageTypes[currentTargetLangKey];
-
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-
-      // Add authorization header if we have a session token
-      if (sessionToken) {
-        headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
-
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          sourceText: currentSourceText,
-          sourceLangKey: currentSourceLangKey,
-          targetLangKey: currentTargetLangKey,
-          sourceLangLabel, // Sending labels for API's mock logic, not strictly needed by real backend
-          targetLangLabel  // Same as above
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        // Handle authentication errors
-        if (response.status === 401) {
-          handleLogout(); // Clear invalid session
-          setShowAuthModal(true);
-          throw new Error('Authentication expired. Please log in again.');
-        }
-
-        throw new Error(errorData.message || `API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const { translatedText } = data;
-
-      if (leftIsPlainEnglish) {
-        setRightText(translatedText);
-      } else {
-        setLeftText(translatedText);
-      }
-    } catch (error) {
-      console.error('Translation API call failed:', error);
-
-      // Handle authentication-related errors
-      if (error.message.includes('authenticate') || error.message.includes('Authentication')) {
-        setShowAuthModal(true);
-      }
-
-      // Display error message to the user
-      const errorMessage = `Error: ${error.message}`;
-      if (leftIsPlainEnglish) {
-        setRightText(errorMessage);
-      } else {
-        setLeftText(errorMessage);
-      }
-    }
-    setIsLoading(false);
   };
   
   const currentInputIsEmpty = () => {
-    if (leftIsPlainEnglish) return !leftText;
-    return !rightText;
+    // Always check left panel since that's where user inputs
+    return !leftText;
   };
 
-  // Determine panel configurations based on leftIsPlainEnglish state
-  const leftPanelLangKey = leftIsPlainEnglish ? 'PLAIN_ENGLISH' : machineFormat;
-  const rightPanelLangKey = leftIsPlainEnglish ? machineFormat : 'PLAIN_ENGLISH';
-
-  const leftPanelLabel = languageTypes[leftPanelLangKey];
-  const rightPanelLabel = languageTypes[rightPanelLangKey];
+  // Determine panel configurations based on language state
+  const leftPanelLabel = languageTypes[leftLanguage];
+  const rightPanelLabel = languageTypes[rightLanguage];
 
   return (
     <div className={styles.editorContainer}>
       <div className={styles.header}>
         <h1 className={styles.title}>Tau Language Translator</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Link href="/settings">
+            <button style={{
+              padding: '8px 12px',
+              border: '1px solid #6c757d',
+              background: '#6c757d',
+              color: 'white',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}>
+              ⚙️ Settings
+            </button>
+          </Link>
+        </div>
         <div className={styles.authStatus}>
           {isAuthenticated ? (
             <div className={styles.authenticatedStatus}>
               <span className={styles.authIndicator}>🔓 Authenticated</span>
-              <button onClick={handleLogout} className={styles.logoutButton}>
+              <button onClick={logout} className={styles.logoutButton}>
                 Logout
               </button>
             </div>
@@ -171,21 +102,30 @@ export default function EditorPage() {
       </div>
 
       <div className={styles.controlsBar}>
-        {/* Left Language Display - Always Plain English */} 
-        <div className={styles.languageDisplay}>{languageTypes.PLAIN_ENGLISH}</div>
+        {/* Left Language Selector */} 
+        <select 
+          value={leftLanguage} 
+          onChange={(e) => setLeftLanguage(e.target.value)} 
+          className={styles.languageSelector}
+          disabled={isLoading}
+        >
+          {Object.entries(languageTypes).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
 
         <button onClick={handleSwapLanguages} className={styles.swapButton} title="Swap Languages" disabled={isLoading}>
           &#x21C4; {/* Unicode for arrows left right */}
         </button>
 
-        {/* Right Language Selector - Always Machine Formats */} 
+        {/* Right Language Selector */} 
         <select 
-          value={machineFormat} 
-          onChange={(e) => setMachineFormat(e.target.value)} 
+          value={rightLanguage} 
+          onChange={(e) => setRightLanguage(e.target.value)} 
           className={styles.languageSelector}
           disabled={isLoading}
         >
-          {Object.entries(outputFormats).map(([key, label]) => (
+          {Object.entries(languageTypes).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
@@ -224,10 +164,24 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {/* Authentication Modal - Using Simple Version for Testing */}
-      <SimpleAuthModal
+      {/* Error Display */}
+      {error && (
+        <div className={styles.errorBanner}>
+          <span className={styles.errorText}>{error}</span>
+          <button 
+            className={styles.errorClose}
+            onClick={clearError}
+            aria-label="Close error"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Authentication Modal */}
+      <UnifiedAuthModal
         isOpen={showAuthModal}
-        onAuthenticate={handleAuthenticate}
+        onSuccess={() => setShowAuthModal(false)}
         onClose={() => setShowAuthModal(false)}
       />
 

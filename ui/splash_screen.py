@@ -4,7 +4,7 @@ TauTranslatorOmega Splash Screen
 ===============================
 
 Beautiful loading screen with animations and progress indicators.
-Designed by Claude 3.5 Sonnet for professional UX.
+Professional UI design for enhanced user experience.
 """
 
 import tkinter as tk
@@ -95,7 +95,7 @@ class SplashScreen:
         # Version and credits
         version_label = tk.Label(
             top_frame,
-            text="v3.0 • Designed by Claude 3.5 Sonnet",
+            text="v3.0 • Professional Edition",
             font=('Segoe UI', 10),
             bg=self.colors['primary'],
             fg=self.colors['light']

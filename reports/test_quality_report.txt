@@ -1,0 +1,49 @@
+Error analyzing tests/core_engine/__init__.py: math domain error
+Error analyzing tests/core_engine/ast_tests/__init__.py: math domain error
+Error analyzing tests/core_engine/cnl_parser/__init__.py: math domain error
+
+Quality Analysis Report
+============================================================
+Total Files: 64
+Total Lines: 10667
+Average Complexity: 1.75
+Average Shannon Entropy: 4.06
+Average Quality Score: 95.72/100
+Problem Files: 9
+
+Entropy Distribution:
+  0.0-0.9: ██ (2 files)
+  1.0-1.9: █ (1 files)
+  2.0-2.9: ███ (3 files)
+  3.0-3.9: ██████████████████ (18 files)
+  4.0-4.9: ████████████████████████████████ (32 files)
+  5.0-5.9: ████████ (8 files)
+
+Top Problem Files:
+
+  tests/core_engine/test_parser.py (Score: 74.35, Entropy: 5.18)
+    - File exceeds 300 lines (433 lines) - consider splitting
+    - Missing docstring for FunctionDef 'mock_open_lark_context_manager'
+    - Missing docstring for ClassDef 'TestGrammarDrivenParser'
+
+  tests/core_engine/test_ilr_pattern_handlers.py (Score: 88.55, Entropy: 2.71)
+    - Shannon entropy too low (2.71 < 3.0) - code may be too repetitive
+    - Missing docstring for ClassDef 'CustomHandler'
+    - Missing docstring for FunctionDef 'can_handle'
+
+  tests/core_engine/test_tgf_preprocessor_rules.py (Score: 95.00, Entropy: 3.37)
+    - Missing docstring for ClassDef 'TestTgfPreprocessorRuleParsing'
+    - Missing docstring for FunctionDef 'test_simple_rule_with_alias_and_whitespace_symbol'
+    - Missing docstring for FunctionDef 'test_multiline_rule_with_alternatives_and_aliases'
+
+  tests/core_engine/test_analyzer_assignments.py (Score: 100.00, Entropy: 4.37)
+    - Missing docstring for ClassDef 'TestAnalyzerAssignments'
+    - Missing docstring for FunctionDef 'setUp'
+    - Missing docstring for FunctionDef 'assertHasError'
+
+  tests/core_engine/test_analyzer_scoping_rules.py (Score: 100.00, Entropy: 4.08)
+    - Missing docstring for ClassDef 'TestAnalyzerScopingRules'
+    - Missing docstring for FunctionDef 'setUp'
+    - Missing docstring for FunctionDef 'assertHasError'
+
+Full report saved to: quality_report_20250604_134635.json

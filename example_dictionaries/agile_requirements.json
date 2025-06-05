@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "name": "Agile Requirements Dictionary",
+    "version": "1.0",
+    "description": "Terms and patterns for agile software requirements",
+    "author": "Requirements Team",
+    "created": "2025-01-01"
+  },
+  "logical_operators": {
+    "when": {
+      "canonical": "when",
+      "variants": ["when", "whenever", "at the time that", "in the event that"],
+      "category": "temporal_operator",
+      "context": "conditional_timing",
+      "examples": ["when user clicks button", "whenever system starts"]
+    }
+  },
+  "quantifiers": {
+    "any_user": {
+      "canonical": "any user",
+      "variants": ["any user", "every user", "all users", "each user"],
+      "category": "quantifier",
+      "context": "user_scope",
+      "examples": ["any user can login", "for every user in the system"]
+    }
+  },
+  "domain_specific": {
+    "user_story": {
+      "canonical": "user story",
+      "variants": ["user story", "story", "requirement", "feature request"],
+      "category": "artifact",
+      "context": "agile_development",
+      "examples": ["As a user story describes functionality", "Each story has acceptance criteria"]
+    },
+    "acceptance_criteria": {
+      "canonical": "acceptance criteria",
+      "variants": ["acceptance criteria", "criteria", "success conditions", "done conditions"],
+      "category": "artifact",
+      "context": "agile_testing",
+      "examples": ["acceptance criteria must be met", "criteria for completion"]
+    },
+    "user_authenticated": {
+      "canonical": "user is authenticated",
+      "variants": ["user logged in", "user verified", "valid session", "authenticated user"],
+      "category": "state",
+      "context": "security",
+      "examples": ["if user is authenticated then show dashboard", "when user logged in successfully"]
+    },
+    "data_valid": {
+      "canonical": "data is valid",
+      "variants": ["data valid", "valid data", "clean data", "validated input"],
+      "category": "state", 
+      "context": "validation",
+      "examples": ["ensure data is valid before processing", "when data valid then proceed"]
+    },
+    "system_responds": {
+      "canonical": "system responds",
+      "variants": ["system responds", "application responds", "response provided", "system replies"],
+      "category": "action",
+      "context": "system_behavior",
+      "examples": ["system responds within 2 seconds", "when system responds with data"]
+    }
+  },
+  "patterns": {
+    "user_story_template": [
+      "As a {role}, I want {functionality} so that {benefit}",
+      "As a {role}, I need {functionality} to {goal}",
+      "Given {precondition}, when {action}, then {outcome}"
+    ],
+    "acceptance_criteria_template": [
+      "Given {precondition}, when {action}, then {expected_result}",
+      "When {action} happens, then {outcome} should occur",
+      "If {condition} is true, then {result} must happen"
+    ],
+    "security_pattern": [
+      "If user is authenticated and {additional_condition}, then {allowed_action}",
+      "When user logged in successfully, then {grant_access_to}",
+      "For authenticated users only, {restricted_functionality}"
+    ]
+  }
+}

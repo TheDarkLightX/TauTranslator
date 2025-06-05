@@ -1,4 +1,4 @@
-# TauTranslatorOmega 🚀
+# TauTranslator Professional 🚀
 
 **A comprehensive natural language interface to the IDNI Tau Language ecosystem.**
 

@@ -16,8 +16,8 @@ import unittest
 from typing import List, Dict, Any
 
 # Import our NLP classes
-from nlp_vocabulary import TauVocabulary, AutoCompleteEngine, EnhancedEnglishGenerator
-from nlp_integration import NLPTranslationService
+from nlp.nlp_vocabulary import TauVocabulary, AutoCompleteEngine, EnhancedEnglishGenerator
+from nlp.nlp_integration import NLPTranslationService
 
 class TestAutoCompleteEngine(unittest.TestCase):
     """Test auto-complete functionality"""

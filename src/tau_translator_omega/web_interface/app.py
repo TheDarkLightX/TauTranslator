@@ -14,7 +14,7 @@ from pathlib import Path
 # Add the src directory to the path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from tau_translator_omega.lmql_engine.bidirectional_translator import (
+from ..lmql_engine.bidirectional_translator import (
     LMQLBidirectionalTranslator, 
     TranslationDirection
 )

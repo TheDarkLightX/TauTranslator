@@ -18,22 +18,28 @@ import logging
 from typing import List, Union, Optional, Any, Dict
 from dataclasses import dataclass
 
+# Import pattern cache for efficient regex compilation
+from ..pattern_cache import get_pattern, precompile_patterns
+
 logger = logging.getLogger(__name__)
 
-# Token patterns for O(n) tokenization
-TOKEN_PATTERNS = {
-    'BOOLEAN': re.compile(r'\b(true|false)\b', re.IGNORECASE),
-    'NUMBER': re.compile(r'[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?'),
-    'STRING': re.compile(r'"[^"]*"'),
-    'IDENTIFIER': re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*'),
-    'COMPARISON': re.compile(r'(>=|<=|!=|>|<|=)'),
-    'ARITHMETIC': re.compile(r'[+\-*/]'),
-    'LPAREN': re.compile(r'\('),
-    'RPAREN': re.compile(r'\)'),
-    'COMMA': re.compile(r','),
-    'PERIOD': re.compile(r'\.'),
-    'WHITESPACE': re.compile(r'\s+'),
+# Token pattern strings for O(n) tokenization
+TOKEN_PATTERN_STRINGS = {
+    'BOOLEAN': r'\b(true|false)\b',
+    'NUMBER': r'[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?',
+    'STRING': r'"[^"]*"',
+    'IDENTIFIER': r'[a-zA-Z_][a-zA-Z0-9_]*',
+    'COMPARISON': r'(>=|<=|!=|>|<|=)',
+    'ARITHMETIC': r'[+\-*/]',
+    'LPAREN': r'\(',
+    'RPAREN': r'\)',
+    'COMMA': r',',
+    'PERIOD': r'\.',
+    'WHITESPACE': r'\s+',
 }
+
+# Precompile all token patterns at module load time
+precompile_patterns(TOKEN_PATTERN_STRINGS, re.IGNORECASE)
 
 # Operator precedence for O(n) parsing (higher number = higher precedence)
 OPERATOR_PRECEDENCE = {
@@ -203,7 +209,8 @@ class OptimizedTokenizer:
     """
 
     def __init__(self):
-        self.patterns = TOKEN_PATTERNS
+        # No need to store patterns - they're cached globally
+        pass
 
     def tokenize(self, text: str) -> List[Token]:
         """
@@ -227,7 +234,7 @@ class OptimizedTokenizer:
             # Try patterns in order of frequency for performance
             for token_type in ['IDENTIFIER', 'NUMBER', 'COMPARISON', 'ARITHMETIC',
                              'LPAREN', 'RPAREN', 'COMMA', 'PERIOD', 'STRING', 'BOOLEAN', 'WHITESPACE']:
-                pattern = self.patterns[token_type]
+                pattern = get_pattern(TOKEN_PATTERN_STRINGS[token_type], re.IGNORECASE)
                 match = pattern.match(text, position)
                 if match:
                     value = match.group(0)

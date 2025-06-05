@@ -15,12 +15,19 @@ compressed_vibearchitect_prompt.md
 system_prompts/
 internal_docs/
 CLAUDE.md
+CLAUDE.local.md
+CLAUDE*.md
+TODO.md
+PLACEHOLDER_CODE_AUDIT.md
+*_AUDIT.md
+ROOT_FILES.md
 
 # Virtual environments
 venv/
 env/
 ENV/
 .venv/
+venv_bdd/
 
 # Python
 __pycache__/
@@ -74,6 +81,10 @@ logs/*
 !logs/.gitkeep
 sessions/*
 !sessions/.gitkeep
+*.log
+backend.log
+frontend.log
+tau_translator.log
 
 # Security artifacts
 security-scan-results/
@@ -106,3 +117,26 @@ models/*
 *.onnx
 *.pt
 *.h5
+*.pth
+
+# Node.js / Next.js
+node_modules/
+pwa/.next/
+pwa/out/
+pwa/.vercel/
+pwa/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+*.spec
+.mutmut-cache
+mutants/
+
+# PyQt generated files
+*.ui
+*_rc.py
+
+# Submodules and external repos
+mcp-memory-service/

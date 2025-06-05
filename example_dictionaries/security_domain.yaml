@@ -1,0 +1,66 @@
+metadata:
+  name: "Security Domain Dictionary"
+  version: "1.0"
+  description: "Security and authentication terminology"
+  author: "Security Team"
+  created: "2025-01-01"
+
+logical_operators:
+  secure_and:
+    canonical: "and securely"
+    variants: ["and securely", "and safely", "with security"]
+    category: "logical_operator"
+    context: "secure_conjunction"
+    examples: ["authenticate and securely store credentials"]
+
+domain_specific:
+  authentication:
+    canonical: "authentication"
+    variants: ["authentication", "auth", "login", "sign-in", "verification"]
+    category: "process"
+    context: "security"
+    examples: ["user authentication required", "perform authentication check"]
+  
+  authorization:
+    canonical: "authorization"
+    variants: ["authorization", "access control", "permissions", "privileges"]
+    category: "process"
+    context: "security"
+    examples: ["check authorization before access", "user has authorization"]
+  
+  encrypted:
+    canonical: "encrypted"
+    variants: ["encrypted", "secure", "protected", "encoded"]
+    category: "state"
+    context: "data_protection"
+    examples: ["data must be encrypted", "store encrypted passwords"]
+  
+  vulnerability:
+    canonical: "security vulnerability"
+    variants: ["vulnerability", "security flaw", "weakness", "exploit"]
+    category: "risk"
+    context: "security_threat"
+    examples: ["check for vulnerabilities", "no known security vulnerabilities"]
+  
+  session_valid:
+    canonical: "session is valid"
+    variants: ["valid session", "active session", "session active", "logged in"]
+    category: "state"
+    context: "session_management"
+    examples: ["if session is valid then allow access"]
+
+patterns:
+  authentication_flow:
+    - "If credentials are valid, then authenticate user"
+    - "When user provides {credentials}, verify and authenticate"
+    - "For valid credentials, grant authentication"
+  
+  authorization_check:
+    - "If user is authenticated and authorized, then {action}"
+    - "When user has {permission}, allow {operation}"
+    - "For authorized users only, {restricted_action}"
+  
+  security_requirement:
+    - "All {data_type} must be encrypted"
+    - "System shall prevent {security_threat}"
+    - "Access requires both authentication and authorization"

@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy
 )
 
-from tau_translator_omega.lmql_engine.bidirectional_translator import (
+from ..lmql_engine.bidirectional_translator import (
     LMQLBidirectionalTranslator,
     TranslationDirection,
     TranslationResult

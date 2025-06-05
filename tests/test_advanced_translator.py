@@ -15,12 +15,12 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from advanced_llm_translator import (
+from translators.advanced_llm_translator import (
     AdvancedLLMTranslator, 
     TranslationContext,
     AVAILABLE_FRAMEWORKS
 )
-from nlp_requirements_engine import (
+from nlp.nlp_requirements_engine import (
     NLPRequirementsEngine,
     RequirementType,
     ExtractedRequirement,
