@@ -105,6 +105,9 @@ site/
 *.bak
 .cache/
 
+# Internal development files
+internal/
+
 # Database
 *.db
 *.sqlite
