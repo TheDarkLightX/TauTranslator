@@ -12,6 +12,10 @@ class SimpleSettings:
     """Simple settings without pydantic dependency."""
     
     def __init__(self):
+        # Application info
+        self.project_name = "TauTranslator"
+        self.version = "0.1.0"
+        
         # Server configuration
         self.host = os.getenv("TAU_HOST", "0.0.0.0")
         self.port = int(os.getenv("TAU_PORT", "8000"))

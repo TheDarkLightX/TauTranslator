@@ -1,24 +1,27 @@
 """
-Configuration-Driven Pattern Loading System
+Configuration-Driven Pattern Loading System - Refactored with Clean Architecture
 
 Implements dynamic pattern loading with validation, compilation, and hot-reloading.
-Follows Open/Closed Principle by making pattern addition configurable.
+Follows Open/Closed Principle and Rule 4 (Isolate Impurity in Infrastructure Layer).
 
-Author: DarkLightX / Dana Edwards
+Copyright: DarkLightX/Dana Edwards
 """
 
-import json
-import yaml
 import re
 import logging
 import threading
 import time
-from typing import Dict, List, Optional, Any, Tuple, Union, Callable
+from typing import Dict, List, Optional, Any, Tuple, Union, Callable, Set
 from dataclasses import dataclass, field
 from pathlib import Path
 from enum import Enum
 from abc import ABC, abstractmethod
 import hashlib
+
+from .domain_types import (
+    PatternId, FilePath, Result, Success, Failure
+)
+from .interfaces import IPatternRepository, IEventBus, ICacheRepository
 
 
 class PatternType(Enum):
@@ -39,7 +42,7 @@ class PatternDirection(Enum):
 @dataclass
 class PatternRule:
     """Individual pattern translation rule."""
-    id: str
+    id: PatternId
     name: str
     pattern_type: PatternType
     direction: PatternDirection
@@ -48,495 +51,254 @@ class PatternRule:
     priority: int = 0
     enabled: bool = True
     description: Optional[str] = None
-    examples: List[Tuple[str, str]] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    compiled_pattern: Optional[re.Pattern] = field(init=False, default=None)
     
-    # Compiled pattern for performance
-    _compiled_pattern: Optional[Any] = field(default=None, init=False, repr=False)
-    
-    def compile_pattern(self) -> bool:
-        """Compile the pattern for efficient matching."""
-        try:
-            if self.pattern_type == PatternType.REGEX:
-                flags = re.IGNORECASE
-                if self.metadata.get('case_sensitive', False):
-                    flags = 0
-                self._compiled_pattern = re.compile(self.source_pattern, flags)
-            elif self.pattern_type == PatternType.LITERAL:
-                # For literal patterns, store as-is for simple string replacement
-                self._compiled_pattern = self.source_pattern
-            elif self.pattern_type == PatternType.TEMPLATE:
-                # Template patterns use string.Template format
-                from string import Template
-                self._compiled_pattern = Template(self.target_pattern)
-            return True
-        except Exception as e:
-            logging.error(f"Failed to compile pattern {self.id}: {e}")
-            return False
-    
-    def apply(self, text: str) -> Optional[str]:
-        """Apply this pattern to text."""
-        if not self.enabled or not self._compiled_pattern:
-            return None
-        
-        try:
-            if self.pattern_type == PatternType.REGEX:
-                return self._compiled_pattern.sub(self.target_pattern, text)
-            elif self.pattern_type == PatternType.LITERAL:
-                return text.replace(self._compiled_pattern, self.target_pattern)
-            elif self.pattern_type == PatternType.TEMPLATE:
-                # Extract variables for template substitution
-                # This would need more sophisticated implementation
-                return self._compiled_pattern.safe_substitute()
-            else:
-                return None
-        except Exception as e:
-            logging.error(f"Error applying pattern {self.id}: {e}")
-            return None
-    
-    def matches(self, text: str) -> bool:
-        """Check if pattern matches the text."""
-        if not self.enabled or not self._compiled_pattern:
-            return False
-        
-        try:
-            if self.pattern_type == PatternType.REGEX:
-                return bool(self._compiled_pattern.search(text))
-            elif self.pattern_type == PatternType.LITERAL:
-                return self._compiled_pattern in text
-            else:
-                return False
-        except Exception:
-            return False
-    
-    def validate(self) -> List[str]:
-        """Validate pattern rule and return any errors."""
-        errors = []
-        
-        if not self.id:
-            errors.append("Pattern ID is required")
-        
-        if not self.source_pattern:
-            errors.append("Source pattern is required")
-        
-        if not self.target_pattern:
-            errors.append("Target pattern is required")
-        
-        # Validate regex patterns
+    def __post_init__(self):
+        """Compile regex patterns after initialization."""
         if self.pattern_type == PatternType.REGEX:
             try:
-                re.compile(self.source_pattern)
+                self.compiled_pattern = re.compile(self.source_pattern)
             except re.error as e:
-                errors.append(f"Invalid regex pattern: {e}")
-        
-        # Validate examples if provided
-        for i, (source, expected) in enumerate(self.examples):
-            if not self.compile_pattern():
-                continue
-            
-            result = self.apply(source)
-            if result != expected:
-                errors.append(f"Example {i+1} failed: expected '{expected}', got '{result}'")
-        
-        return errors
+                logging.error(f"Failed to compile pattern {self.id}: {e}")
 
 
 @dataclass
 class PatternSet:
-    """Collection of related patterns."""
+    """Collection of pattern rules."""
+    id: str
     name: str
     version: str
-    description: str
-    patterns: List[PatternRule] = field(default_factory=list)
+    rules: List[PatternRule] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
-    def add_pattern(self, pattern: PatternRule) -> None:
-        """Add pattern to set."""
-        self.patterns.append(pattern)
-    
-    def get_patterns(self, direction: Optional[PatternDirection] = None, enabled_only: bool = True) -> List[PatternRule]:
-        """Get patterns filtered by direction and enabled status."""
-        filtered = self.patterns
-        
-        if direction:
-            filtered = [
-                p for p in filtered 
-                if p.direction == direction or p.direction == PatternDirection.BIDIRECTIONAL
-            ]
-        
-        if enabled_only:
-            filtered = [p for p in filtered if p.enabled]
-        
-        # Sort by priority (higher priority first)
-        return sorted(filtered, key=lambda p: p.priority, reverse=True)
-    
-    def validate(self) -> List[str]:
-        """Validate entire pattern set."""
-        errors = []
-        
-        # Check for duplicate IDs
-        pattern_ids = [p.id for p in self.patterns]
-        duplicates = [pid for pid in set(pattern_ids) if pattern_ids.count(pid) > 1]
-        if duplicates:
-            errors.append(f"Duplicate pattern IDs: {duplicates}")
-        
-        # Validate individual patterns
-        for pattern in self.patterns:
-            pattern_errors = pattern.validate()
-            if pattern_errors:
-                errors.extend([f"Pattern {pattern.id}: {error}" for error in pattern_errors])
-        
-        return errors
 
 
-class IPatternLoader(ABC):
-    """Interface for pattern loaders."""
+class PatternValidator:
+    """Validates pattern rules for correctness."""
     
-    @abstractmethod
-    def load(self, source: Union[str, Path, Dict]) -> PatternSet:
-        """Load patterns from source."""
-        pass
-    
-    @abstractmethod
-    def can_load(self, source: Union[str, Path, Dict]) -> bool:
-        """Check if loader can handle this source."""
-        pass
-
-
-class JSONPatternLoader(IPatternLoader):
-    """Loads patterns from JSON files."""
-    
-    def can_load(self, source: Union[str, Path, Dict]) -> bool:
-        """Check if source is JSON."""
-        if isinstance(source, dict):
-            return True
-        if isinstance(source, (str, Path)):
-            path = Path(source)
-            return path.suffix.lower() == '.json'
-        return False
-    
-    def load(self, source: Union[str, Path, Dict]) -> PatternSet:
-        """Load patterns from JSON."""
-        if isinstance(source, dict):
-            data = source
-        else:
-            with open(source, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+    def validate_pattern_rule(self, rule: PatternRule) -> Result[None]:
+        """Validate a single pattern rule."""
+        validations = [
+            self._validate_pattern_id(rule.id),
+            self._validate_pattern_syntax(rule),
+            self._validate_pattern_type(rule),
+            self._validate_priority(rule.priority)
+        ]
         
-        return self._parse_pattern_data(data)
+        for validation in validations:
+            if isinstance(validation, Failure):
+                return validation
+                
+        return Success(None)
     
-    def _parse_pattern_data(self, data: Dict) -> PatternSet:
-        """Parse pattern data into PatternSet."""
-        pattern_set = PatternSet(
-            name=data.get('name', 'Unknown'),
-            version=data.get('version', '1.0.0'),
-            description=data.get('description', ''),
-            metadata=data.get('metadata', {})
+    def _validate_pattern_id(self, pattern_id: PatternId) -> Result[None]:
+        """Validate pattern ID format."""
+        if not pattern_id or len(pattern_id) < 3:
+            return Failure("INVALID_PATTERN_ID", "Pattern ID must be at least 3 characters")
+        return Success(None)
+    
+    def _validate_pattern_syntax(self, rule: PatternRule) -> Result[None]:
+        """Validate pattern syntax based on type."""
+        if rule.pattern_type == PatternType.REGEX:
+            try:
+                re.compile(rule.source_pattern)
+            except re.error as e:
+                return Failure("INVALID_REGEX", f"Invalid regex pattern: {e}")
+                
+        return Success(None)
+    
+    def _validate_pattern_type(self, rule: PatternRule) -> Result[None]:
+        """Validate pattern type consistency."""
+        if rule.pattern_type == PatternType.LITERAL and re.search(r'[.*+?^${}()|[\]\\]', rule.source_pattern):
+            return Failure("INVALID_LITERAL", "Literal patterns should not contain regex characters")
+        return Success(None)
+    
+    def _validate_priority(self, priority: int) -> Result[None]:
+        """Validate priority is within acceptable range."""
+        if priority < -1000 or priority > 1000:
+            return Failure("INVALID_PRIORITY", "Priority must be between -1000 and 1000")
+        return Success(None)
+
+
+class PatternLoader:
+    """
+    Core pattern loading logic - pure business logic without I/O.
+    Follows Rule 4: All I/O operations delegated to repositories.
+    """
+    
+    def __init__(
+        self,
+        pattern_repository: IPatternRepository,
+        cache_repository: ICacheRepository,
+        event_bus: IEventBus
+    ):
+        """Initialize with injected dependencies."""
+        self._pattern_repo = pattern_repository
+        self._cache = cache_repository
+        self._event_bus = event_bus
+        self._validator = PatternValidator()
+        self._loaded_patterns: Dict[str, PatternSet] = {}
+        self._pattern_lock = threading.RLock()
+        self.logger = logging.getLogger(__name__)
+    
+    async def load_patterns_from_source_async(self, source_path: FilePath) -> Result[PatternSet]:
+        """
+        Load patterns from a source via repository.
+        Rule 1: Name explicitly indicates async I/O operation.
+        Rule 2: Orchestrator pattern delegating to private methods.
+        """
+        # Check cache first
+        cache_key = self._generate_cache_key(source_path)
+        cached_result = await self._cache.get_cached_value_async(cache_key)
+        
+        if isinstance(cached_result, Success) and cached_result.value:
+            return Success(cached_result.value)
+        
+        # Load from repository
+        load_result = await self._pattern_repo.load_patterns_from_source_async(source_path)
+        if isinstance(load_result, Failure):
+            return load_result
+        
+        # Parse and validate patterns
+        parse_result = self._parse_pattern_data(load_result.value, source_path)
+        if isinstance(parse_result, Failure):
+            return parse_result
+        
+        # Validate all rules
+        validation_result = self._validate_pattern_set(parse_result.value)
+        if isinstance(validation_result, Failure):
+            return validation_result
+        
+        # Cache successful result
+        await self._cache.set_cached_value_async(cache_key, parse_result.value, ttl_seconds=3600)
+        
+        # Store in memory
+        self._store_pattern_set(parse_result.value)
+        
+        # Publish event
+        await self._event_bus.publish_event_async(
+            "patterns_loaded",
+            {"pattern_set_id": parse_result.value.id, "source": source_path}
         )
         
-        for pattern_data in data.get('patterns', []):
-            pattern = PatternRule(
-                id=pattern_data['id'],
-                name=pattern_data.get('name', pattern_data['id']),
-                pattern_type=PatternType(pattern_data.get('type', 'regex')),
-                direction=PatternDirection(pattern_data.get('direction', 'tce_to_tau')),
-                source_pattern=pattern_data['source'],
-                target_pattern=pattern_data['target'],
-                priority=pattern_data.get('priority', 0),
-                enabled=pattern_data.get('enabled', True),
-                description=pattern_data.get('description'),
-                examples=pattern_data.get('examples', []),
-                metadata=pattern_data.get('metadata', {})
-            )
+        return Success(parse_result.value)
+    
+    def get_patterns_by_direction(self, direction: PatternDirection) -> List[PatternRule]:
+        """Get all patterns for a specific direction."""
+        with self._pattern_lock:
+            patterns = []
+            for pattern_set in self._loaded_patterns.values():
+                for rule in pattern_set.rules:
+                    if rule.enabled and (
+                        rule.direction == direction or 
+                        rule.direction == PatternDirection.BIDIRECTIONAL
+                    ):
+                        patterns.append(rule)
             
-            if pattern.compile_pattern():
-                pattern_set.add_pattern(pattern)
-        
-        return pattern_set
-
-
-class YAMLPatternLoader(IPatternLoader):
-    """Loads patterns from YAML files."""
+            # Sort by priority (higher priority first)
+            return sorted(patterns, key=lambda r: r.priority, reverse=True)
     
-    def can_load(self, source: Union[str, Path, Dict]) -> bool:
-        """Check if source is YAML."""
-        if isinstance(source, (str, Path)):
-            path = Path(source)
-            return path.suffix.lower() in ['.yaml', '.yml']
-        return False
-    
-    def load(self, source: Union[str, Path, Dict]) -> PatternSet:
-        """Load patterns from YAML."""
-        with open(source, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(f)
-        
-        # Reuse JSON parser for data processing
-        json_loader = JSONPatternLoader()
-        return json_loader._parse_pattern_data(data)
-
-
-class PatternManager:
-    """
-    Manages pattern sets with hot-reloading and validation.
-    
-    Features:
-    - Multiple pattern loaders
-    - Hot-reloading of pattern files
-    - Pattern validation and compilation
-    - Performance metrics
-    - Thread-safe operations
-    """
-    
-    def __init__(self):
-        self.pattern_sets: Dict[str, PatternSet] = {}
-        self.loaders: List[IPatternLoader] = []
-        self.file_watchers: Dict[Path, float] = {}  # file -> last_modified
-        self.metrics: Dict[str, Any] = {
-            'total_patterns': 0,
-            'active_patterns': 0,
-            'load_count': 0,
-            'reload_count': 0,
-            'validation_errors': 0
-        }
-        self._lock = threading.RLock()
-        self.logger = logging.getLogger(__name__)
-        
-        # Register default loaders
-        self.register_loader(JSONPatternLoader())
-        self.register_loader(YAMLPatternLoader())
-    
-    def register_loader(self, loader: IPatternLoader) -> None:
-        """Register a pattern loader."""
-        self.loaders.append(loader)
-        self.logger.debug(f"Registered pattern loader: {type(loader).__name__}")
-    
-    def load_pattern_set(self, source: Union[str, Path, Dict], name: Optional[str] = None) -> bool:
-        """Load a pattern set from source."""
-        with self._lock:
-            try:
-                # Find appropriate loader
-                loader = self._find_loader(source)
-                if not loader:
-                    self.logger.error(f"No loader found for source: {source}")
-                    return False
-                
-                # Load pattern set
-                pattern_set = loader.load(source)
-                
-                # Validate pattern set
-                errors = pattern_set.validate()
-                if errors:
-                    self.logger.error(f"Pattern validation errors: {errors}")
-                    self.metrics['validation_errors'] += len(errors)
-                    return False
-                
-                # Store pattern set
-                set_name = name or pattern_set.name
-                self.pattern_sets[set_name] = pattern_set
-                
-                # Set up file watching if source is a file
-                if isinstance(source, (str, Path)):
-                    file_path = Path(source)
-                    if file_path.exists():
-                        self.file_watchers[file_path] = file_path.stat().st_mtime
-                
-                # Update metrics
-                self.metrics['load_count'] += 1
-                self._update_pattern_metrics()
-                
-                self.logger.info(f"Loaded pattern set '{set_name}' with {len(pattern_set.patterns)} patterns")
-                return True
-                
-            except Exception as e:
-                self.logger.error(f"Failed to load pattern set: {e}")
-                return False
-    
-    def reload_pattern_sets(self) -> int:
-        """Reload all watched pattern files if they've changed."""
-        reloaded_count = 0
-        
-        with self._lock:
-            for file_path, last_modified in list(self.file_watchers.items()):
-                try:
-                    if not file_path.exists():
-                        # File was deleted
-                        del self.file_watchers[file_path]
-                        continue
-                    
-                    current_modified = file_path.stat().st_mtime
-                    if current_modified > last_modified:
-                        # File was modified
-                        if self.load_pattern_set(file_path):
-                            self.file_watchers[file_path] = current_modified
-                            reloaded_count += 1
-                            self.metrics['reload_count'] += 1
-                
-                except Exception as e:
-                    self.logger.error(f"Error checking file {file_path}: {e}")
-        
-        if reloaded_count > 0:
-            self.logger.info(f"Reloaded {reloaded_count} pattern sets")
-        
-        return reloaded_count
-    
-    def get_patterns(
-        self, 
-        direction: Optional[PatternDirection] = None,
-        pattern_set: Optional[str] = None,
-        enabled_only: bool = True
-    ) -> List[PatternRule]:
-        """Get patterns filtered by criteria."""
-        with self._lock:
-            all_patterns = []
-            
-            # Determine which pattern sets to use
-            if pattern_set:
-                if pattern_set in self.pattern_sets:
-                    sets_to_search = [self.pattern_sets[pattern_set]]
-                else:
-                    return []
-            else:
-                sets_to_search = self.pattern_sets.values()
-            
-            # Collect patterns from selected sets
-            for pset in sets_to_search:
-                patterns = pset.get_patterns(direction, enabled_only)
-                all_patterns.extend(patterns)
-            
-            # Sort by priority (higher first)
-            return sorted(all_patterns, key=lambda p: p.priority, reverse=True)
-    
-    def apply_patterns(self, text: str, direction: PatternDirection, max_patterns: Optional[int] = None) -> str:
-        """Apply patterns to text in priority order."""
-        patterns = self.get_patterns(direction, enabled_only=True)
-        
-        if max_patterns:
-            patterns = patterns[:max_patterns]
-        
+    def apply_pattern_rules(
+        self,
+        text: str,
+        direction: PatternDirection,
+        max_iterations: int = 10
+    ) -> str:
+        """Apply pattern rules to transform text."""
+        patterns = self.get_patterns_by_direction(direction)
         result = text
-        applied_count = 0
         
-        for pattern in patterns:
-            if pattern.matches(result):
-                new_result = pattern.apply(result)
-                if new_result and new_result != result:
+        for iteration in range(max_iterations):
+            changed = False
+            for rule in patterns:
+                new_result = self._apply_single_rule(result, rule)
+                if new_result != result:
                     result = new_result
-                    applied_count += 1
-                    self.logger.debug(f"Applied pattern {pattern.id}: {pattern.name}")
+                    changed = True
+            
+            if not changed:
+                break
         
-        self.logger.debug(f"Applied {applied_count} patterns to transform text")
         return result
     
-    def validate_all_patterns(self) -> Dict[str, List[str]]:
-        """Validate all pattern sets and return errors."""
-        errors = {}
+    async def watch_patterns_for_changes_async(self, source_path: FilePath) -> None:
+        """
+        Watch for pattern changes and reload when needed.
+        Delegates file watching to repository.
+        """
+        await self._pattern_repo.watch_for_pattern_changes_async(source_path)
         
-        with self._lock:
-            for set_name, pattern_set in self.pattern_sets.items():
-                set_errors = pattern_set.validate()
-                if set_errors:
-                    errors[set_name] = set_errors
+        # Set up event handler for changes
+        async def handle_change(event_data: Dict[str, Any]) -> None:
+            if event_data.get("path") == source_path:
+                await self.load_patterns_from_source_async(source_path)
         
-        return errors
+        await self._event_bus.subscribe_to_events_async("file_changed", handle_change)
     
-    def get_pattern_by_id(self, pattern_id: str) -> Optional[PatternRule]:
-        """Get pattern by ID."""
-        with self._lock:
-            for pattern_set in self.pattern_sets.values():
-                for pattern in pattern_set.patterns:
-                    if pattern.id == pattern_id:
-                        return pattern
-        return None
+    # --- Private Implementation Methods ---
     
-    def enable_pattern(self, pattern_id: str, enabled: bool = True) -> bool:
-        """Enable or disable a pattern."""
-        pattern = self.get_pattern_by_id(pattern_id)
-        if pattern:
-            pattern.enabled = enabled
-            self._update_pattern_metrics()
-            return True
-        return False
+    def _generate_cache_key(self, source_path: FilePath) -> str:
+        """Generate cache key for pattern source."""
+        return f"patterns:{hashlib.md5(source_path.encode()).hexdigest()}"
     
-    def get_metrics(self) -> Dict[str, Any]:
-        """Get pattern manager metrics."""
-        with self._lock:
-            return self.metrics.copy()
+    def _parse_pattern_data(self, data: Dict[str, Any], source_path: FilePath) -> Result[PatternSet]:
+        """Parse raw pattern data into PatternSet."""
+        try:
+            pattern_set = PatternSet(
+                id=data.get("id", Path(source_path).stem),
+                name=data.get("name", "Unknown Pattern Set"),
+                version=data.get("version", "1.0.0"),
+                metadata=data.get("metadata", {})
+            )
+            
+            rules_data = data.get("rules", [])
+            for rule_data in rules_data:
+                rule = self._parse_pattern_rule(rule_data)
+                if rule:
+                    pattern_set.rules.append(rule)
+            
+            return Success(pattern_set)
+            
+        except Exception as e:
+            return Failure("PARSE_ERROR", f"Failed to parse pattern data: {e}")
     
-    def get_pattern_sets_info(self) -> Dict[str, Any]:
-        """Get information about loaded pattern sets."""
-        with self._lock:
-            return {
-                name: {
-                    'version': pset.version,
-                    'description': pset.description,
-                    'pattern_count': len(pset.patterns),
-                    'enabled_patterns': len([p for p in pset.patterns if p.enabled]),
-                    'metadata': pset.metadata
-                }
-                for name, pset in self.pattern_sets.items()
-            }
-    
-    def export_patterns(self, pattern_set_name: str, format: str = 'json') -> Optional[str]:
-        """Export pattern set to string format."""
-        if pattern_set_name not in self.pattern_sets:
+    def _parse_pattern_rule(self, rule_data: Dict[str, Any]) -> Optional[PatternRule]:
+        """Parse a single pattern rule from data."""
+        try:
+            return PatternRule(
+                id=PatternId(rule_data["id"]),
+                name=rule_data["name"],
+                pattern_type=PatternType(rule_data.get("type", "regex")),
+                direction=PatternDirection(rule_data["direction"]),
+                source_pattern=rule_data["source"],
+                target_pattern=rule_data["target"],
+                priority=rule_data.get("priority", 0),
+                enabled=rule_data.get("enabled", True),
+                description=rule_data.get("description"),
+                metadata=rule_data.get("metadata", {})
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to parse rule: {e}")
             return None
-        
-        pattern_set = self.pattern_sets[pattern_set_name]
-        
-        data = {
-            'name': pattern_set.name,
-            'version': pattern_set.version,
-            'description': pattern_set.description,
-            'metadata': pattern_set.metadata,
-            'patterns': [
-                {
-                    'id': p.id,
-                    'name': p.name,
-                    'type': p.pattern_type.value,
-                    'direction': p.direction.value,
-                    'source': p.source_pattern,
-                    'target': p.target_pattern,
-                    'priority': p.priority,
-                    'enabled': p.enabled,
-                    'description': p.description,
-                    'examples': p.examples,
-                    'metadata': p.metadata
-                }
-                for p in pattern_set.patterns
-            ]
-        }
-        
-        if format.lower() == 'json':
-            return json.dumps(data, indent=2)
-        elif format.lower() in ['yaml', 'yml']:
-            return yaml.dump(data, default_flow_style=False)
+    
+    def _validate_pattern_set(self, pattern_set: PatternSet) -> Result[None]:
+        """Validate all rules in a pattern set."""
+        for rule in pattern_set.rules:
+            validation_result = self._validator.validate_pattern_rule(rule)
+            if isinstance(validation_result, Failure):
+                return validation_result
+        return Success(None)
+    
+    def _store_pattern_set(self, pattern_set: PatternSet) -> None:
+        """Store pattern set in memory."""
+        with self._pattern_lock:
+            self._loaded_patterns[pattern_set.id] = pattern_set
+    
+    def _apply_single_rule(self, text: str, rule: PatternRule) -> str:
+        """Apply a single pattern rule to text."""
+        if rule.pattern_type == PatternType.REGEX and rule.compiled_pattern:
+            return rule.compiled_pattern.sub(rule.target_pattern, text)
+        elif rule.pattern_type == PatternType.LITERAL:
+            return text.replace(rule.source_pattern, rule.target_pattern)
         else:
-            return None
-    
-    def _find_loader(self, source: Union[str, Path, Dict]) -> Optional[IPatternLoader]:
-        """Find appropriate loader for source."""
-        for loader in self.loaders:
-            if loader.can_load(source):
-                return loader
-        return None
-    
-    def _update_pattern_metrics(self) -> None:
-        """Update pattern metrics."""
-        total_patterns = 0
-        active_patterns = 0
-        
-        for pattern_set in self.pattern_sets.values():
-            total_patterns += len(pattern_set.patterns)
-            active_patterns += len([p for p in pattern_set.patterns if p.enabled])
-        
-        self.metrics['total_patterns'] = total_patterns
-        self.metrics['active_patterns'] = active_patterns
-
-
-# Global pattern manager instance
-_global_pattern_manager = PatternManager()
-
-
-def get_pattern_manager() -> PatternManager:
-    """Get the global pattern manager."""
-    return _global_pattern_manager
+            return text

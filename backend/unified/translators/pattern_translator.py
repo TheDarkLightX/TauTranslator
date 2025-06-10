@@ -1,238 +1,327 @@
 """
-Pattern-based translation engine.
+Pattern-based translation engine following Intentional Disclosure Principle.
 
 Implements simple pattern-based translation as a fallback mechanism.
-Consolidates pattern-based logic from multiple backend files.
+Consolidates pattern-based logic with explicit type annotations and clear I/O boundaries.
 
-Author: DarkLightX / Dana Edwards
+Copyright: DarkLightX/Dana Edwards
 """
 
 import re
 import time
-from typing import List
-from .base import TranslationEngine, TranslationResult, TranslationDirection
+from typing import List, Tuple, Pattern, Dict, Any, Optional
+from dataclasses import dataclass
+
+# Import domain types
+from ..core.domain_types import (
+    SourceText, TargetText,
+    TranslationStatus, EngineType, Result, Success, Failure
+)
+from .base import TranslationEngine, TranslationDirection, TranslationResult
+
+
+@dataclass
+class PatternRule:
+    """Represents a single translation pattern rule."""
+    pattern: Pattern[str]
+    replacement: str
+    description: str
+
+
+@dataclass 
+class PatternSet:
+    """Collection of pattern rules for a specific direction."""
+    direction: TranslationDirection
+    rules: List[PatternRule]
 
 
 class PatternTranslationEngine(TranslationEngine):
-    """Simple pattern-based translation engine."""
+    """Pattern-based translation engine with explicit disclosure of operations."""
     
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize pattern translation engine with predefined rule sets."""
         super().__init__(
             name="pattern_based",
             description="Simple pattern-based translation with regex rules"
         )
         
-        # Pattern mappings from the original backend files
-        self.tce_to_tau_patterns = [
-            (r'\band\b', '&'),
-            (r'\bor\b', '|'),
-            (r'\bnot\b', '!'),
-            (r'\bequals\b', '='),
-            (r'\bplus\b', '+'),
-            (r'\bminus\b', '-'),
-            (r'\btimes\b', '*'),
-            (r'\bdivided by\b', '/'),
-            (r'\bthe\b', ''),
-            (r'\bat time (\w+)', r'[\1]'),
-            (r'\s+', ' ')
-        ]
-        
-        self.tau_to_tce_patterns = [
-            (r'&', ' and '),
-            (r'\|', ' or '),
-            (r'!', ' not '),
-            (r'=', ' equals '),
-            (r'\+', ' plus '),
-            (r'-', ' minus '),
-            (r'\*', ' times '),
-            (r'/', ' divided by '),
-            (r'\[(\w+)\]', r' at time \1'),
-            (r'\s+', ' ')
-        ]
+        # Initialize pattern sets following Rule 2: Orchestrator pattern
+        self._pattern_sets = self._initialize_pattern_sets()
     
-    def can_translate(self, text: str, direction: TranslationDirection) -> bool:
-        """Check if this engine can handle the translation."""
-        if not self.validate_input(text):
-            return False
-        
-        # This engine can handle basic TCE <-> Tau conversions
-        return direction in [TranslationDirection.TO_TAU, TranslationDirection.TO_TCE]
+    def can_translate(self, text: SourceText, direction: TranslationDirection) -> bool:
+        """Determine if engine can handle the requested translation."""
+        # Rule 2: High-level orchestration
+        return (
+            self._validate_input_text(text) and
+            self._is_direction_supported(direction)
+        )
     
     def get_supported_directions(self) -> List[TranslationDirection]:
-        """Get supported translation directions."""
+        """Return list of supported translation directions."""
         return [TranslationDirection.TO_TAU, TranslationDirection.TO_TCE]
     
     def translate(self, text: str, direction: TranslationDirection, **kwargs) -> TranslationResult:
-        """Perform pattern-based translation."""
+        """Implementation of abstract translate method from base class."""
+        # Since translate_text_with_patterns_async is async, we need to run it synchronously
+        import asyncio
+        
+        async def _translate():
+            return await self.translate_text_with_patterns_async(
+                SourceText(text), direction, **kwargs
+            )
+        
+        # Run async method in sync context
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're already in an async context, create a task
+                task = asyncio.create_task(_translate())
+                result = asyncio.run_until_complete(task)
+            else:
+                result = loop.run_until_complete(_translate())
+        except RuntimeError:
+            # No event loop, create one
+            result = asyncio.run(_translate())
+        
+        if isinstance(result, Success):
+            return result.value
+        else:
+            # Return error result
+            return self._create_result(
+                success=False,
+                translated_text="",
+                original_text=text,
+                direction=direction,
+                error_message=f"{result.error_code}: {result.message}",
+                start_time=time.time()
+            )
+    
+    def can_translate(self, text: str, direction: TranslationDirection) -> bool:
+        """Check if this engine can handle the given translation."""
+        return (
+            bool(text and text.strip()) and 
+            direction in self.get_supported_directions()
+        )
+    
+    async def translate_text_with_patterns_async(
+        self, 
+        text: SourceText, 
+        direction: TranslationDirection, 
+        **kwargs: Dict[str, Any]
+    ) -> Result[BaseTranslationResult]:
+        """
+        Translate text using pattern matching rules.
+        Rule 1: Name explicitly indicates pattern-based operation and async nature.
+        Rule 2: Orchestrator pattern for high-level flow.
+        """
         start_time = time.time()
         
-        if not self.can_translate(text, direction):
-            return self._create_result(
-                success=False,
-                translated_text="",
-                original_text=text,
-                direction=direction,
-                error_message="Pattern engine cannot handle this translation",
-                start_time=start_time
+        # Validate preconditions
+        validation_result = self._validate_translation_request(text, direction)
+        if isinstance(validation_result, Failure):
+            return validation_result
+            
+        # Select appropriate pattern set
+        pattern_set = self._select_pattern_set_for_direction(direction)
+        if not pattern_set:
+            return Failure(
+                error_code="UNSUPPORTED_DIRECTION",
+                message=f"Direction {direction.value} not supported"
             )
+            
+        # Apply translation patterns
+        translation_result = self._apply_pattern_rules_to_text(text, pattern_set)
+        if isinstance(translation_result, Failure):
+            return translation_result
+            
+        # Post-process and calculate metrics
+        cleaned_text = self._clean_translated_text(translation_result.value, direction)
+        confidence = self._calculate_translation_confidence(text, cleaned_text)
         
+        # Create final result
+        return Success(self._create_translation_result(
+            original_text=text,
+            translated_text=cleaned_text,
+            direction=direction,
+            confidence=confidence,
+            start_time=start_time
+        ))
+    
+    # --- Private Implementation Methods (Rule 2) ---
+    
+    def _initialize_pattern_sets(self) -> Dict[TranslationDirection, PatternSet]:
+        """Initialize pattern rule sets for each translation direction."""
+        return {
+            TranslationDirection.TO_TAU: self._create_tce_to_tau_patterns(),
+            TranslationDirection.TO_TCE: self._create_tau_to_tce_patterns()
+        }
+    
+    def _create_tce_to_tau_patterns(self) -> PatternSet:
+        """Create pattern rules for TCE to Tau translation."""
+        return PatternSet(
+            direction=TranslationDirection.TO_TAU,
+            rules=[
+                PatternRule(re.compile(r'\band\b'), '&', 'Logical AND operator'),
+                PatternRule(re.compile(r'\bor\b'), '|', 'Logical OR operator'),
+                PatternRule(re.compile(r'\bnot\b'), '!', 'Logical NOT operator'),
+                PatternRule(re.compile(r'\bequals\b'), '=', 'Equality operator'),
+                PatternRule(re.compile(r'\bplus\b'), '+', 'Addition operator'),
+                PatternRule(re.compile(r'\bminus\b'), '-', 'Subtraction operator'),
+                PatternRule(re.compile(r'\btimes\b'), '*', 'Multiplication operator'),
+                PatternRule(re.compile(r'\bdivided by\b'), '/', 'Division operator'),
+                PatternRule(re.compile(r'\bthe\b'), '', 'Remove articles'),
+                PatternRule(re.compile(r'\bat time (\w+)'), r'[\1]', 'Temporal indexing'),
+                PatternRule(re.compile(r'\s+'), ' ', 'Normalize whitespace')
+            ]
+        )
+    
+    def _create_tau_to_tce_patterns(self) -> PatternSet:
+        """Create pattern rules for Tau to TCE translation."""
+        return PatternSet(
+            direction=TranslationDirection.TO_TCE,
+            rules=[
+                PatternRule(re.compile(r'&'), ' and ', 'Logical AND operator'),
+                PatternRule(re.compile(r'\|'), ' or ', 'Logical OR operator'),
+                PatternRule(re.compile(r'!'), ' not ', 'Logical NOT operator'),
+                PatternRule(re.compile(r'='), ' equals ', 'Equality operator'),
+                PatternRule(re.compile(r'\+'), ' plus ', 'Addition operator'),
+                PatternRule(re.compile(r'-'), ' minus ', 'Subtraction operator'),
+                PatternRule(re.compile(r'\*'), ' times ', 'Multiplication operator'),
+                PatternRule(re.compile(r'/'), ' divided by ', 'Division operator'),
+                PatternRule(re.compile(r'\[(\w+)\]'), r' at time \1', 'Temporal indexing'),
+                PatternRule(re.compile(r'\s+'), ' ', 'Normalize whitespace')
+            ]
+        )
+    
+    def _validate_input_text(self, text: SourceText) -> bool:
+        """Validate that input text meets requirements."""
+        return bool(text and len(text.strip()) > 0 and len(text) < 10000)
+    
+    def _is_direction_supported(self, direction: TranslationDirection) -> bool:
+        """Check if translation direction is supported."""
+        return direction in self._pattern_sets
+    
+    def _validate_translation_request(
+        self, 
+        text: SourceText, 
+        direction: TranslationDirection
+    ) -> Result[None]:
+        """Validate the complete translation request."""
+        if not self._validate_input_text(text):
+            return Failure("INVALID_INPUT", "Input text is invalid or too long")
+            
+        if not self._is_direction_supported(direction):
+            return Failure("UNSUPPORTED_DIRECTION", f"Direction {direction.value} not supported")
+            
+        return Success(None)
+    
+    def _select_pattern_set_for_direction(
+        self, 
+        direction: TranslationDirection
+    ) -> Optional[PatternSet]:
+        """Select the appropriate pattern set for the given direction."""
+        return self._pattern_sets.get(direction)
+    
+    def _apply_pattern_rules_to_text(
+        self, 
+        text: SourceText, 
+        pattern_set: PatternSet
+    ) -> Result[TargetText]:
+        """Apply pattern rules to transform the text."""
         try:
-            if direction == TranslationDirection.TO_TAU:
-                # Apply patterns with smart case normalization 
-                translated_text = self._apply_patterns_normalize_ascii_case(text, self.tce_to_tau_patterns)
-            elif direction == TranslationDirection.TO_TCE:
-                translated_text = self._apply_patterns(text, self.tau_to_tce_patterns)
-            else:
-                return self._create_result(
-                    success=False,
-                    translated_text="",
-                    original_text=text,
-                    direction=direction,
-                    error_message=f"Direction {direction.value} not supported",
-                    start_time=start_time
-                )
+            result = text
             
-            # Clean up the result
-            translated_text = self._clean_translation(translated_text, direction)
-            
-            # Calculate confidence based on how much the text changed
-            confidence = self._calculate_confidence(text, translated_text)
-            
-            return self._create_result(
-                success=True,
-                translated_text=translated_text,
-                original_text=text,
-                direction=direction,
-                confidence=confidence,
-                metadata={
-                    "patterns_applied": len(self._get_patterns_for_direction(direction)),
-                    "engine_type": "pattern_based"
-                },
-                start_time=start_time
-            )
+            # Apply each rule in sequence
+            for rule in pattern_set.rules:
+                result = rule.pattern.sub(rule.replacement, result)
+                
+            return Success(TargetText(result))
             
         except Exception as e:
-            return self._create_result(
-                success=False,
-                translated_text="",
-                original_text=text,
-                direction=direction,
-                error_message=f"Pattern translation failed: {str(e)}",
-                start_time=start_time
-            )
+            return Failure("PATTERN_APPLICATION_ERROR", str(e))
     
-    def _apply_patterns(self, text: str, patterns: List[tuple]) -> str:
-        """Apply a list of regex patterns to text."""
-        result = text
-        for pattern, replacement in patterns:
-            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
-        return result
-    
-    def _apply_patterns_normalize_ascii_case(self, text: str, patterns: List[tuple]) -> str:
-        """Apply patterns and normalize ASCII letters to lowercase while preserving unicode."""
-        result = text
+    def _clean_translated_text(
+        self, 
+        text: TargetText, 
+        direction: TranslationDirection
+    ) -> TargetText:
+        """Clean and normalize the translated text."""
+        # Remove extra spaces
+        cleaned = ' '.join(text.split())
         
-        # Apply patterns case-insensitively
-        for pattern, replacement in patterns:
-            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
-        
-        # Normalize ASCII identifiers to lowercase while preserving unicode and operators
-        # Split on operators and spaces, then process each part
-        def normalize_token(token):
-            # If it's a pure ASCII identifier, lowercase it
-            if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', token) and token.isascii():
-                return token.lower()
-            else:
-                # Keep operators, numbers, unicode, etc. as-is
-                return token
-        
-        # Split on operators and spaces, process each part, then rejoin
-        # Use regex to split while keeping delimiters
-        # Split more carefully to avoid regex issues
-        tokens = re.split(r'([&|=!+*\/\[\]\s-]+)', result)
-        normalized_tokens = [normalize_token(token) for token in tokens if token]
-        
-        return ''.join(normalized_tokens)
-    
-    def _apply_patterns_preserve_case(self, text: str, patterns: List[tuple]) -> str:
-        """Apply patterns case-insensitively but preserve case of identifiers."""
-        result = text
-        
-        # Create a mapping to preserve original case of identifiers
-        import re
-        words = re.findall(r'\b\w+\b', text)
-        word_map = {word.lower(): word for word in words}
-        
-        for pattern, replacement in patterns:
-            # Apply pattern case-insensitively
-            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
-        
-        # Restore original case for identifiers that weren't keywords
-        for lower_word, original_word in word_map.items():
-            if lower_word not in ['and', 'or', 'not', 'equals', 'plus', 'minus', 'times', 'divided', 'by', 'the', 'at', 'time']:
-                # Only replace if it's a standalone word
-                result = re.sub(r'\b' + re.escape(lower_word) + r'\b', original_word, result, flags=re.IGNORECASE)
-        
-        return result
-    
-    def _clean_translation(self, text: str, direction: TranslationDirection) -> str:
-        """Clean up the translated text."""
-        # Remove multiple spaces
-        text = re.sub(r'\s+', ' ', text)
-        # Remove leading/trailing spaces - but preserve leading space for TO_TCE
+        # Direction-specific cleaning
         if direction == TranslationDirection.TO_TAU:
-            text = text.strip()
-        else:
-            text = text.rstrip()  # Only remove trailing spaces for TO_TCE
-        # Remove spaces around logical operators
-        text = re.sub(r'\s*([&|!])\s*', r'\1', text)
-        
-        # Remove spaces around equals (but not >= or <=)
-        text = re.sub(r'(?<!>)(?<!<)\s*(=)\s*(?![>])', r'\1', text)
-        
-        # Remove spaces around math operators carefully
-        # Don't break >= <= etc.
-        text = re.sub(r'(?<!>)\s*([+\-*])\s*', r'\1', text)  # Not after >
-        text = re.sub(r'(?<!<)\s*(/)\s*', r'\1', text)  # Division not after <
-        
-        # Remove spaces around and inside brackets
-        text = re.sub(r'\s*\[\s*(\w+)\s*\]', r'[\1]', text)
-        return text
+            # Remove leading/trailing spaces around operators
+            cleaned = re.sub(r'\s*([&|!=+\-*/])\s*', r'\1', cleaned)
+            
+        return TargetText(cleaned.strip())
     
-    def _calculate_confidence(self, original: str, translated: str) -> float:
-        """Calculate confidence score based on translation quality."""
-        if not translated:
+    def _calculate_translation_confidence(
+        self, 
+        original: SourceText, 
+        translated: TargetText
+    ) -> float:
+        """Calculate confidence score based on text transformation."""
+        if not original or not translated:
             return 0.0
-        
-        original_words = len(original.split())
-        translated_words = len(translated.split())
-        
-        if translated_words == 0:
-            return 0.0
-        
-        # Base confidence starts at 0.5
-        base_confidence = 0.5
-        
-        # Boost confidence based on number of operators (more operators = higher confidence)
-        operator_count = len(re.findall(r'[&|!+=\-*/\[\]]', translated))
-        operator_boost = min(operator_count * 0.1, 0.3)  # Max 0.3 boost
-        
-        # Small boost for successful translation (non-empty result)
-        translation_boost = 0.1 if translated != original else 0.0
-        
-        # Extra boost if we significantly reduced word count (successful compression)
-        if original_words > translated_words:
-            compression_boost = 0.1
-        else:
-            compression_boost = 0.0
-        
-        confidence = base_confidence + operator_boost + translation_boost + compression_boost
-        return min(confidence, 0.95)  # Cap at 95% for pattern-based translation
+            
+        # Simple heuristic: more changes = higher confidence it was translated
+        similarity = self._calculate_text_similarity(original, translated)
+        return max(0.0, min(1.0, 1.0 - similarity))
     
-    def _get_patterns_for_direction(self, direction: TranslationDirection) -> List[tuple]:
-        """Get patterns for a specific direction."""
-        if direction == TranslationDirection.TO_TAU:
-            return self.tce_to_tau_patterns
-        elif direction == TranslationDirection.TO_TCE:
-            return self.tau_to_tce_patterns
-        return []
+    def _calculate_text_similarity(self, text1: str, text2: str) -> float:
+        """Calculate similarity between two texts (0.0 to 1.0)."""
+        if text1 == text2:
+            return 1.0
+            
+        # Simple character-based similarity
+        longer = max(len(text1), len(text2))
+        if longer == 0:
+            return 1.0
+            
+        distance = self._levenshtein_distance(text1, text2)
+        return 1.0 - (distance / longer)
+    
+    def _levenshtein_distance(self, s1: str, s2: str) -> int:
+        """Calculate Levenshtein distance between two strings."""
+        if len(s1) < len(s2):
+            return self._levenshtein_distance(s2, s1)
+            
+        if len(s2) == 0:
+            return len(s1)
+            
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+            
+        return previous_row[-1]
+    
+    def _create_translation_result(
+        self,
+        original_text: SourceText,
+        translated_text: TargetText,
+        direction: TranslationDirection,
+        confidence: float,
+        start_time: float
+    ) -> BaseTranslationResult:
+        """Create a complete translation result object."""
+        return BaseTranslationResult(
+            success=True,
+            original_text=original_text,
+            translated_text=translated_text,
+            direction=direction,
+            confidence=confidence,
+            translation_method=self.name,
+            processing_time=time.time() - start_time,
+            metadata={
+                "pattern_count": len(self._pattern_sets[direction].rules),
+                "text_length": len(original_text),
+                "result_length": len(translated_text)
+            }
+        )

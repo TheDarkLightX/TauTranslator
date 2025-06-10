@@ -1,328 +1,237 @@
 """
-Unified authentication system for the TauTranslator backend.
+Authentication Service - Refactored with Clean Architecture.
+Pure business logic with no I/O operations (Rule 4).
 
-Consolidates authentication from all backend variants into a single system.
-
-Author: DarkLightX / Dana Edwards
+Copyright: DarkLightX/Dana Edwards
 """
 
-import os
-import json
-import uuid
-import hashlib
 import secrets
+import hashlib
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-from pathlib import Path
-from cryptography.fernet import Fernet
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Dict, Optional, Any
 import logging
 
-from .config import settings
-from .responses import AuthenticationError, ConfigurationError
-
-logger = logging.getLogger(__name__)
-
-# Security for bearer tokens
-security = HTTPBearer()
-
-
-class SessionManager:
-    """Manages user sessions and authentication tokens."""
-    
-    def __init__(self):
-        self.sessions: Dict[str, Dict[str, Any]] = {}
-        self.sessions_file = settings.sessions_dir / "sessions.json"
-        self._load_sessions()
-    
-    def _load_sessions(self):
-        """Load sessions from file."""
-        try:
-            if self.sessions_file.exists():
-                with open(self.sessions_file, 'r') as f:
-                    data = json.load(f)
-                    # Filter out expired sessions
-                    now = datetime.utcnow()
-                    self.sessions = {
-                        sid: session for sid, session in data.items()
-                        if datetime.fromisoformat(session['expires_at']) > now
-                    }
-        except Exception as e:
-            logger.warning(f"Could not load sessions: {e}")
-            self.sessions = {}
-    
-    def _save_sessions(self):
-        """Save sessions to file."""
-        try:
-            settings.ensure_directories()
-            with open(self.sessions_file, 'w') as f:
-                json.dump(self.sessions, f, default=str)
-        except Exception as e:
-            logger.error(f"Could not save sessions: {e}")
-    
-    def create_session(self, user_id: str = "default_user", metadata: Dict[str, Any] = None) -> str:
-        """Create a new session and return session token."""
-        session_id = str(uuid.uuid4())
-        expires_at = datetime.utcnow() + timedelta(hours=settings.session_expire_hours)
-        
-        self.sessions[session_id] = {
-            'user_id': user_id,
-            'created_at': datetime.utcnow().isoformat(),
-            'expires_at': expires_at.isoformat(),
-            'metadata': metadata or {}
-        }
-        
-        self._save_sessions()
-        logger.info(f"Created session {session_id} for user {user_id}")
-        return session_id
-    
-    def validate_session(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Validate a session and return session data if valid."""
-        if session_id not in self.sessions:
-            return None
-        
-        session = self.sessions[session_id]
-        expires_at = datetime.fromisoformat(session['expires_at'])
-        
-        if expires_at <= datetime.utcnow():
-            # Session expired
-            del self.sessions[session_id]
-            self._save_sessions()
-            return None
-        
-        return session
-    
-    def delete_session(self, session_id: str) -> bool:
-        """Delete a session."""
-        if session_id in self.sessions:
-            del self.sessions[session_id]
-            self._save_sessions()
-            logger.info(f"Deleted session {session_id}")
-            return True
-        return False
-    
-    def cleanup_expired_sessions(self):
-        """Remove expired sessions."""
-        now = datetime.utcnow()
-        expired_sessions = [
-            sid for sid, session in self.sessions.items()
-            if datetime.fromisoformat(session['expires_at']) <= now
-        ]
-        
-        for sid in expired_sessions:
-            del self.sessions[sid]
-        
-        if expired_sessions:
-            self._save_sessions()
-            logger.info(f"Cleaned up {len(expired_sessions)} expired sessions")
-
-
-class APIKeyManager:
-    """Manages API keys with encryption (from backend_server.py)."""
-    
-    def __init__(self):
-        self.keys_file = settings.sessions_dir / "api_keys.json"
-        self.fernet = self._get_or_create_encryption_key()
-    
-    def _get_or_create_encryption_key(self) -> Fernet:
-        """Get or create encryption key for API keys."""
-        key_file = settings.sessions_dir / "encryption.key"
-        
-        try:
-            if key_file.exists():
-                with open(key_file, 'rb') as f:
-                    key = f.read()
-            else:
-                key = Fernet.generate_key()
-                settings.ensure_directories()
-                with open(key_file, 'wb') as f:
-                    f.write(key)
-                logger.info("Created new encryption key")
-            
-            return Fernet(key)
-        except Exception as e:
-            logger.error(f"Could not initialize encryption: {e}")
-            raise ConfigurationError("Failed to initialize API key encryption")
-    
-    def store_api_key(self, provider: str, api_key: str, user_id: str = "default") -> bool:
-        """Store an encrypted API key."""
-        try:
-            # Load existing keys
-            keys_data = {}
-            if self.keys_file.exists():
-                with open(self.keys_file, 'r') as f:
-                    keys_data = json.load(f)
-            
-            # Encrypt the API key
-            encrypted_key = self.fernet.encrypt(api_key.encode()).decode()
-            
-            # Store with metadata
-            if user_id not in keys_data:
-                keys_data[user_id] = {}
-            
-            keys_data[user_id][provider] = {
-                'encrypted_key': encrypted_key,
-                'created_at': datetime.utcnow().isoformat(),
-                'last_used': None
-            }
-            
-            # Save to file
-            settings.ensure_directories()
-            with open(self.keys_file, 'w') as f:
-                json.dump(keys_data, f)
-            
-            logger.info(f"Stored API key for {provider} (user: {user_id})")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Could not store API key: {e}")
-            return False
-    
-    def get_api_key(self, provider: str, user_id: str = "default") -> Optional[str]:
-        """Retrieve and decrypt an API key."""
-        try:
-            if not self.keys_file.exists():
-                return None
-            
-            with open(self.keys_file, 'r') as f:
-                keys_data = json.load(f)
-            
-            if user_id not in keys_data or provider not in keys_data[user_id]:
-                return None
-            
-            encrypted_key = keys_data[user_id][provider]['encrypted_key']
-            decrypted_key = self.fernet.decrypt(encrypted_key.encode()).decode()
-            
-            # Update last used
-            keys_data[user_id][provider]['last_used'] = datetime.utcnow().isoformat()
-            with open(self.keys_file, 'w') as f:
-                json.dump(keys_data, f)
-            
-            return decrypted_key
-            
-        except Exception as e:
-            logger.error(f"Could not retrieve API key for {provider}: {e}")
-            return None
-    
-    def delete_api_key(self, provider: str, user_id: str = "default") -> bool:
-        """Delete an API key."""
-        try:
-            if not self.keys_file.exists():
-                return False
-            
-            with open(self.keys_file, 'r') as f:
-                keys_data = json.load(f)
-            
-            if user_id in keys_data and provider in keys_data[user_id]:
-                del keys_data[user_id][provider]
-                
-                # Clean up empty user entries
-                if not keys_data[user_id]:
-                    del keys_data[user_id]
-                
-                with open(self.keys_file, 'w') as f:
-                    json.dump(keys_data, f)
-                
-                logger.info(f"Deleted API key for {provider} (user: {user_id})")
-                return True
-            
-            return False
-            
-        except Exception as e:
-            logger.error(f"Could not delete API key: {e}")
-            return False
+from .domain_types import (
+    UserId, SessionId, ApiKey, Result, Success, Failure
+)
+from .interfaces import IAuthenticationRepository, IEventBus
 
 
 class AuthenticationService:
-    """Main authentication service combining all auth methods."""
+    """
+    Core authentication service with pure business logic.
+    All I/O operations delegated to repositories following Rule 4.
+    """
     
-    def __init__(self):
-        self.session_manager = SessionManager()
-        self.api_key_manager = APIKeyManager()
+    def __init__(
+        self,
+        auth_repository: IAuthenticationRepository,
+        event_bus: IEventBus,
+        master_password: Optional[str] = None,
+        session_expire_hours: int = 24
+    ):
+        """Initialize with injected dependencies."""
+        self._auth_repo = auth_repository
+        self._event_bus = event_bus
+        self._master_password = master_password
+        self._session_expire_hours = session_expire_hours
+        self.logger = logging.getLogger(__name__)
     
-    def authenticate_with_password(self, password: str) -> str:
-        """Authenticate with master password and return session token."""
-        if not settings.master_password:
-            raise AuthenticationError("Master password not configured")
+    async def authenticate_with_password_async(self, password: str) -> Result[SessionId]:
+        """
+        Authenticate user with master password.
+        Rule 1: Name explicitly indicates async authentication operation.
+        Rule 2: Orchestrator pattern delegating to private methods.
+        """
+        # Validate password
+        validation_result = self._validate_master_password(password)
+        if isinstance(validation_result, Failure):
+            await self._publish_auth_event("authentication_failed", {"reason": "invalid_password"})
+            return validation_result
         
-        if password != settings.master_password:
-            raise AuthenticationError("Invalid master password")
+        # Create new session
+        session_id = self._generate_session_id()
+        session_data = self._create_session_data()
         
-        # Create session
-        session_token = self.session_manager.create_session(
-            user_id="authenticated_user",
-            metadata={"auth_method": "master_password"}
+        # Store session via repository
+        save_result = await self._auth_repo.save_session_async(session_id, session_data)
+        if isinstance(save_result, Failure):
+            return save_result
+        
+        # Publish success event
+        await self._publish_auth_event(
+            "authentication_success",
+            {"session_id": str(session_id), "expires_at": session_data["expires_at"]}
         )
         
-        return session_token
+        return Success(session_id)
     
-    def authenticate_with_token(self, token: str) -> Dict[str, Any]:
-        """Authenticate with session token and return user info."""
-        session = self.session_manager.validate_session(token)
-        if not session:
-            raise AuthenticationError("Invalid or expired session token")
+    async def validate_session_async(self, session_id: SessionId) -> Result[bool]:
+        """
+        Validate if a session is active and not expired.
+        Returns Success(True) if valid, Success(False) if invalid/expired.
+        """
+        # Load all sessions from repository
+        sessions_result = await self._auth_repo.load_sessions_async()
+        if isinstance(sessions_result, Failure):
+            return sessions_result
         
-        return session
+        sessions = sessions_result.value
+        
+        # Check if session exists
+        if session_id not in sessions:
+            return Success(False)
+        
+        # Check expiration
+        session_data = sessions[session_id]
+        is_valid = self._is_session_valid(session_data)
+        
+        if not is_valid:
+            # Clean up expired session
+            await self._auth_repo.delete_session_async(session_id)
+            await self._publish_auth_event("session_expired", {"session_id": str(session_id)})
+        
+        return Success(is_valid)
     
-    def logout(self, token: str) -> bool:
-        """Logout by deleting session."""
-        return self.session_manager.delete_session(token)
+    async def logout_session_async(self, session_id: SessionId) -> Result[None]:
+        """
+        Logout and invalidate a session.
+        Rule 1: Explicit async operation naming.
+        """
+        delete_result = await self._auth_repo.delete_session_async(session_id)
+        
+        if isinstance(delete_result, Success):
+            await self._publish_auth_event("session_logout", {"session_id": str(session_id)})
+        
+        return delete_result
     
-    def cleanup_sessions(self):
-        """Clean up expired sessions."""
-        self.session_manager.cleanup_expired_sessions()
-
-
-# Global instances
-auth_service = AuthenticationService()
-
-
-# FastAPI dependency functions
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
-    """FastAPI dependency to get current authenticated user."""
-    try:
-        session = auth_service.authenticate_with_token(credentials.credentials)
-        return session
-    except AuthenticationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[Dict[str, Any]]:
-    """FastAPI dependency to get user if authenticated, None otherwise."""
-    if not credentials:
-        return None
+    async def store_api_key_for_provider_async(
+        self,
+        provider: str,
+        api_key: str,
+        session_id: SessionId
+    ) -> Result[None]:
+        """
+        Store an API key for a provider after session validation.
+        Rule 1: Name clearly indicates storage operation for provider.
+        """
+        # Validate session first
+        validation_result = await self.validate_session_async(session_id)
+        if isinstance(validation_result, Failure):
+            return validation_result
+        
+        if not validation_result.value:
+            return Failure("INVALID_SESSION", "Session is invalid or expired")
+        
+        # Store API key
+        store_result = await self._auth_repo.save_api_key_async(provider, ApiKey(api_key))
+        
+        if isinstance(store_result, Success):
+            await self._publish_auth_event(
+                "api_key_stored",
+                {"provider": provider, "session_id": str(session_id)}
+            )
+        
+        return store_result
     
-    try:
-        return auth_service.authenticate_with_token(credentials.credentials)
-    except AuthenticationError:
-        return None
-
-
-def require_master_password():
-    """FastAPI dependency that requires master password to be set."""
-    if not settings.master_password:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Master password authentication not configured"
-        )
-
-
-# Password hashing utilities
-def hash_password(password: str, salt: str = None) -> tuple[str, str]:
-    """Hash a password with salt."""
-    if salt is None:
-        salt = secrets.token_hex(16)
+    async def retrieve_api_key_for_provider_async(
+        self,
+        provider: str,
+        session_id: SessionId
+    ) -> Result[Optional[ApiKey]]:
+        """
+        Retrieve an API key for a provider after session validation.
+        Rule 1: Name clearly indicates retrieval operation for provider.
+        """
+        # Validate session first
+        validation_result = await self.validate_session_async(session_id)
+        if isinstance(validation_result, Failure):
+            return validation_result
+        
+        if not validation_result.value:
+            return Failure("INVALID_SESSION", "Session is invalid or expired")
+        
+        # Load API keys
+        keys_result = await self._auth_repo.load_api_keys_async()
+        if isinstance(keys_result, Failure):
+            return keys_result
+        
+        api_keys = keys_result.value
+        api_key = api_keys.get(provider)
+        
+        return Success(api_key)
     
-    hashed = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
-    return hashed.hex(), salt
-
-
-def verify_password(password: str, hashed: str, salt: str) -> bool:
-    """Verify a password against hash."""
-    new_hash, _ = hash_password(password, salt)
-    return secrets.compare_digest(new_hash, hashed)
+    async def clean_expired_sessions_async(self) -> Result[int]:
+        """
+        Clean up all expired sessions.
+        Returns number of sessions cleaned.
+        """
+        sessions_result = await self._auth_repo.load_sessions_async()
+        if isinstance(sessions_result, Failure):
+            return sessions_result
+        
+        sessions = sessions_result.value
+        expired_count = 0
+        
+        for session_id, session_data in list(sessions.items()):
+            if not self._is_session_valid(session_data):
+                await self._auth_repo.delete_session_async(session_id)
+                expired_count += 1
+        
+        if expired_count > 0:
+            await self._publish_auth_event(
+                "sessions_cleaned",
+                {"count": expired_count}
+            )
+        
+        return Success(expired_count)
+    
+    # --- Private Implementation Methods (Rule 2) ---
+    
+    def _validate_master_password(self, password: str) -> Result[None]:
+        """Validate the provided password against master password."""
+        if not self._master_password:
+            return Failure("NO_MASTER_PASSWORD", "No master password configured")
+        
+        if not self._is_password_match(password, self._master_password):
+            return Failure("INVALID_PASSWORD", "Invalid password")
+        
+        return Success(None)
+    
+    def _is_password_match(self, provided: str, stored: str) -> bool:
+        """Securely compare passwords using constant-time comparison."""
+        provided_hash = hashlib.sha256(provided.encode()).hexdigest()
+        stored_hash = hashlib.sha256(stored.encode()).hexdigest()
+        return secrets.compare_digest(provided_hash, stored_hash)
+    
+    def _generate_session_id(self) -> SessionId:
+        """Generate a secure random session ID."""
+        return SessionId(secrets.token_urlsafe(32))
+    
+    def _create_session_data(self) -> Dict[str, Any]:
+        """Create session data with expiration."""
+        now = datetime.utcnow()
+        expires_at = now + timedelta(hours=self._session_expire_hours)
+        
+        return {
+            "created_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "last_accessed": now.isoformat()
+        }
+    
+    def _is_session_valid(self, session_data: Dict[str, Any]) -> bool:
+        """Check if session data indicates a valid, non-expired session."""
+        try:
+            expires_at_str = session_data.get("expires_at")
+            if not expires_at_str:
+                return False
+            
+            expires_at = datetime.fromisoformat(expires_at_str)
+            return datetime.utcnow() < expires_at
+            
+        except (ValueError, TypeError):
+            return False
+    
+    async def _publish_auth_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Publish authentication-related events."""
+        await self._event_bus.publish_event_async(f"auth.{event_type}", data)

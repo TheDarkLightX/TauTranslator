@@ -115,15 +115,16 @@ class ServiceScope(IServiceScope):
         if service_type in self.scoped_instances:
             return self.scoped_instances[service_type]
         
-        # Create through container
-        instance = self.container.get_service(service_type, scope=self)
-        
-        # Store if it's a scoped service
+        # For scoped services, create directly here to avoid infinite recursion
         descriptor = self.container._get_descriptor(service_type)
         if descriptor and descriptor.lifetime == ServiceLifetime.SCOPED:
+            # Create the instance directly
+            instance = self.container._create_instance(descriptor)
             self.scoped_instances[service_type] = instance
+            return instance
         
-        return instance
+        # For non-scoped services, delegate to container
+        return self.container.get_service(service_type, scope=self)
     
     def dispose(self) -> None:
         """Dispose of scoped services."""
@@ -325,7 +326,13 @@ class ServiceContainer:
             
             elif descriptor.lifetime == ServiceLifetime.SCOPED:
                 if scope:
-                    return scope.get_service(service_type)
+                    # Check if scope already has instance
+                    if service_type in scope.scoped_instances:
+                        return scope.scoped_instances[service_type]
+                    # Create and store in scope
+                    instance = self._create_instance(descriptor)
+                    scope.scoped_instances[service_type] = instance
+                    return instance
                 # Fall back to singleton behavior if no scope
                 return self._get_singleton(descriptor)
             
@@ -408,7 +415,12 @@ class ServiceContainer:
         # Get constructor signature
         try:
             sig = inspect.signature(implementation_type.__init__)
-            type_hints = get_type_hints(implementation_type.__init__)
+            # Try to get type hints, handling forward references
+            try:
+                type_hints = get_type_hints(implementation_type.__init__)
+            except NameError:
+                # Forward references - for now, skip resolution
+                type_hints = {}
         except (ValueError, TypeError):
             return constructor_args
         
@@ -444,7 +456,14 @@ class ServiceContainer:
         
         try:
             sig = inspect.signature(implementation_type.__init__)
-            type_hints = get_type_hints(implementation_type.__init__)
+            # Try to get type hints, but handle forward references gracefully
+            try:
+                type_hints = get_type_hints(implementation_type.__init__)
+            except NameError:
+                # Forward references not resolvable, use annotations directly
+                type_hints = {}
+                if hasattr(implementation_type.__init__, '__annotations__'):
+                    type_hints = implementation_type.__init__.__annotations__
         except (ValueError, TypeError):
             return dependencies
         
@@ -493,12 +512,24 @@ class ServiceContainer:
     
     def _is_primitive_type(self, type_obj: Type) -> bool:
         """Check if type is a primitive type."""
+        # Handle string annotations (forward references)
+        if isinstance(type_obj, str):
+            return False  # String annotations are not primitives
+            
         primitive_types = {int, float, str, bool, bytes, type(None)}
-        return type_obj in primitive_types or type_obj.__module__ == 'builtins'
+        return type_obj in primitive_types or (hasattr(type_obj, '__module__') and type_obj.__module__ == 'builtins')
     
     def _get_descriptor(self, service_type: Type) -> Optional[ServiceDescriptor]:
         """Get service descriptor for type."""
         return self._services.get(service_type)
+    
+    def _get_type_name(self, type_hint: Type) -> str:
+        """Get string representation of type hint."""
+        if hasattr(type_hint, '__name__'):
+            return type_hint.__name__
+        else:
+            # Handle Optional, Union, etc.
+            return str(type_hint)
     
     def _descriptor_to_dict(self, descriptor: ServiceDescriptor) -> Dict[str, Any]:
         """Convert ServiceDescriptor to dictionary."""
@@ -510,7 +541,7 @@ class ServiceContainer:
             'creation_count': descriptor.creation_count,
             'has_instance': descriptor.instance is not None,
             'has_factory': descriptor.factory is not None,
-            'dependencies': [dep.__name__ for dep in descriptor.dependencies]
+            'dependencies': [self._get_type_name(dep) for dep in descriptor.dependencies]
         }
 
 
