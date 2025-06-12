@@ -14,6 +14,10 @@ python-multipart>=0.0.6
 numpy>=1.24.0
 numba>=0.58.0  # For SIMD optimizations
 
+# Functional programming utilities
+returns>=0.21.0  # Type-safe functional programming with Result/Maybe monads
+toolz>=0.12.0  # High-performance functional utilities
+
 # System monitoring
 psutil>=5.9.0
 

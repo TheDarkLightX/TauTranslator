@@ -19,6 +19,10 @@ class TranslationDirection(Enum):
     TO_TCE = "to_tce" 
     TO_ENGLISH = "to_english"
     BIDIRECTIONAL = "bidirectional"
+    NL_TO_TAU = "nl_to_tau"  # Natural Language to Tau
+    NL_TO_TCE = "nl_to_tce"  # Natural Language to TCE
+    TCE_TO_TAU = "tce_to_tau"  # TCE to Tau
+    TCE_TO_NL = "tce_to_nl"  # TCE to Natural Language
 
 
 @dataclass

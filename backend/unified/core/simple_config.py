@@ -32,6 +32,8 @@ class SimpleSettings:
         self.enable_gemma3 = os.getenv("TAU_ENABLE_GEMMA3", "False").lower() == "true"
         self.enable_nlp = os.getenv("TAU_ENABLE_NLP", "False").lower() == "true"  # Disabled by default for stability
         self.enable_grammar = os.getenv("TAU_ENABLE_GRAMMAR", "True").lower() == "true"  # Parser-first approach
+        self.enable_parser_pipeline = os.getenv("TAU_ENABLE_PARSER_PIPELINE", "True").lower() == "true"  # Full pipeline
+        self.enable_bidirectional = os.getenv("TAU_ENABLE_BIDIRECTIONAL", "True").lower() == "true"  # Bidirectional translation
         
         # File paths
         self.project_root = Path(__file__).parent.parent.parent.parent

@@ -29,7 +29,7 @@ from .core.responses import handle_exception, TauTranslatorException
 from .translators.manager import TranslationManager
 
 # Import API routers
-from .api import health, auth, translate, grammar, nlp
+from .api import health, auth, translate, grammar, nlp, gamified_autocomplete
 
 # Configure logging
 logging.basicConfig(
@@ -86,7 +86,27 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Could not load NLP engine: {e}")
     
-    # 3. Pattern engine (always available as fallback)
+    # 3. Integrated Parser Pipeline (Natural Language → ILR → TCE → Tau)
+    try:
+        if settings.enable_parser_pipeline:
+            from .translators.integrated_parser_pipeline import IntegratedParserPipeline
+            parser_pipeline = IntegratedParserPipeline()
+            translation_manager.register_engine(parser_pipeline)
+            logger.info("Registered Integrated Parser Pipeline")
+    except Exception as e:
+        logger.warning(f"Could not load Integrated Parser Pipeline: {e}")
+    
+    # 4. Bidirectional engine (for reverse translation)
+    try:
+        if settings.enable_bidirectional:
+            from .translators.bidirectional_engine import BidirectionalTranslationEngine
+            bidirectional_engine = BidirectionalTranslationEngine()
+            translation_manager.register_engine(bidirectional_engine, priority=8)
+            logger.info("Registered Bidirectional translation engine")
+    except Exception as e:
+        logger.warning(f"Could not load Bidirectional engine: {e}")
+    
+    # 5. Pattern engine (always available as fallback)
     try:
         from .translators.pattern_translator import PatternTranslationEngine
         pattern_engine = PatternTranslationEngine()
@@ -155,6 +175,9 @@ app.include_router(grammar.router, prefix="/api/grammar", tags=["Grammar"])
 
 if settings.enable_nlp:
     app.include_router(nlp.router, prefix="/api/nlp", tags=["NLP"])
+
+# Include gamified autocomplete router
+app.include_router(gamified_autocomplete.router, tags=["Gamified Autocomplete"])
 
 # Root endpoint
 @app.get("/", tags=["Root"])

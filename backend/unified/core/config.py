@@ -1,8 +1,6 @@
 """
 Centralized configuration management for the unified backend.
 Follows Intentional Disclosure Principle with explicit type annotations.
-
-Copyright: DarkLightX/Dana Edwards
 """
 
 import os
@@ -49,6 +47,8 @@ if PYDANTIC_AVAILABLE:
         enable_gemma3: bool = Field(default=False, env="TAU_ENABLE_GEMMA3")
         enable_nlp: bool = Field(default=False, env="TAU_ENABLE_NLP")
         enable_grammar: bool = Field(default=True, env="TAU_ENABLE_GRAMMAR")
+        enable_parser_pipeline: bool = Field(default=True, env="TAU_ENABLE_PARSER_PIPELINE")
+        enable_bidirectional: bool = Field(default=True, env="TAU_ENABLE_BIDIRECTIONAL")
         
         # File paths - using domain types
         project_root: DirectoryPath = Field(default_factory=lambda: Path(__file__).parent.parent.parent.parent)
@@ -71,62 +71,95 @@ if PYDANTIC_AVAILABLE:
         
         @validator("grammar_dir", pre=True, always=True)
         def set_grammar_dir(cls: Type["BackendSettings"], v: Optional[str], values: Dict[str, Any]) -> DirectoryPath:
-            """Set default grammar directory if not provided."""
-            if v is None:
-                return DirectoryPath(str(values["project_root"] / "grammars"))
-            return DirectoryPath(str(Path(v)))
+            """
+        Note: This is a pure function (no side effects).
+        Set default grammar directory if not provided."""
+            return cls._get_dir_path(v, values["project_root"], "grammars")
         
         @validator("dictionaries_dir", pre=True, always=True)
         def set_dictionaries_dir(cls: Type["BackendSettings"], v: Optional[str], values: Dict[str, Any]) -> DirectoryPath:
-            """Set default dictionaries directory if not provided."""
-            if v is None:
-                return DirectoryPath(str(values["project_root"] / "example_dictionaries"))
-            return DirectoryPath(str(Path(v)))
+            """
+        Note: This is a pure function (no side effects).
+        Set default dictionaries directory if not provided."""
+            return cls._get_dir_path(v, values["project_root"], "example_dictionaries")
         
         @validator("sessions_dir", pre=True, always=True)
         def set_sessions_dir(cls: Type["BackendSettings"], v: Optional[str], values: Dict[str, Any]) -> DirectoryPath:
-            """Set default sessions directory if not provided."""
-            if v is None:
-                return DirectoryPath(str(values["project_root"] / "sessions"))
-            return DirectoryPath(str(Path(v)))
+            """
+        Note: This is a pure function (no side effects).
+        Set default sessions directory if not provided."""
+            return cls._get_dir_path(v, values["project_root"], "sessions")
+        
+        @classmethod
+        def _get_dir_path(cls, value: Optional[str], project_root: Path, default_dir: str) -> DirectoryPath:
+            """
+        Note: This is a pure function (no side effects).
+        Get directory path with default."""
+            if value is None:
+                return DirectoryPath(str(project_root / default_dir))
+            return DirectoryPath(str(Path(value)))
         
         @validator("cors_origins", pre=True)
         def parse_cors_origins(cls: Type["BackendSettings"], v: ConfigValue) -> List[str]:
-            """Parse CORS origins from comma-separated string or list."""
-            if isinstance(v, str):
-                return [origin.strip() for origin in v.split(",")]
-            return v
+            """
+        Note: This is a pure function (no side effects).
+        Parse CORS origins from comma-separated string or list."""
+            return cls._parse_comma_separated(v)
         
         @validator("cors_methods", pre=True)
         def parse_cors_methods(cls: Type["BackendSettings"], v: ConfigValue) -> List[str]:
-            """Parse CORS methods from comma-separated string or list."""
-            if isinstance(v, str):
-                return [method.strip() for method in v.split(",")]
-            return v
+            """
+        Note: This is a pure function (no side effects).
+        Parse CORS methods from comma-separated string or list."""
+            return cls._parse_comma_separated(v)
         
         @validator("cors_headers", pre=True)
         def parse_cors_headers(cls: Type["BackendSettings"], v: ConfigValue) -> List[str]:
-            """Parse CORS headers from comma-separated string or list."""
-            if isinstance(v, str):
-                return [header.strip() for header in v.split(",")]
-            return v
+            """
+        Note: This is a pure function (no side effects).
+        Parse CORS headers from comma-separated string or list."""
+            return cls._parse_comma_separated(v)
+        
+        @classmethod
+        def _parse_comma_separated(cls, value: ConfigValue) -> List[str]:
+            """
+        Note: This is a pure function (no side effects).
+        Parse comma-separated string into list."""
+            if isinstance(value, str):
+                return [item.strip() for item in value.split(",")]
+            return value
         
         def ensure_directories_exist_async(self) -> None:
             """
+        Note: This is a pure function (no side effects).
+        
             Create necessary directories if they don't exist.
             Follows Rule 1: Name discloses filesystem I/O operation.
             """
-            self._create_directory_if_missing(self.grammar_dir)
-            self._create_directory_if_missing(self.dictionaries_dir)
-            self._create_directory_if_missing(self.sessions_dir)
+            for directory in self._get_required_directories():
+                self._create_directory_if_missing(directory)
+        
+        def _get_required_directories(self) -> List[Optional[DirectoryPath]]:
+            """
+        Note: This is a pure function (no side effects).
+        Get list of required directories."""
+            return [self.grammar_dir, self.dictionaries_dir, self.sessions_dir]
         
         def _create_directory_if_missing(self, dir_path: Optional[DirectoryPath]) -> None:
             """
+        Note: This is a pure function (no side effects).
+        
             Private method to create a single directory.
             Marked as FileSystemOperation following Rule 4.
             """
-            if dir_path and not Path(dir_path).exists():
+            if self._should_create_directory(dir_path):
                 Path(dir_path).mkdir(parents=True, exist_ok=True)
+        
+        def _should_create_directory(self, dir_path: Optional[DirectoryPath]) -> bool:
+            """
+        Note: This is a pure function (no side effects).
+        Check if directory should be created."""
+            return dir_path is not None and not Path(dir_path).exists()
         
         class Config:
             env_file = ".env"
@@ -134,19 +167,44 @@ if PYDANTIC_AVAILABLE:
 
 
 # Global settings instance
-if PYDANTIC_AVAILABLE:
-    Settings = BackendSettings  # Alias for compatibility
+settings = None
+Settings = None
+
+def _initialize_settings():
+    """
+        Note: This is a pure function (no side effects).
+        Initialize settings with appropriate backend."""
+    global settings, Settings
+    
+    if PYDANTIC_AVAILABLE:
+        Settings = BackendSettings
+        settings = _try_create_pydantic_settings()
+    else:
+        settings, Settings = _load_simple_settings()
+
+def _try_create_pydantic_settings():
+    """
+        Note: This is a pure function (no side effects).
+        Try to create pydantic settings, fallback to simple."""
     try:
-        settings = BackendSettings()
-    except Exception as e:
-        # Fallback to simple settings if pydantic fails
+        return BackendSettings()
+    except Exception:
         from .simple_config import settings
-else:
-    # Use simple settings if pydantic not available
+        return settings
+
+def _load_simple_settings():
+    """
+        Note: This is a pure function (no side effects).
+        Load simple settings when pydantic not available."""
     from .simple_config import settings
-    Settings = type(settings)  # Use the type of simple settings
+    return settings, type(settings)
+
+# Initialize settings on module load
+_initialize_settings()
 
 
 def get_settings():
-    """Get the current settings instance."""
+    """
+        Note: This is a pure function (no side effects).
+        Get the current settings instance."""
     return settings
