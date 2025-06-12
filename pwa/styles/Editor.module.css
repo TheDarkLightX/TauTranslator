@@ -234,6 +234,70 @@
   opacity: 1;
 }
 
+/* AutoComplete Suggestion Styles */
+.suggestionDropdown {
+  background-color: #ffffff;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.suggestionItem {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f3f4;
+  transition: background-color 0.1s ease;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover,
+.suggestionSelected {
+  background-color: #e3f2fd;
+}
+
+.suggestionText {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.suggestionType {
+  font-size: 11px;
+  color: #6c757d;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.suggestionDescription {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.3;
+}
+
+.loadingIndicator {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background-color: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  z-index: 100;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .controlsBar {
@@ -253,5 +317,14 @@
   .errorBanner {
     max-width: 90%;
     top: 10px;
+  }
+  
+  .suggestionDropdown {
+    min-width: 150px;
+    max-width: 300px;
+  }
+  
+  .suggestionText {
+    font-size: 13px;
   }
 }

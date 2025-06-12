@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-06-10T04:22:40.898163",
+  "migration_pairs": [
+    {
+      "current": "backend/unified/translators/pattern_translator.py",
+      "refactored": "backend/unified/translators/pattern_translator_refactored.py",
+      "tests_current": [
+        "tests/unit/test_pattern_translator.py"
+      ],
+      "tests_refactored": [
+        "tests/unit/test_pattern_translator_refactored.py"
+      ]
+    },
+    {
+      "current": "backend/unified/translators/manager.py",
+      "refactored": "backend/unified/translators/manager_refactored.py",
+      "tests_current": [
+        "tests/unit/test_translation_manager.py"
+      ],
+      "tests_refactored": []
+    },
+    {
+      "current": "backend/unified/api/auth.py",
+      "refactored": "backend/unified/api/auth_refactored.py",
+      "tests_current": [
+        "tests/integration/test_api_backend.py"
+      ],
+      "tests_refactored": [
+        "tests/unit/test_auth_refactored.py"
+      ]
+    },
+    {
+      "current": "backend/unified/core/config.py",
+      "refactored": "backend/unified/core/config_refactored.py",
+      "tests_current": [],
+      "tests_refactored": []
+    },
+    {
+      "current": null,
+      "refactored": "backend/unified/core/pattern_loader_refactored.py",
+      "tests_current": [],
+      "tests_refactored": [
+        "tests/unit/test_pattern_loader_refactored.py"
+      ]
+    }
+  ],
+  "test_results": {
+    "tests/unit/test_pattern_translator.py": "dry_run",
+    "tests/unit/test_translation_manager.py": "dry_run",
+    "tests/integration/test_api_backend.py": "dry_run",
+    "tests/unit/test_pattern_translator_refactored.py": "dry_run",
+    "tests/unit/test_auth_refactored.py": "dry_run",
+    "tests/unit/test_pattern_loader_refactored.py": "dry_run"
+  }
+}

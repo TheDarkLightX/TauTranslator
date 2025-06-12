@@ -1,0 +1,314 @@
+// Tau Controlled English (TCE) - Declarative Grammar
+// Version 2.0.0 - Pure declarative specification language
+// Based on Tau language's declarative paradigm
+// Copyright: DarkLightX / Dana Edwards
+//
+// Design Principles:
+// 1. All statements declare facts, properties, or relationships
+// 2. No imperative commands or procedures
+// 3. Temporal properties declare invariants over time
+// 4. Constraints express what must be true, not what to do
+
+?start: specification
+
+specification: declaration+
+
+declaration: declarative_statement PERIOD
+
+// Core declarative statement types
+declarative_statement: fact
+                     | property_declaration
+                     | relationship
+                     | constraint
+                     | temporal_property
+                     | definition
+                     | equivalence
+
+// Facts - Simple assertions about the world
+fact: entity IS property
+    | entity HAS property
+    | entity property  // shortened form: "x positive" = "x is positive"
+    | term EQUALS term
+    | term comparison_op term
+
+// Property declarations - What properties entities have
+property_declaration: quantified_property
+                    | conditional_property
+                    | compound_property
+
+quantified_property: quantifier entity_class property_clause
+property_clause: IS property
+               | HAS property  
+               | satisfies_constraint
+
+satisfies_constraint: SATISFIES constraint_expr
+                    | SUCH_THAT constraint_expr
+
+// Relationships - How entities relate to each other
+relationship: entity relation entity
+            | quantified_relationship
+
+quantified_relationship: quantifier entity_class relation_clause
+
+relation_clause: relation entity_class
+               | THAT relation entity_class  // for clarity
+
+relation: OWNS | CONTAINS | INCLUDES | PRECEDES | FOLLOWS 
+        | DEPENDS_ON | RELATES_TO | EQUALS | verb_phrase
+
+// Constraints - What must always be true
+constraint: constraint_expr HOLDS
+          | IT_IS_NECESSARY_THAT constraint_expr
+          | CONSTRAINT COLON constraint_expr
+
+constraint_expr: logical_expr
+               | FOR_ALL entity_var COMMA constraint_expr
+               | THERE_EXISTS entity_var SUCH_THAT constraint_expr
+
+// Temporal properties - Properties over time
+temporal_property: temporal_quantifier property_over_time
+
+temporal_quantifier: ALWAYS | EVENTUALLY | SOMETIMES | NEVER
+                   | AT_ALL_TIMES | AT_SOME_TIME
+
+property_over_time: stream_property
+                  | state_property
+                  | transition_property
+
+stream_property: stream_term EQUALS term
+               | stream_term SATISFIES constraint_expr
+
+state_property: entity_state property
+              | entity_state relation entity_state
+
+transition_property: WHEN condition COMMA consequence HOLDS
+                   | IF condition THEN consequence IS_TRUE
+
+// Definitions - Declaring meaning
+definition: entity_class IS_DEFINED_AS definition_body
+          | predicate_name MEANS definition_body
+          | property IS_EQUIVALENT_TO property_expr
+
+definition_body: property_expr
+               | set_comprehension
+               | logical_combination
+
+// Equivalences - Stating logical equivalence
+equivalence: expr IS_EQUIVALENT_TO expr
+           | expr IFF expr
+           | expr EQUALS expr BY_DEFINITION
+
+// Quantifiers for declarative statements
+quantifier: ALL | EVERY | EACH | NO | SOME | EXACTLY number
+
+// Entity specifications
+entity: determiner? entity_class entity_id?
+      | entity_id
+      | pronoun
+
+entity_class: NOUN  // person, car, system, etc.
+entity_id: IDENTIFIER  // x, y, p1, etc.
+entity_var: IDENTIFIER
+
+pronoun: IT | THEY | THIS | THAT | THESE | THOSE
+
+determiner: THE | A | AN | THIS | THAT | EVERY | SOME | NO
+
+// Properties and states
+property: adjective
+        | property_name
+        | negated_property
+        | compound_property
+
+negated_property: NOT property
+compound_property: property AND property
+                 | property OR property
+
+property_expr: property
+             | property_combination
+             | computed_property
+
+property_combination: property logical_op property
+computed_property: function_name APPLIED_TO arguments
+
+// Logical expressions for constraints
+logical_expr: atomic_formula
+            | logical_expr AND logical_expr
+            | logical_expr OR logical_expr  
+            | logical_expr IMPLIES logical_expr
+            | logical_expr IFF logical_expr
+            | NOT logical_expr
+            | LPAR logical_expr RPAR
+
+atomic_formula: term comparison_op term
+              | predicate_name arguments?
+              | entity HAS property
+              | entity IS property
+
+// Terms for expressions
+term: number
+    | variable
+    | entity
+    | arithmetic_expr
+    | function_call
+    | stream_term
+
+arithmetic_expr: term PLUS term
+               | term MINUS term
+               | term TIMES term
+               | term DIVIDED_BY term
+               | LPAR arithmetic_expr RPAR
+
+// Stream terms for temporal properties
+stream_term: stream_type stream_id time_reference
+
+stream_type: INPUT | OUTPUT
+stream_id: number | IDENTIFIER
+time_reference: AT time_point
+              | LSQB time_expr RSQB
+
+time_point: TIME T | T
+time_expr: T
+         | T MINUS number
+         | T PLUS number
+
+// Function calls and predicates
+function_call: function_name LPAR arguments RPAR
+predicate_name: IDENTIFIER
+function_name: IDENTIFIER
+arguments: term (COMMA term)*
+
+// Comparison operators
+comparison_op: EQUALS | NOT_EQUALS 
+             | LESS_THAN | GREATER_THAN
+             | AT_MOST | AT_LEAST
+             | IS | IS_NOT
+
+// Logical operators  
+logical_op: AND | OR | IMPLIES | IFF
+
+// Basic elements
+property_name: IDENTIFIER
+adjective: IDENTIFIER
+verb_phrase: VERB+
+number: NUMBER
+variable: IDENTIFIER
+
+// Keywords (all case-insensitive)
+// Temporal
+ALWAYS: /always\s+/i
+EVENTUALLY: /eventually\s+/i
+SOMETIMES: /sometimes\s+/i
+NEVER: /never\s+/i
+AT_ALL_TIMES: /at\s+all\s+times\s+/i
+AT_SOME_TIME: /at\s+some\s+time\s+/i
+
+// Quantifiers
+ALL: /all\s+/i
+EVERY: /every\s+/i
+EACH: /each\s+/i
+NO: /no\s+/i
+SOME: /some\s+/i
+EXACTLY: /exactly\s+/i
+FOR_ALL: /for\s+all\s+/i
+THERE_EXISTS: /there\s+exists\s+/i
+
+// Relations
+IS: /is\s+/i
+ARE: /are\s+/i
+HAS: /has\s+/i
+HAVE: /have\s+/i
+OWNS: /owns\s+/i
+CONTAINS: /contains\s+/i
+INCLUDES: /includes\s+/i
+PRECEDES: /precedes\s+/i
+FOLLOWS: /follows\s+/i
+DEPENDS_ON: /depends\s+on\s+/i
+RELATES_TO: /relates\s+to\s+/i
+SATISFIES: /satisfies\s+/i
+
+// Declarative keywords
+HOLDS: /holds/i
+IT_IS_NECESSARY_THAT: /it\s+is\s+necessary\s+that\s+/i
+CONSTRAINT: /constraint/i
+IS_DEFINED_AS: /is\s+defined\s+as\s+/i
+MEANS: /means\s+/i
+IS_EQUIVALENT_TO: /is\s+equivalent\s+to\s+/i
+BY_DEFINITION: /by\s+definition/i
+IS_TRUE: /is\s+true/i
+SUCH_THAT: /such\s+that\s+/i
+THAT: /that\s+/i
+WHEN: /when\s+/i
+IF: /if\s+/i
+THEN: /then\s+/i
+
+// Properties
+NOT: /not\s+/i
+POSITIVE: /positive/i
+NEGATIVE: /negative/i
+ZERO: /zero/i
+EMPTY: /empty/i
+FULL: /full/i
+VALID: /valid/i
+INVALID: /invalid/i
+
+// Comparison
+EQUALS: /equals\s+/i | "="
+NOT_EQUALS: /not\s+equals\s+/i | /does\s+not\s+equal\s+/i | "!="
+LESS_THAN: /less\s+than\s+/i | "<"
+GREATER_THAN: /greater\s+than\s+/i | ">"
+AT_MOST: /at\s+most\s+/i | "<="
+AT_LEAST: /at\s+least\s+/i | ">="
+IS_NOT: /is\s+not\s+/i
+
+// Logical
+AND: /and\s+/i
+OR: /or\s+/i
+IMPLIES: /implies\s+/i
+IFF: /iff\s+/i | /if\s+and\s+only\s+if\s+/i
+
+// Arithmetic
+PLUS: /plus\s+/i | "+"
+MINUS: /minus\s+/i | "-"
+TIMES: /times\s+/i | "*"
+DIVIDED_BY: /divided\s+by\s+/i | "/"
+
+// Stream keywords
+INPUT: /input\s+/i
+OUTPUT: /output\s+/i
+AT: /at\s+/i
+TIME: /time\s+/i
+T: "t"
+
+// Other keywords
+THE: /the\s+/i
+A: /an?\s+/i
+AN: /an\s+/i
+THIS: /this\s+/i
+THAT: /that\s+/i
+THESE: /these\s+/i
+THOSE: /those\s+/i
+IT: /it\s+/i
+THEY: /they\s+/i
+APPLIED_TO: /applied\s+to\s+/i
+COLON: ":"
+
+// Basic patterns
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+NOUN: /[a-zA-Z]+/
+VERB: /[a-zA-Z]+/
+NUMBER: /[0-9]+(\.[0-9]+)?/
+
+// Punctuation
+PERIOD: "."
+COMMA: ","
+LPAR: "("
+RPAR: ")"
+LSQB: "["
+RSQB: "]"
+
+// Comments and whitespace
+COMMENT: /\/\/.*/
+%import common.WS
+%ignore WS
+%ignore COMMENT

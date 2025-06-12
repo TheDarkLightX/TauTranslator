@@ -1,0 +1,226 @@
+// Tau Controlled English (TCE) Grammar - Based on Attempto Controlled English principles
+// Version 0.3.0 - Strict controlled natural language subset
+// Copyright: DarkLightX / Dana Edwards
+//
+// TCE Design Principles:
+// 1. Every sentence has exactly one interpretation
+// 2. Anaphora (pronouns) refer to the most recent matching noun phrase
+// 3. Relative clauses attach to the immediately preceding noun
+// 4. Prepositional phrases attach to the immediately preceding verb or noun
+// 5. Coordination is strictly left-associative
+
+?start: paragraph
+
+paragraph: sentence+ 
+
+sentence: simple_sentence SENTENCE_TERMINATOR
+        | complex_sentence SENTENCE_TERMINATOR
+        | conditional_sentence SENTENCE_TERMINATOR
+        | definition_sentence SENTENCE_TERMINATOR
+
+// Simple declarative sentences: Subject Verb Object
+simple_sentence: noun_phrase verb_phrase
+
+// Complex sentences with quantifiers
+complex_sentence: universal_sentence
+                | existential_sentence
+
+// Universal: Every/All X verb-phrase
+universal_sentence: universal_quantifier noun_phrase verb_phrase
+
+// Existential: There is/are X that verb-phrase
+existential_sentence: THERE_KW BE_VERB noun_phrase [relative_clause]
+
+// Conditionals: If S1 then S2
+conditional_sentence: IF_KW sentence_content THEN_KW sentence_content
+
+// Definitions: X is defined as Y
+definition_sentence: noun_phrase BE_VERB DEFINED_KW AS_KW noun_phrase
+
+// Internal sentence content (no terminator)
+sentence_content: noun_phrase verb_phrase
+
+// Noun phrases with strict attachment rules
+noun_phrase: determiner? adjective* noun [relative_clause]
+           | proper_noun
+           | pronoun
+           | variable
+
+// Determiners control quantification
+determiner: A_KW | THE_KW | universal_det | number
+
+universal_det: EVERY_KW | ALL_KW | EACH_KW | NO_KW
+universal_quantifier: universal_det | FOR_KW ALL_KW
+
+// Verbs with strict argument structure
+verb_phrase: intransitive_verb [prepositional_phrase]
+           | transitive_verb noun_phrase [prepositional_phrase]
+           | ditransitive_verb noun_phrase noun_phrase
+           | copula complement
+           | modal_verb base_verb_phrase
+
+base_verb_phrase: base_verb [noun_phrase] [prepositional_phrase]
+
+// Verb categories for unambiguous parsing
+intransitive_verb: EXIST_KW | WORK_KW | SLEEP_KW | verb_stem
+transitive_verb: OWN_KW | HAVE_KW | SEE_KW | verb_stem
+ditransitive_verb: GIVE_KW | SEND_KW | SHOW_KW | verb_stem
+copula: BE_VERB
+modal_verb: MUST_KW | CAN_KW | MAY_KW | SHOULD_KW
+
+// Base verb forms
+verb_stem: CNAME
+base_verb: CNAME
+
+// Complements for copula
+complement: adjective
+          | noun_phrase  
+          | prepositional_phrase
+
+// Relative clauses with explicit attachment
+relative_clause: relative_pronoun verb_phrase
+               | relative_pronoun noun_phrase verb_phrase
+
+relative_pronoun: WHO_KW | WHICH_KW | THAT_KW
+
+// Prepositional phrases with clear attachment
+prepositional_phrase: preposition noun_phrase
+
+preposition: IN_KW | ON_KW | AT_KW | WITH_KW | FOR_KW | TO_KW | FROM_KW | OF_KW
+
+// Strict anaphora rules
+pronoun: subject_pronoun | object_pronoun | possessive_pronoun
+
+subject_pronoun: HE_KW | SHE_KW | IT_KW | THEY_KW
+object_pronoun: HIM_KW | HER_KW | IT_KW | THEM_KW  
+possessive_pronoun: HIS_KW | HER_KW | ITS_KW | THEIR_KW
+
+// Basic lexical categories
+noun: common_noun | mass_noun
+common_noun: CNAME
+mass_noun: CNAME
+proper_noun: CAPITALIZED_NAME
+variable: CNAME
+
+adjective: positive_adj | comparative_adj | superlative_adj
+positive_adj: CNAME
+comparative_adj: CNAME ER_SUFFIX | MORE_KW CNAME
+superlative_adj: CNAME EST_SUFFIX | MOST_KW CNAME
+
+// Numbers for precise quantification
+number: NUMBER
+      | NUMBER_WORD
+
+// Coordination with left-associativity
+coordinated_np: noun_phrase (AND_KW noun_phrase)+
+coordinated_vp: verb_phrase (AND_KW verb_phrase)+
+
+// Negation is explicit and scoped
+negated_vp: DO_KW NOT_KW verb_phrase
+          | BE_VERB NOT_KW complement
+          | modal_verb NOT_KW base_verb_phrase
+
+// Comparisons are explicit
+comparison: noun_phrase BE_VERB comparative_adj THAN_KW noun_phrase
+          | noun_phrase BE_VERB AS_KW adjective AS_KW noun_phrase
+
+// Questions (for future extension)
+question: WH_WORD verb_phrase QUESTION_MARK
+        | DO_KW noun_phrase verb_phrase QUESTION_MARK
+        | BE_VERB noun_phrase complement QUESTION_MARK
+
+// Terminals with precise meanings
+// Determiners
+A_KW: /a\s+/i | /an\s+/i
+THE_KW: /the\s+/i
+EVERY_KW: /every\s+/i
+ALL_KW: /all\s+/i
+EACH_KW: /each\s+/i
+NO_KW: /no\s+/i
+SOME_KW: /some\s+/i
+
+// Verbs
+BE_VERB: /is\s+/i | /are\s+/i | /am\s+/i | /was\s+/i | /were\s+/i | /be\s+/i | /been\s+/i | /being\s+/i
+DO_KW: /do\s+/i | /does\s+/i | /did\s+/i
+HAVE_KW: /has\s+/i | /have\s+/i | /had\s+/i
+OWN_KW: /owns?\s+/i | /owned\s+/i | /owning\s+/i
+EXIST_KW: /exists?\s+/i | /existed\s+/i
+WORK_KW: /works?\s+/i | /worked\s+/i | /working\s+/i
+SLEEP_KW: /sleeps?\s+/i | /slept\s+/i | /sleeping\s+/i
+SEE_KW: /sees?\s+/i | /saw\s+/i | /seen\s+/i
+GIVE_KW: /gives?\s+/i | /gave\s+/i | /given\s+/i
+SEND_KW: /sends?\s+/i | /sent\s+/i
+SHOW_KW: /shows?\s+/i | /showed\s+/i | /shown\s+/i
+
+// Modals
+MUST_KW: /must\s+/i
+CAN_KW: /can\s+/i
+MAY_KW: /may\s+/i
+SHOULD_KW: /should\s+/i
+
+// Pronouns
+HE_KW: /he\s+/i
+SHE_KW: /she\s+/i
+IT_KW: /it\s+/i
+THEY_KW: /they\s+/i
+HIM_KW: /him\s+/i
+HER_KW: /her\s+/i | /hers\s+/i
+THEM_KW: /them\s+/i
+HIS_KW: /his\s+/i
+ITS_KW: /its\s+/i
+THEIR_KW: /their\s+/i | /theirs\s+/i
+
+// Relative pronouns
+WHO_KW: /who\s+/i
+WHICH_KW: /which\s+/i
+THAT_KW: /that\s+/i
+
+// Prepositions
+IN_KW: /in\s+/i
+ON_KW: /on\s+/i
+AT_KW: /at\s+/i
+WITH_KW: /with\s+/i
+FOR_KW: /for\s+/i
+TO_KW: /to\s+/i
+FROM_KW: /from\s+/i
+OF_KW: /of\s+/i
+
+// Logical
+IF_KW: /if\s+/i
+THEN_KW: /then\s+/i
+AND_KW: /and\s+/i
+OR_KW: /or\s+/i
+NOT_KW: /not\s+/i
+
+// Comparison
+THAN_KW: /than\s+/i
+AS_KW: /as\s+/i
+MORE_KW: /more\s+/i
+MOST_KW: /most\s+/i
+ER_SUFFIX: "er"
+EST_SUFFIX: "est"
+
+// Other keywords
+THERE_KW: /there\s+/i
+DEFINED_KW: /defined\s+/i
+
+// Question words
+WH_WORD: /who\s+/i | /what\s+/i | /where\s+/i | /when\s+/i | /why\s+/i | /how\s+/i
+
+// Basic patterns
+CNAME: /[a-z][a-z0-9_]*/
+CAPITALIZED_NAME: /[A-Z][a-zA-Z0-9_]*/
+NUMBER: /[0-9]+/
+NUMBER_WORD: /one\s+/i | /two\s+/i | /three\s+/i | /four\s+/i | /five\s+/i
+           | /six\s+/i | /seven\s+/i | /eight\s+/i | /nine\s+/i | /ten\s+/i
+
+// Punctuation
+SENTENCE_TERMINATOR: "."
+QUESTION_MARK: "?"
+COMMA: ","
+
+// Whitespace and comments
+%import common.WS
+%ignore WS
+COMMENT: /\/\/.*/
+%ignore COMMENT

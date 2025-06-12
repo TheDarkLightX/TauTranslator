@@ -2,13 +2,131 @@
  * Backend Translation API Route
  * =============================
  * 
- * This route actually calls the Python backend for real translation
- * instead of using fake pattern matching.
+ * This route calls the Python backend for translation and autocomplete
+ * following the Intentional Disclosure Principle.
  */
+
+// Infrastructure Layer (Rule 4: Isolate Impurity)
+async function _handle_autocomplete_request_async(req, res, autocompleteData) {
+  const { text, position, context } = autocompleteData;
+  
+  if (!text) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing text for autocomplete'
+    });
+  }
+
+  try {
+    const BACKEND_URLS = [
+      'http://localhost:8000',  // Simple backend
+      'http://localhost:8001',  // FastAPI backend  
+      'http://localhost:8003',  // Working backend
+    ];
+    
+    let response = null;
+    let lastError = null;
+    
+    for (const backendUrl of BACKEND_URLS) {
+      try {
+        const autocompleteResponse = await fetch(`${backendUrl}/api/nlp/autocomplete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(req.headers.authorization && { 'Authorization': req.headers.authorization })
+          },
+          body: JSON.stringify({ text, position, context })
+        });
+        
+        if (autocompleteResponse.ok) {
+          response = await autocompleteResponse.json();
+          break;
+        }
+      } catch (error) {
+        lastError = error;
+        console.log(`Backend ${backendUrl} autocomplete not available:`, error.message);
+      }
+    }
+    
+    if (response && response.success) {
+      return res.status(200).json({
+        success: true,
+        data: response.data
+      });
+    } else {
+      // Fallback to basic suggestions
+      const basicSuggestions = _generate_basic_suggestions_fallback(text);
+      return res.status(200).json({
+        success: true,
+        data: {
+          suggestions: basicSuggestions,
+          source: 'fallback'
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Autocomplete service error:', error);
+    
+    // Fallback to basic suggestions on error
+    const basicSuggestions = _generate_basic_suggestions_fallback(text);
+    return res.status(200).json({
+      success: true,
+      data: {
+        suggestions: basicSuggestions,
+        source: 'fallback'
+      }
+    });
+  }
+}
+
+// Core Business Logic (Pure Functions)
+function _generate_basic_suggestions_fallback(text) {
+  const lowerText = text.toLowerCase();
+  const basicSuggestions = [];
+  
+  // TAU Keywords
+  const tauKeywords = [
+    { text: 'DEFINE', type: 'keyword', description: 'Define a new concept' },
+    { text: 'always', type: 'temporal', description: 'Temporal operator: always true' },
+    { text: 'sometimes', type: 'temporal', description: 'Temporal operator: sometimes true' },
+    { text: 'eventually', type: 'temporal', description: 'Temporal operator: eventually true' },
+    { text: 'forall', type: 'quantifier', description: 'Universal quantification' },
+    { text: 'exists', type: 'quantifier', description: 'Existential quantification' },
+    { text: 'true', type: 'keyword', description: 'Boolean literal: true' },
+    { text: 'false', type: 'keyword', description: 'Boolean literal: false' }
+  ];
+  
+  // TAU Operators
+  const tauOperators = [
+    { text: ':=', type: 'operator', description: 'Definition operator' },
+    { text: '->', type: 'operator', description: 'Implication operator' },
+    { text: '<->', type: 'operator', description: 'Equivalence operator' },
+    { text: '&&', type: 'operator', description: 'Logical AND' },
+    { text: '||', type: 'operator', description: 'Logical OR' },
+    { text: '!', type: 'operator', description: 'Logical NOT' }
+  ];
+  
+  // Filter based on input
+  [...tauKeywords, ...tauOperators].forEach(item => {
+    if (item.text.toLowerCase().includes(lowerText) || lowerText.length === 0) {
+      basicSuggestions.push(item);
+    }
+  });
+  
+  return basicSuggestions.slice(0, 10); // Limit to 10 suggestions
+}
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { sourceText, sourceLangKey, targetLangKey } = req.body;
+    const { sourceText, sourceLangKey, targetLangKey, endpoint, data } = req.body;
+    
+    // Handle autocomplete requests
+    if (endpoint === '/autocomplete') {
+      return await _handle_autocomplete_request_async(req, res, data);
+    }
+    
+    // Handle translation requests (existing logic)
     
     if (!sourceText) {
       return res.status(400).json({

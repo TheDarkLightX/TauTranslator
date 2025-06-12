@@ -1,0 +1,110 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pylint radon bandit mypy
+        pip install -r requirements.txt
+    
+    - name: Check method length (IDP Rule 2)
+      run: |
+        echo "Checking for methods exceeding 10 lines..."
+        python tools/analyze_method_lengths.py src/ --max-lines 10
+    
+    - name: Measure cyclomatic complexity
+      run: |
+        echo "Measuring cyclomatic complexity..."
+        radon cc src/ -a -nc
+    
+    - name: Run flake8 linting
+      run: |
+        echo "Running flake8..."
+        flake8 src/ --max-line-length=100 --exclude=__pycache__,migrations
+    
+    - name: Run type checking with mypy
+      run: |
+        echo "Running mypy type checks..."
+        mypy src/ --ignore-missing-imports
+    
+    - name: Security check with bandit
+      run: |
+        echo "Running security checks..."
+        bandit -r src/ -f json -o bandit-report.json
+    
+    - name: Check code quality metrics
+      run: |
+        echo "Running enhanced code quality analysis..."
+        python tools/enhanced_code_quality_tool.py --directory src/ --output-format json > quality-report.json
+    
+    - name: Upload quality reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: quality-reports
+        path: |
+          bandit-report.json
+          quality-report.json
+    
+    - name: Comment PR with quality metrics
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const qualityReport = JSON.parse(fs.readFileSync('quality-report.json', 'utf8'));
+          
+          let comment = '## Code Quality Report\n\n';
+          comment += '### Summary\n';
+          comment += `- Total Files: ${qualityReport.total_files}\n`;
+          comment += `- Average Complexity: ${qualityReport.average_complexity.toFixed(2)}\n`;
+          comment += `- Files with Methods >10 lines: ${qualityReport.files_with_long_methods}\n`;
+          
+          if (qualityReport.files_with_long_methods > 0) {
+            comment += '\n### ⚠️ IDP Rule 2 Violations\n';
+            comment += 'The following files have methods exceeding 10 lines:\n';
+            qualityReport.long_methods.forEach(file => {
+              comment += `- ${file.path}: ${file.methods.join(', ')}\n`;
+            });
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Fail if quality standards not met
+      run: |
+        python -c "
+        import json
+        with open('quality-report.json') as f:
+            report = json.load(f)
+        
+        if report.get('files_with_long_methods', 0) > 0:
+            print('❌ Code quality check failed: Methods exceeding 10 lines found')
+            exit(1)
+        
+        if report.get('average_complexity', 0) > 5:
+            print('❌ Code quality check failed: Average complexity too high')
+            exit(1)
+        
+        print('✅ All code quality checks passed!')
+        "

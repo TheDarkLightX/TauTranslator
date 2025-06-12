@@ -10,16 +10,14 @@ sentence: fact SENTENCE_TERMINATOR
 fact: expr       // Allows full expressions (including boolean logic) as top-level facts
 
 rule: IF_KW condition THEN_KW predicate_call
-    | quant_block THEN_KW predicate_call // Rule starting with a quantifier
+    | quantifier_expr THEN_KW predicate_call // Rule starting with a quantifier
 
 predicate_def: (PREDICATE_KW | FUNCTION_KW) CNAME LPAR [param_list] RPAR
 definition: DEFINE_KW predicate_def AS_KW expr // Made AS_KW expr mandatory
 
 predicate_call: CNAME LPAR [arg_list] RPAR
 
-?condition: [quant_block] expr
-
-quant_block: (FORALL_KW | EXISTS_KW) var_list (SUCH_KW THAT_KW expr)?
+?condition: [quantifier_expr] expr
 
 // Expressions
 expr: or_expr
@@ -36,6 +34,8 @@ factor: [PLUS | MINUS] atom // Unary plus/minus
 // Fixed atom rule to reduce ambiguity
 atom: stream_ref     // Stream reference as an expression
     | predicate_call // Function call as an expression  
+    | conditional_expr // If-then-else expression
+    | quantifier_expr // Quantifier expression as standalone
     | literal        // Renamed from constant to be more specific
     | identifier     // Renamed from variable to be more specific
     | LPAR expr RPAR // Parenthesized expression
@@ -45,13 +45,16 @@ literal: NUMBER | ESCAPED_STRING | boolean_literal
 boolean_literal: TRUE_KW | FALSE_KW
 identifier: CNAME    // Used for variable references
 
-stream_ref: [INPUT_KW | OUTPUT_KW] CNAME [LSQB time_spec RSQB]
+stream_ref: (INPUT_KW | OUTPUT_KW) CNAME [LSQB time_spec RSQB]
 
 time_spec: CNAME
          | CNAME MINUS NUMBER
          | CNAME PLUS NUMBER
          | identifier MINUS NUMBER  // e.g. t-1
          | identifier PLUS NUMBER   // e.g. t+1
+
+conditional_expr: IF_KW expr THEN_KW expr ELSE_KW expr
+quantifier_expr: (FORALL_KW | EXISTS_KW) var_list (COLON expr | SUCH_KW THAT_KW expr)
 
 var_list: identifier ("," identifier)*
 arg_list: expr (COMMA expr)*
@@ -61,12 +64,12 @@ param: CNAME [COLON CNAME] // Type hint is optional
 // Terminals
 CNAME: /[a-zA-Z_][a-zA-Z0-9_]*/
 COMPARISON_OP: "=" | "!=" | "<" | ">" | "<=" | ">="
-ARITHMETIC_OP: "+" | "-" | "*" | "/"
 COMMENT: /\/\/.*/
 
 // Keyword Terminals (Case-Insensitive)
 IF_KW.5: /(?i:if)/
 THEN_KW.5: /(?i:then)/
+ELSE_KW.5: /(?i:else)/
 DEFINE_KW.5: /(?i:define)/
 PREDICATE_KW.5: /(?i:predicate)/
 FUNCTION_KW.5: /(?i:function)/

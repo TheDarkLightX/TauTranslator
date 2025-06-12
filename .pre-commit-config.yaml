@@ -1,0 +1,133 @@
+# Pre-commit hooks for maintaining IDP principles
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-ast
+      - id: debug-statements
+
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        language_version: python3.10
+        args: ['--line-length=100']
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ['--profile', 'black', '--line-length=100']
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=100', '--ignore=E203,W503']
+        additional_dependencies: [flake8-docstrings]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.3.0
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports']
+        additional_dependencies: [types-all]
+
+  - repo: local
+    hooks:
+      - id: check-method-length
+        name: Check method length (IDP Rule 2)
+        entry: python tools/analyze_method_lengths.py
+        language: system
+        types: [python]
+        pass_filenames: true
+        args: ['--max-lines=10']
+      
+      - id: check-complexity
+        name: Check cyclomatic complexity
+        entry: python tools/enhanced_code_quality_tool.py
+        language: system
+        types: [python]
+        pass_filenames: true
+        args: ['--max-complexity=5']
+      
+      - id: check-async-naming
+        name: Check async method naming (IDP Rule 1)
+        entry: python -c "
+import ast
+import sys
+
+class AsyncChecker(ast.NodeVisitor):
+    def __init__(self):
+        self.violations = []
+    
+    def visit_AsyncFunctionDef(self, node):
+        if not node.name.endswith('_async'):
+            self.violations.append(f'{node.name} (line {node.lineno})')
+        self.generic_visit(node)
+
+for filename in sys.argv[1:]:
+    if not filename.endswith('.py'):
+        continue
+    
+    with open(filename) as f:
+        tree = ast.parse(f.read(), filename)
+    
+    checker = AsyncChecker()
+    checker.visit(tree)
+    
+    if checker.violations:
+        print(f'\\n{filename}:')
+        for v in checker.violations:
+            print(f'  - Async method without _async suffix: {v}')
+        sys.exit(1)
+"
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: check-domain-types
+        name: Check for primitive obsession
+        entry: python -c "
+import re
+import sys
+
+# Common primitive type patterns that should use domain types
+PRIMITIVE_PATTERNS = [
+    (r'def\s+\w+\([^)]*:\s*str[,)]', 'Consider using domain type instead of str'),
+    (r'def\s+\w+\([^)]*id:\s*str', 'Use specific ID type (e.g., UserId) instead of str'),
+    (r'def\s+\w+\([^)]*path:\s*str', 'Use Path or specific path type instead of str'),
+    (r'def\s+\w+\([^)]*price:\s*float', 'Use Money type instead of float for prices'),
+    (r'def\s+\w+\([^)]*amount:\s*float', 'Use Money type instead of float for amounts'),
+]
+
+violations = []
+for filename in sys.argv[1:]:
+    if not filename.endswith('.py'):
+        continue
+    
+    with open(filename) as f:
+        content = f.read()
+    
+    for pattern, message in PRIMITIVE_PATTERNS:
+        matches = re.finditer(pattern, content, re.MULTILINE)
+        for match in matches:
+            line_num = content[:match.start()].count('\\n') + 1
+            violations.append(f'{filename}:{line_num}: {message}')
+
+if violations:
+    print('\\nPrimitive obsession detected (IDP Rule 3):')
+    for v in violations:
+        print(f'  {v}')
+    print('\\nConsider using domain types for better type disclosure.')
+"
+        language: system
+        types: [python]
+        pass_filenames: true

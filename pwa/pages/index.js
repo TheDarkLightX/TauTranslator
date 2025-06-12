@@ -3,6 +3,7 @@ import Link from 'next/link';
 import styles from '../styles/Editor.module.css';
 import UnifiedAuthModal from '../components/UnifiedAuthModal';
 import BackendStatusChecker from '../components/BackendStatusChecker';
+import AutoCompleteTextarea from '../components/AutoCompleteTextarea';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../hooks/useAuth';
 
@@ -140,28 +141,25 @@ export default function EditorPage() {
       </div>
 
       <div className={styles.panelsContainer}>
-        <div className={styles.editorPanel}>
-          <div className={styles.panelHeader}>{leftPanelLabel}</div>
-          <textarea 
-            className={styles.textarea}
-            value={leftText}
-            onChange={(e) => setLeftText(e.target.value)}
-            placeholder={`Enter ${leftPanelLabel} here...`}
-            readOnly={isLoading} // Made editable, only readOnly during loading
-            disabled={isLoading} // Overall disabled when loading
-          />
-        </div>
-        <div className={styles.editorPanel}>
-          <div className={styles.panelHeader}>{rightPanelLabel}</div>
-          <textarea 
-            className={styles.textarea}
-            value={rightText}
-            onChange={(e) => setRightText(e.target.value)}
-            placeholder={`Enter ${rightPanelLabel} here...`}
-            readOnly={isLoading} // Made editable, only readOnly during loading
-            disabled={isLoading} // Overall disabled when loading
-          />
-        </div>
+        <AutoCompleteTextarea
+          label={leftPanelLabel}
+          value={leftText}
+          onChange={setLeftText}
+          placeholder={`Enter ${leftPanelLabel} here...`}
+          readOnly={isLoading}
+          disabled={isLoading}
+          enableAutoComplete={leftLanguage === 'TAU' || leftLanguage === 'CNL'}
+        />
+        
+        <AutoCompleteTextarea
+          label={rightPanelLabel}
+          value={rightText}
+          onChange={setRightText}
+          placeholder={`Enter ${rightPanelLabel} here...`}
+          readOnly={isLoading}
+          disabled={isLoading}
+          enableAutoComplete={rightLanguage === 'TAU' || rightLanguage === 'CNL'}
+        />
       </div>
 
       {/* Error Display */}

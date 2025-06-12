@@ -607,7 +607,7 @@ class TauTranslatorQt(QMainWindow):
         
     def on_translation_error(self, error):
         """Handle translation errors."""
-        QMessageBox.error(self, "Translation Error", error)
+        QMessageBox.critical(self, "Translation Error", error)
         
         # Re-enable UI
         self.translate_btn.setEnabled(True)

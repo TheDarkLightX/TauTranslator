@@ -1,0 +1,285 @@
+// Enhanced Tau Controlled English (TCE) Grammar
+// Version 0.2.0 - Extended for complex natural language patterns
+// Copyright: DarkLightX / Dana Edwards
+
+?start: sentence*
+
+sentence: fact SENTENCE_TERMINATOR
+        | rule SENTENCE_TERMINATOR
+        | definition SENTENCE_TERMINATOR
+        | complex_statement SENTENCE_TERMINATOR
+
+// Complex statements for natural language
+complex_statement: quantified_statement
+                 | conditional_statement
+                 | temporal_statement
+                 | policy_statement
+
+// Enhanced fact to handle more patterns
+fact: expr
+    | relation_expr
+    | property_expr
+
+// Enhanced rule with multiple patterns
+rule: IF_KW condition THEN_KW consequence
+    | quantifier_expr THEN_KW consequence
+    | WHEN_KW temporal_condition THEN_KW temporal_action
+    | quantified_conditional
+
+// Complex quantified conditionals
+quantified_conditional: quantifier_expr COMMA conditional_clause
+
+// Support for "for every X who/that Y, if Z then W" patterns
+quantifier_expr: (FORALL_KW | EXISTS_KW | EVERY_KW | SOME_KW) entity_spec [relative_clause] [constraint_clause]
+
+entity_spec: CNAME
+           | determiner? adjective* CNAME
+
+relative_clause: (WHO_KW | WHICH_KW | THAT_KW) relation_expr
+
+constraint_clause: SUCH_KW THAT_KW expr
+                 | WHERE_KW expr
+                 | WITH_KW property_list
+
+// Relations like "owns", "has", "is"
+relation_expr: entity_ref relation_verb entity_ref
+             | entity_ref IS_KW property_expr
+             | entity_ref HAS_KW property_expr
+
+relation_verb: OWNS_KW | HAS_KW | MANAGES_KW | WORKS_KW | LIVES_KW | CNAME
+
+// Entity references with coreference support
+entity_ref: THE_KW CNAME     // definite reference (coreference)
+          | A_KW CNAME        // indefinite reference
+          | THIS_KW CNAME     // demonstrative
+          | THAT_KW CNAME     // demonstrative
+          | CNAME             // direct reference
+          | pronoun           // pronoun reference
+
+pronoun: HE_KW | SHE_KW | IT_KW | THEY_KW | HIM_KW | HER_KW | THEM_KW
+
+// Property expressions
+property_expr: adjective
+             | CNAME
+             | comparison_expr
+
+// Temporal logic support
+temporal_statement: temporal_operator expr
+                  | expr temporal_constraint
+
+temporal_operator: ALWAYS_KW | EVENTUALLY_KW | SOMETIMES_KW | NEVER_KW
+
+temporal_constraint: UNTIL_KW expr
+                   | FOR_KW time_duration
+                   | WITHIN_KW time_duration
+                   | AFTER_KW time_point
+
+time_duration: NUMBER time_unit
+time_unit: SECONDS_KW | MINUTES_KW | HOURS_KW | DAYS_KW | MONTHS_KW | YEARS_KW
+time_point: DATE_LITERAL | TIME_LITERAL | expr
+
+// Policy rules with exceptions
+policy_statement: requirement exception_clause?
+requirement: entity_ref MUST_KW action
+           | entity_ref SHOULD_KW action
+           | entity_ref MAY_KW action
+
+exception_clause: UNLESS_KW expr
+                | EXCEPT_KW exception_list
+
+exception_list: exception_item (COMMA exception_item)*
+exception_item: WHEN_KW expr | IF_KW expr | FOR_KW entity_spec
+
+// Conditional statements
+conditional_statement: IF_KW condition THEN_KW consequence [ELSE_KW alternative]
+conditional_clause: IF_KW expr THEN_KW expr
+
+condition: expr
+         | compound_condition
+
+compound_condition: condition (AND_KW | OR_KW) condition
+
+consequence: expr
+           | action
+           | compound_consequence
+
+compound_consequence: consequence (AND_KW | OR_KW) consequence
+
+action: entity_ref action_verb [action_object]
+action_verb: MUST_KW? CNAME | modal_verb CNAME
+modal_verb: MUST_KW | CAN_KW | SHOULD_KW | WILL_KW | MAY_KW
+
+action_object: entity_ref
+             | expr
+
+// Enhanced expressions
+expr: or_expr
+    | quantifier_expr
+    | temporal_expr
+
+// Existing expression hierarchy with enhancements
+or_expr: xor_expr (OR_KW xor_expr)*
+xor_expr: and_expr (XOR_KW and_expr)*
+and_expr: not_expr (AND_KW not_expr)*
+not_expr: NOT_KW? comparison_expr
+comparison_expr: arithmetic_expr (COMPARISON_OP arithmetic_expr)*
+                | entity_ref IS_KW adjective
+                | entity_ref HAS_KW property_expr
+
+arithmetic_expr: term ((PLUS | MINUS) term)*
+term: factor ((MUL | DIV | MOD) factor)*
+factor: [PLUS | MINUS] atom
+
+// Enhanced atoms
+atom: stream_ref
+    | predicate_call
+    | conditional_expr
+    | literal
+    | identifier
+    | entity_ref
+    | LPAR expr RPAR
+    | aggregate_expr
+
+// Aggregation support
+aggregate_expr: aggregate_func LPAR expr RPAR
+aggregate_func: COUNT_KW | SUM_KW | AVG_KW | MAX_KW | MIN_KW
+
+// Rest of the grammar remains similar but with additions
+literal: NUMBER | ESCAPED_STRING | boolean_literal | percentage | currency
+boolean_literal: TRUE_KW | FALSE_KW
+percentage: NUMBER PERCENT
+currency: CURRENCY_SYMBOL NUMBER
+
+identifier: CNAME
+determiner: THE_KW | A_KW | AN_KW | THIS_KW | THAT_KW | SOME_KW | ALL_KW | NO_KW
+adjective: CNAME  // Would be enhanced with actual adjective list
+
+// Enhanced terminals
+CNAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+COMPARISON_OP: "=" | "!=" | "<" | ">" | "<=" | ">=" | "equals" | "is greater than" | "is less than"
+COMMENT: /\/\/.*/
+
+// Extended Keywords (Case-Insensitive)
+IF_KW.5: /(?i:if)/
+THEN_KW.5: /(?i:then)/
+ELSE_KW.5: /(?i:else)/
+WHEN_KW.5: /(?i:when)/
+UNLESS_KW.5: /(?i:unless)/
+EXCEPT_KW.5: /(?i:except)/
+WHERE_KW.5: /(?i:where)/
+WITH_KW.5: /(?i:with)/
+
+// Quantifiers
+FORALL_KW.5: /(?i:forall|for\s+all)/
+EXISTS_KW.5: /(?i:exists|there\s+exists?)/
+EVERY_KW.5: /(?i:every|each)/
+SOME_KW.5: /(?i:some)/
+ALL_KW.5: /(?i:all)/
+NO_KW.5: /(?i:no|none)/
+
+// Temporal
+ALWAYS_KW.5: /(?i:always)/
+EVENTUALLY_KW.5: /(?i:eventually)/
+SOMETIMES_KW.5: /(?i:sometimes)/
+NEVER_KW.5: /(?i:never)/
+UNTIL_KW.5: /(?i:until)/
+FOR_KW.5: /(?i:for)/
+WITHIN_KW.5: /(?i:within)/
+AFTER_KW.5: /(?i:after)/
+
+// Modals
+MUST_KW.5: /(?i:must)/
+CAN_KW.5: /(?i:can)/
+SHOULD_KW.5: /(?i:should)/
+WILL_KW.5: /(?i:will)/
+MAY_KW.5: /(?i:may)/
+
+// Relations
+IS_KW.5: /(?i:is|are)/
+HAS_KW.5: /(?i:has|have)/
+OWNS_KW.5: /(?i:owns?)/
+MANAGES_KW.5: /(?i:manages?)/
+WORKS_KW.5: /(?i:works?)/
+LIVES_KW.5: /(?i:lives?)/
+
+// Relative pronouns
+WHO_KW.5: /(?i:who)/
+WHICH_KW.5: /(?i:which)/
+THAT_KW.5: /(?i:that)/
+
+// Pronouns
+HE_KW.5: /(?i:he)/
+SHE_KW.5: /(?i:she)/
+IT_KW.5: /(?i:it)/
+THEY_KW.5: /(?i:they)/
+HIM_KW.5: /(?i:him)/
+HER_KW.5: /(?i:her)/
+THEM_KW.5: /(?i:them)/
+
+// Determiners
+THE_KW.5: /(?i:the)/
+A_KW.5: /(?i:a)/
+AN_KW.5: /(?i:an)/
+THIS_KW.5: /(?i:this)/
+THAT_KW.5: /(?i:that)/
+
+// Logical
+NOT_KW.5: /(?i:not)/
+AND_KW.5: /(?i:and)/
+OR_KW.5: /(?i:or)/
+XOR_KW.5: /(?i:xor)/
+
+// Aggregates
+COUNT_KW.5: /(?i:count)/
+SUM_KW.5: /(?i:sum)/
+AVG_KW.5: /(?i:avg|average)/
+MAX_KW.5: /(?i:max|maximum)/
+MIN_KW.5: /(?i:min|minimum)/
+
+// Time units
+SECONDS_KW.5: /(?i:seconds?)/
+MINUTES_KW.5: /(?i:minutes?)/
+HOURS_KW.5: /(?i:hours?)/
+DAYS_KW.5: /(?i:days?)/
+MONTHS_KW.5: /(?i:months?)/
+YEARS_KW.5: /(?i:years?)/
+
+// Other keywords
+SUCH_KW.5: /(?i:such)/
+DEFINE_KW.5: /(?i:define)/
+PREDICATE_KW.5: /(?i:predicate)/
+FUNCTION_KW.5: /(?i:function)/
+AS_KW.5: /(?i:as)/
+INPUT_KW.5: /(?i:input)/
+OUTPUT_KW.5: /(?i:output)/
+AT_KW.5: /(?i:at)/
+TRUE_KW.5: /(?i:true)/
+FALSE_KW.5: /(?i:false)/
+
+// Enhanced NUMBER to handle more formats
+NUMBER: /(\+|-)?[0-9]+(\.[0-9]+)?([eE](\+|-)?[0-9]+)?/
+PERCENT: "%"
+CURRENCY_SYMBOL: "$" | "€" | "£" | "¥"
+
+// Date and time literals (simplified)
+DATE_LITERAL: /\d{4}-\d{2}-\d{2}/
+TIME_LITERAL: /\d{2}:\d{2}(:\d{2})?/
+
+%import common.ESCAPED_STRING
+%import common.WS
+%ignore WS
+%ignore COMMENT
+
+// Punctuation
+LPAR: "("
+RPAR: ")"
+COMMA: ","
+COLON: ":"
+LSQB: "["
+RSQB: "]"
+PLUS: "+"
+MINUS: "-"
+MUL: "*"
+DIV: "/"
+MOD: "%"
+SENTENCE_TERMINATOR: "."

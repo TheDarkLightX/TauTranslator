@@ -6,7 +6,7 @@ Refactoring Verification Script
 Verifies that the refactored semantic analyzer still works correctly.
 Tests key functionality without requiring external dependencies.
 
-Author: DarklightX (Dana Edwards)
+DarklightX (Dana Edwards)
 """
 
 import sys

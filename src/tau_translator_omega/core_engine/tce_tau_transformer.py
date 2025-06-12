@@ -76,17 +76,21 @@ class TCEToTauTransformer(Transformer):
     
     def predicate_call(self, items):
         """Process predicate call."""
+        # Filter out parentheses and extract name and args
         name = None
         args = []
         
         for item in items:
-            if isinstance(item, Token) and item.type == 'CNAME':
-                name = str(item)
-            elif isinstance(item, list):  # arg_list
-                args = item
+            if item is not None:
+                item_str = str(item)
+                if item_str not in ['(', ')']:
+                    if isinstance(item, list):  # arg_list
+                        args = item
+                    elif name is None:  # First non-paren item is the name
+                        name = item_str
                 
         if args:
-            return f"{name}({', '.join(args)})"
+            return f"{name}({', '.join(str(arg) for arg in args)})"
         return f"{name}()" if name else ""
     
     # Expression rules
@@ -145,26 +149,55 @@ class TCEToTauTransformer(Transformer):
     
     def factor(self, items):
         """Process factors (possibly with unary operators)."""
-        if len(items) == 2:  # Unary operator
-            op = str(items[0])
-            operand = str(items[1])
+        # Filter out None values from optional unary operators
+        non_none_items = [item for item in items if item is not None]
+        
+        if len(non_none_items) == 2:  # Unary operator
+            op = str(non_none_items[0])
+            operand = str(non_none_items[1])
             if op == '-':
                 return f"-{operand}"
             elif op == '+':
                 return operand
-        return items[0] if items else ""
+        return non_none_items[0] if non_none_items else ""
     
     def atom(self, items):
         """Process atomic expressions."""
         return items[0] if items else ""
     
+    def conditional_expr(self, items):
+        """Process conditional if-then-else expressions."""
+        # Filter out keyword tokens
+        non_keyword_items = []
+        for item in items:
+            if item is not None:
+                item_str = str(item).lower()
+                if item_str not in ['if', 'then', 'else']:
+                    non_keyword_items.append(item)
+        
+        if len(non_keyword_items) >= 3:  # condition, then_expr, else_expr
+            condition = non_keyword_items[0]
+            then_expr = non_keyword_items[1]
+            else_expr = non_keyword_items[2]
+            return f"({condition} ? {then_expr} : {else_expr})"
+        return items[0] if items else ""
+    
     # Literals and identifiers
+    def literal(self, items):
+        """Process literal values (new grammar rule)."""
+        return items[0] if items else ""
+    
+    def identifier(self, items):
+        """Process identifiers (new grammar rule)."""
+        return str(items[0]) if items else ""
+    
+    # Keep backward compatibility
     def constant(self, items):
-        """Process constants."""
+        """Process constants (legacy)."""
         return items[0] if items else ""
     
     def variable(self, items):
-        """Process variables."""
+        """Process variables (legacy)."""
         return str(items[0]) if items else ""
     
     def boolean_literal(self, items):
@@ -202,33 +235,72 @@ class TCEToTauTransformer(Transformer):
             return f"{var}{op}{num}"
         return "t"
     
-    # Quantifiers
-    def quant_block(self, items):
-        """Process quantifier blocks."""
-        quant_type = ""
-        var_list = []
-        condition = ""
+    # Quantifiers - updated for new grammar
+    def quantifier_expr(self, items):
+        """Process quantifier expressions (new grammar rule)."""
+        # Separate the components based on structure
+        quant_token = None
+        var_list = None
+        condition = None
         
+        # Filter items and categorize them
         for item in items:
-            if isinstance(item, Token):
-                if item.type == 'FORALL_KW':
-                    quant_type = 'forall'
-                elif item.type == 'EXISTS_KW':
-                    quant_type = 'exists'
-            elif isinstance(item, list):  # var_list
+            if item is None:
+                continue
+            item_str = str(item).lower()
+            
+            # Skip keywords
+            if item_str in [':', 'such', 'that']:
+                continue
+            
+            # Determine the type of item
+            if item_str in ['forall', 'exists']:
+                quant_token = item
+            elif isinstance(item, list):  # var_list result
                 var_list = item
-            elif isinstance(item, str):  # condition expression
+            elif quant_token is not None and var_list is not None:
+                # This should be the condition expression
                 condition = item
-                
-        vars_str = ', '.join(var_list)
+                break
+        
+        # Determine quantifier symbol
+        if quant_token:
+            quant_str = str(quant_token).lower()
+            if 'forall' in quant_str:
+                quant_type = '∀'
+            elif 'exists' in quant_str:
+                quant_type = '∃'
+            else:
+                quant_type = str(quant_token)
+        else:
+            quant_type = '?'
+        
+        # Format variable list
+        if isinstance(var_list, list):
+            vars_str = ', '.join(str(v) for v in var_list)
+        else:
+            vars_str = str(var_list) if var_list else '?'
+        
+        # Return formatted quantifier expression
         if condition:
-            return f"{quant_type} {vars_str} : {condition}"
-        return f"{quant_type} {vars_str}"
+            return f"{quant_type}{vars_str}: {condition}"
+        else:
+            return f"{quant_type}{vars_str}"
+    
+    # Keep backward compatibility
+    def quant_block(self, items):
+        """Process quantifier blocks (legacy)."""
+        return self.quantifier_expr(items)
     
     # Lists
     def var_list(self, items):
         """Process variable lists."""
-        return [str(item) for item in items if isinstance(item, Token) and item.type == 'CNAME']
+        # Filter out comma tokens and process identifiers
+        variables = []
+        for item in items:
+            if item is not None and str(item) != ',':
+                variables.append(str(item))
+        return variables
     
     def arg_list(self, items):
         """Process argument lists."""

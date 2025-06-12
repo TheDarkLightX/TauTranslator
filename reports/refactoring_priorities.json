@@ -1,0 +1,956 @@
+[
+  {
+    "path": "backend/unified/api/grammar.py",
+    "refactoring_score": 6.888888888888889,
+    "total_methods": 9,
+    "methods_over_10_lines": 9,
+    "high_complexity_methods": 8,
+    "methods_needing_result": 8,
+    "pure_functions_without_decorator": 3,
+    "details": {
+      "long_methods": [
+        {
+          "name": "get_available_grammars",
+          "lines": 16
+        },
+        {
+          "name": "list_grammars",
+          "lines": 18
+        },
+        {
+          "name": "get_grammar",
+          "lines": 40
+        },
+        {
+          "name": "load_grammar_from_path",
+          "lines": 41
+        },
+        {
+          "name": "reload_grammar",
+          "lines": 18
+        },
+        {
+          "name": "activate_grammar",
+          "lines": 32
+        },
+        {
+          "name": "extract_grammar_rules",
+          "lines": 35
+        },
+        {
+          "name": "load_tau_grammar",
+          "lines": 56
+        },
+        {
+          "name": "get_tau_grammar_status",
+          "lines": 22
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "get_available_grammars",
+          "complexity": 4
+        },
+        {
+          "name": "list_grammars",
+          "complexity": 3
+        },
+        {
+          "name": "get_grammar",
+          "complexity": 7
+        },
+        {
+          "name": "load_grammar_from_path",
+          "complexity": 7
+        },
+        {
+          "name": "activate_grammar",
+          "complexity": 5
+        },
+        {
+          "name": "extract_grammar_rules",
+          "complexity": 13
+        },
+        {
+          "name": "load_tau_grammar",
+          "complexity": 6
+        },
+        {
+          "name": "get_tau_grammar_status",
+          "complexity": 3
+        }
+      ],
+      "need_result": [
+        "get_available_grammars",
+        "list_grammars",
+        "get_grammar",
+        "load_grammar_from_path",
+        "reload_grammar",
+        "activate_grammar",
+        "load_tau_grammar",
+        "get_tau_grammar_status"
+      ],
+      "need_decorator": [
+        "list_grammars",
+        "load_grammar_from_path",
+        "get_tau_grammar_status"
+      ]
+    }
+  },
+  {
+    "path": "backend/unified/api/nlp.py",
+    "refactoring_score": 6.571428571428571,
+    "total_methods": 7,
+    "methods_over_10_lines": 5,
+    "high_complexity_methods": 7,
+    "methods_needing_result": 7,
+    "pure_functions_without_decorator": 3,
+    "details": {
+      "long_methods": [
+        {
+          "name": "autocomplete",
+          "lines": 32
+        },
+        {
+          "name": "validate_syntax",
+          "lines": 59
+        },
+        {
+          "name": "explain_code",
+          "lines": 33
+        },
+        {
+          "name": "get_basic_suggestions",
+          "lines": 26
+        },
+        {
+          "name": "explain_line",
+          "lines": 19
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "get_nlp_service",
+          "complexity": 3
+        },
+        {
+          "name": "autocomplete",
+          "complexity": 4
+        },
+        {
+          "name": "validate_syntax",
+          "complexity": 15
+        },
+        {
+          "name": "explain_code",
+          "complexity": 11
+        },
+        {
+          "name": "get_basic_suggestions",
+          "complexity": 5
+        },
+        {
+          "name": "determine_suggestion_type",
+          "complexity": 5
+        },
+        {
+          "name": "explain_line",
+          "complexity": 10
+        }
+      ],
+      "need_result": [
+        "get_nlp_service",
+        "autocomplete",
+        "validate_syntax",
+        "explain_code",
+        "get_basic_suggestions",
+        "determine_suggestion_type",
+        "explain_line"
+      ],
+      "need_decorator": [
+        "get_nlp_service",
+        "determine_suggestion_type",
+        "explain_line"
+      ]
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/core_engine/reorganize_structure.py",
+    "refactoring_score": 6.25,
+    "total_methods": 4,
+    "methods_over_10_lines": 3,
+    "high_complexity_methods": 4,
+    "methods_needing_result": 4,
+    "pure_functions_without_decorator": 0,
+    "details": {
+      "long_methods": [
+        {
+          "name": "create_reorganization_plan",
+          "lines": 18
+        },
+        {
+          "name": "print_analysis_report",
+          "lines": 67
+        },
+        {
+          "name": "execute_reorganization",
+          "lines": 48
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "analyze_current_structure",
+          "complexity": 6
+        },
+        {
+          "name": "create_reorganization_plan",
+          "complexity": 7
+        },
+        {
+          "name": "print_analysis_report",
+          "complexity": 25
+        },
+        {
+          "name": "execute_reorganization",
+          "complexity": 12
+        }
+      ],
+      "need_result": [
+        "analyze_current_structure",
+        "create_reorganization_plan",
+        "print_analysis_report",
+        "execute_reorganization"
+      ],
+      "need_decorator": []
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/core_engine/nlp_enhanced/requirements_analyzer.py",
+    "refactoring_score": 6.178571428571429,
+    "total_methods": 14,
+    "methods_over_10_lines": 12,
+    "high_complexity_methods": 12,
+    "methods_needing_result": 13,
+    "pure_functions_without_decorator": 1,
+    "details": {
+      "long_methods": [
+        {
+          "name": "__init__",
+          "lines": 46
+        },
+        {
+          "name": "extract_requirements",
+          "lines": 11
+        },
+        {
+          "name": "extract_requirements_from_document",
+          "lines": 15
+        },
+        {
+          "name": "_split_into_sections",
+          "lines": 31
+        },
+        {
+          "name": "_analyze_sentence",
+          "lines": 30
+        },
+        {
+          "name": "_classify_requirement_type",
+          "lines": 15
+        },
+        {
+          "name": "_extract_entities",
+          "lines": 22
+        },
+        {
+          "name": "_extract_predicates",
+          "lines": 26
+        },
+        {
+          "name": "_analyze_logical_structure",
+          "lines": 35
+        },
+        {
+          "name": "_extract_formal_constraints",
+          "lines": 36
+        },
+        {
+          "name": "_calculate_confidence",
+          "lines": 25
+        },
+        {
+          "name": "_categorize_from_section",
+          "lines": 16
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "__init__",
+          "complexity": 3
+        },
+        {
+          "name": "extract_requirements",
+          "complexity": 3
+        },
+        {
+          "name": "extract_requirements_from_document",
+          "complexity": 3
+        },
+        {
+          "name": "_split_into_sentences",
+          "complexity": 3
+        },
+        {
+          "name": "_split_into_sections",
+          "complexity": 9
+        },
+        {
+          "name": "_classify_requirement_type",
+          "complexity": 5
+        },
+        {
+          "name": "_extract_entities",
+          "complexity": 4
+        },
+        {
+          "name": "_extract_predicates",
+          "complexity": 7
+        },
+        {
+          "name": "_analyze_logical_structure",
+          "complexity": 5
+        },
+        {
+          "name": "_extract_formal_constraints",
+          "complexity": 5
+        },
+        {
+          "name": "_calculate_confidence",
+          "complexity": 9
+        },
+        {
+          "name": "_categorize_from_section",
+          "complexity": 3
+        }
+      ],
+      "need_result": [
+        "__init__",
+        "extract_requirements",
+        "extract_requirements_from_document",
+        "_split_into_sentences",
+        "_split_into_sections",
+        "_analyze_sentence",
+        "_classify_requirement_type",
+        "_extract_entities",
+        "_extract_predicates",
+        "_analyze_logical_structure",
+        "_extract_formal_constraints",
+        "_calculate_confidence",
+        "_categorize_from_section"
+      ],
+      "need_decorator": [
+        "create_requirements_analyzer"
+      ]
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/llm_services/guidance_service.py",
+    "refactoring_score": 5.777777777777778,
+    "total_methods": 18,
+    "methods_over_10_lines": 16,
+    "high_complexity_methods": 14,
+    "methods_needing_result": 14,
+    "pure_functions_without_decorator": 0,
+    "details": {
+      "long_methods": [
+        {
+          "name": "__init__",
+          "lines": 12
+        },
+        {
+          "name": "validate",
+          "lines": 47
+        },
+        {
+          "name": "_validate_syntax",
+          "lines": 34
+        },
+        {
+          "name": "_generate_suggestions",
+          "lines": 13
+        },
+        {
+          "name": "__init__",
+          "lines": 17
+        },
+        {
+          "name": "_initialize_model",
+          "lines": 23
+        },
+        {
+          "name": "generate_tau_code",
+          "lines": 53
+        },
+        {
+          "name": "_analyze_requirements",
+          "lines": 56
+        },
+        {
+          "name": "_generate_initial_tau",
+          "lines": 56
+        },
+        {
+          "name": "_clean_tau_code",
+          "lines": 17
+        },
+        {
+          "name": "_generate_template_tau",
+          "lines": 22
+        },
+        {
+          "name": "_refine_tau_code",
+          "lines": 61
+        },
+        {
+          "name": "_generate_refinement",
+          "lines": 48
+        },
+        {
+          "name": "_rule_based_refinement",
+          "lines": 17
+        },
+        {
+          "name": "get_service_stats",
+          "lines": 12
+        },
+        {
+          "name": "test_guidance_service",
+          "lines": 63
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "validate",
+          "complexity": 4
+        },
+        {
+          "name": "_validate_syntax",
+          "complexity": 15
+        },
+        {
+          "name": "_generate_suggestions",
+          "complexity": 5
+        },
+        {
+          "name": "__init__",
+          "complexity": 3
+        },
+        {
+          "name": "_initialize_model",
+          "complexity": 6
+        },
+        {
+          "name": "generate_tau_code",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_requirements",
+          "complexity": 3
+        },
+        {
+          "name": "_generate_initial_tau",
+          "complexity": 3
+        },
+        {
+          "name": "_clean_tau_code",
+          "complexity": 7
+        },
+        {
+          "name": "_generate_template_tau",
+          "complexity": 3
+        },
+        {
+          "name": "_refine_tau_code",
+          "complexity": 7
+        },
+        {
+          "name": "_generate_refinement",
+          "complexity": 6
+        },
+        {
+          "name": "_rule_based_refinement",
+          "complexity": 6
+        },
+        {
+          "name": "test_guidance_service",
+          "complexity": 8
+        }
+      ],
+      "need_result": [
+        "__init__",
+        "validate",
+        "_validate_syntax",
+        "_generate_suggestions",
+        "__init__",
+        "_initialize_model",
+        "_initialize_transformers_model",
+        "_initialize_local_model",
+        "_clean_tau_code",
+        "_generate_template_tau",
+        "_refine_tau_code",
+        "_rule_based_refinement",
+        "get_service_stats",
+        "test_guidance_service"
+      ],
+      "need_decorator": []
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/core_engine/cnl_parser/mock_parser.py",
+    "refactoring_score": 5.75,
+    "total_methods": 8,
+    "methods_over_10_lines": 7,
+    "high_complexity_methods": 6,
+    "methods_needing_result": 6,
+    "pure_functions_without_decorator": 1,
+    "details": {
+      "long_methods": [
+        {
+          "name": "__init__",
+          "lines": 22
+        },
+        {
+          "name": "tokenize",
+          "lines": 20
+        },
+        {
+          "name": "parse",
+          "lines": 14
+        },
+        {
+          "name": "_parse_sentence",
+          "lines": 11
+        },
+        {
+          "name": "_parse_expression",
+          "lines": 31
+        },
+        {
+          "name": "_parse_atom",
+          "lines": 16
+        },
+        {
+          "name": "_parse_predicate_call",
+          "lines": 26
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "tokenize",
+          "complexity": 6
+        },
+        {
+          "name": "parse",
+          "complexity": 4
+        },
+        {
+          "name": "_parse_sentence",
+          "complexity": 3
+        },
+        {
+          "name": "_parse_expression",
+          "complexity": 10
+        },
+        {
+          "name": "_parse_atom",
+          "complexity": 6
+        },
+        {
+          "name": "_parse_predicate_call",
+          "complexity": 8
+        }
+      ],
+      "need_result": [
+        "__init__",
+        "tokenize",
+        "_parse_sentence",
+        "_parse_expression",
+        "_parse_atom",
+        "_parse_predicate_call"
+      ],
+      "need_decorator": [
+        "create_mock_parser"
+      ]
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/llm_config_service/model_management.py",
+    "refactoring_score": 5.571428571428571,
+    "total_methods": 7,
+    "methods_over_10_lines": 3,
+    "high_complexity_methods": 6,
+    "methods_needing_result": 6,
+    "pure_functions_without_decorator": 6,
+    "details": {
+      "long_methods": [
+        {
+          "name": "get_gemma_model_definitions_with_status",
+          "lines": 11
+        },
+        {
+          "name": "download_gemma_model",
+          "lines": 29
+        },
+        {
+          "name": "delete_gemma_model",
+          "lines": 14
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "get_gemma_model_definitions_with_status",
+          "complexity": 3
+        },
+        {
+          "name": "get_model_info_by_id",
+          "complexity": 3
+        },
+        {
+          "name": "download_gemma_model",
+          "complexity": 7
+        },
+        {
+          "name": "delete_gemma_model",
+          "complexity": 4
+        },
+        {
+          "name": "load_model_with_guidance",
+          "complexity": 3
+        },
+        {
+          "name": "run_lmql_query",
+          "complexity": 3
+        }
+      ],
+      "need_result": [
+        "get_system_resources",
+        "get_gemma_model_definitions_with_status",
+        "download_gemma_model",
+        "delete_gemma_model",
+        "load_model_with_guidance",
+        "run_lmql_query"
+      ],
+      "need_decorator": [
+        "get_system_resources",
+        "get_model_info_by_id",
+        "download_gemma_model",
+        "delete_gemma_model",
+        "load_model_with_guidance",
+        "run_lmql_query"
+      ]
+    }
+  },
+  {
+    "path": "backend/unified/migration_phase2.py",
+    "refactoring_score": 5.555555555555555,
+    "total_methods": 9,
+    "methods_over_10_lines": 6,
+    "high_complexity_methods": 7,
+    "methods_needing_result": 9,
+    "pure_functions_without_decorator": 1,
+    "details": {
+      "long_methods": [
+        {
+          "name": "check_watchdog_dependency",
+          "lines": 12
+        },
+        {
+          "name": "update_imports_in_file",
+          "lines": 16
+        },
+        {
+          "name": "update_all_imports",
+          "lines": 22
+        },
+        {
+          "name": "migrate_file",
+          "lines": 24
+        },
+        {
+          "name": "run_tests",
+          "lines": 25
+        },
+        {
+          "name": "main",
+          "lines": 41
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "check_watchdog_dependency",
+          "complexity": 3
+        },
+        {
+          "name": "update_imports_in_file",
+          "complexity": 4
+        },
+        {
+          "name": "update_all_imports",
+          "complexity": 11
+        },
+        {
+          "name": "migrate_file",
+          "complexity": 5
+        },
+        {
+          "name": "remove_refactored_files",
+          "complexity": 4
+        },
+        {
+          "name": "run_tests",
+          "complexity": 3
+        },
+        {
+          "name": "main",
+          "complexity": 5
+        }
+      ],
+      "need_result": [
+        "create_backup_folder",
+        "check_watchdog_dependency",
+        "backup_original_file",
+        "update_imports_in_file",
+        "update_all_imports",
+        "migrate_file",
+        "remove_refactored_files",
+        "run_tests",
+        "main"
+      ],
+      "need_decorator": [
+        "create_backup_folder"
+      ]
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/core_engine/ilr_pattern_analyzer_refactored.py",
+    "refactoring_score": 5.321428571428571,
+    "total_methods": 14,
+    "methods_over_10_lines": 9,
+    "high_complexity_methods": 12,
+    "methods_needing_result": 11,
+    "pure_functions_without_decorator": 1,
+    "details": {
+      "long_methods": [
+        {
+          "name": "analyze_pattern",
+          "lines": 22
+        },
+        {
+          "name": "_analyze_function_definition",
+          "lines": 27
+        },
+        {
+          "name": "_analyze_sbf_declaration",
+          "lines": 20
+        },
+        {
+          "name": "_analyze_predicate_definition",
+          "lines": 12
+        },
+        {
+          "name": "_analyze_define_function",
+          "lines": 13
+        },
+        {
+          "name": "_analyze_stream_output",
+          "lines": 11
+        },
+        {
+          "name": "_analyze_quantification",
+          "lines": 18
+        },
+        {
+          "name": "_analyze_conditional",
+          "lines": 11
+        },
+        {
+          "name": "_analyze_assignment",
+          "lines": 15
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "analyze_pattern",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_function_definition",
+          "complexity": 6
+        },
+        {
+          "name": "_analyze_sbf_declaration",
+          "complexity": 4
+        },
+        {
+          "name": "_analyze_stream_rule",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_temporal_operator",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_predicate_definition",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_define_function",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_stream_output",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_quantification",
+          "complexity": 6
+        },
+        {
+          "name": "_analyze_conditional",
+          "complexity": 4
+        },
+        {
+          "name": "_analyze_boolean_operation",
+          "complexity": 3
+        },
+        {
+          "name": "_analyze_assignment",
+          "complexity": 4
+        }
+      ],
+      "need_result": [
+        "analyze_pattern",
+        "_analyze_function_definition",
+        "_analyze_sbf_declaration",
+        "_analyze_stream_rule",
+        "_analyze_temporal_operator",
+        "_analyze_predicate_definition",
+        "_analyze_define_function",
+        "_analyze_stream_output",
+        "_analyze_quantification",
+        "_analyze_conditional",
+        "_analyze_assignment"
+      ],
+      "need_decorator": [
+        "refactored_analyze_pattern"
+      ]
+    }
+  },
+  {
+    "path": "src/tau_translator_omega/core_engine/tgf_preprocessor.py",
+    "refactoring_score": 5.269230769230769,
+    "total_methods": 13,
+    "methods_over_10_lines": 10,
+    "high_complexity_methods": 10,
+    "methods_needing_result": 9,
+    "pure_functions_without_decorator": 0,
+    "details": {
+      "long_methods": [
+        {
+          "name": "__init__",
+          "lines": 16
+        },
+        {
+          "name": "_reset_for_new_input",
+          "lines": 18
+        },
+        {
+          "name": "preprocess",
+          "lines": 35
+        },
+        {
+          "name": "to_lark",
+          "lines": 27
+        },
+        {
+          "name": "_resolve_include_path",
+          "lines": 27
+        },
+        {
+          "name": "_process_tgf_block",
+          "lines": 22
+        },
+        {
+          "name": "_process_line",
+          "lines": 95
+        },
+        {
+          "name": "_finalize_current_rule",
+          "lines": 36
+        },
+        {
+          "name": "_expand_macros_in_line",
+          "lines": 11
+        },
+        {
+          "name": "_include_file",
+          "lines": 49
+        }
+      ],
+      "complex_methods": [
+        {
+          "name": "__init__",
+          "complexity": 3
+        },
+        {
+          "name": "_reset_for_new_input",
+          "complexity": 3
+        },
+        {
+          "name": "preprocess",
+          "complexity": 9
+        },
+        {
+          "name": "to_lark",
+          "complexity": 6
+        },
+        {
+          "name": "_resolve_include_path",
+          "complexity": 7
+        },
+        {
+          "name": "_process_tgf_block",
+          "complexity": 6
+        },
+        {
+          "name": "_process_line",
+          "complexity": 20
+        },
+        {
+          "name": "_finalize_current_rule",
+          "complexity": 8
+        },
+        {
+          "name": "is_current_block_active",
+          "complexity": 4
+        },
+        {
+          "name": "_include_file",
+          "complexity": 11
+        }
+      ],
+      "need_result": [
+        "__init__",
+        "_reset_for_new_input",
+        "_resolve_include_path",
+        "_process_tgf_block",
+        "_process_line",
+        "_finalize_current_rule",
+        "is_current_block_active",
+        "_expand_macros_in_line",
+        "_include_file"
+      ],
+      "need_decorator": []
+    }
+  }
+]

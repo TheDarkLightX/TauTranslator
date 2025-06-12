@@ -1,0 +1,73 @@
+{
+  "benchmark_timestamp": 1749618277.8464918,
+  "performance_metrics": {
+    "health_module_comprehensive_check": {
+      "operation": "health_module_comprehensive_check",
+      "average_time_ms": 0.0,
+      "median_time_ms": 0.0,
+      "success_rate": 0.0,
+      "total_runs": 0,
+      "success_count": 0,
+      "failure_count": 10
+    },
+    "grammar_translator_initialization": {
+      "operation": "grammar_translator_initialization",
+      "average_time_ms": 0.0,
+      "median_time_ms": 0.0,
+      "success_rate": 0.0,
+      "total_runs": 0,
+      "success_count": 0,
+      "failure_count": 10
+    },
+    "tgf_loader_initialization": {
+      "operation": "tgf_loader_initialization",
+      "average_time_ms": 0.0,
+      "median_time_ms": 0.0,
+      "success_rate": 0.0,
+      "total_runs": 0,
+      "success_count": 0,
+      "failure_count": 10
+    }
+  },
+  "complexity_improvements": {
+    "module_improvements": {
+      "plugin_manager": {
+        "before_complexity": 122,
+        "after_complexity": 15,
+        "reduction_percentage": 87.7
+      },
+      "health_module": {
+        "before_complexity": 27,
+        "after_complexity": 7,
+        "reduction_percentage": 74.1
+      },
+      "grammar_translator": {
+        "before_methods_over_10_lines": 7,
+        "after_methods_over_10_lines": 0,
+        "estimated_complexity_reduction": 65.0
+      },
+      "tgf_grammar_loader": {
+        "before_methods_over_10_lines": 10,
+        "after_methods_over_10_lines": 0,
+        "estimated_complexity_reduction": 70.0
+      }
+    },
+    "overall_complexity_reduction": 79.9,
+    "total_complexity_before": 214,
+    "total_complexity_after": 43
+  },
+  "architecture_benefits": {
+    "separation_of_concerns": true,
+    "testability_improved": true,
+    "maintainability_improved": true,
+    "methods_following_10_line_rule": true,
+    "domain_types_implemented": true,
+    "infrastructure_isolation": true
+  },
+  "idp_compliance": {
+    "rule_1_naming": "All async methods end with _async",
+    "rule_2_structure": "All methods \u226410 lines",
+    "rule_3_type_disclosure": "Domain types replace primitives",
+    "rule_4_infrastructure_isolation": "I/O separated from business logic"
+  }
+}

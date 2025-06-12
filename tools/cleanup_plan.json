@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-06-10T03:46:54.787131",
+  "files_to_delete": [
+    "build/",
+    "dist/",
+    "mutants/",
+    ".pytest_cache/",
+    "mutants/.pytest_cache/",
+    "htmlcov/",
+    "UNKNOWN.egg-info/",
+    "backend/unified/translators/pattern_translator_refactored.py",
+    "backend/unified/translators/manager_refactored.py",
+    "backend/unified/core/config_refactored.py",
+    "backend/unified/core/pattern_loader_refactored.py",
+    "backend/unified/api/auth_refactored.py",
+    "tests/unit/test_pattern_translator_refactored.py",
+    "tests/unit/test_auth_refactored.py",
+    "tests/unit/test_pattern_loader_refactored.py",
+    "ui/tau_translator_desktop_qt.py",
+    "ui/tau_translator_desktop_tkinter.py",
+    "ui/tau_translator_desktop_modern.py",
+    "ui/tau_translator_desktop_legacy.py",
+    "ui/gui_comparison.py",
+    "ui/comprehensive_qt_integration_test.py",
+    "backend/unified/core/pattern_matching/fsa_engine_fast.py",
+    "backend/unified/core/pattern_matching/fsa_engine_hybrid.py",
+    "backend/unified/core/pattern_matching/fsa_engine_optimized.py",
+    "security/"
+  ],
+  "errors": []
+}

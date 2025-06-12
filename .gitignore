@@ -107,6 +107,8 @@ site/
 
 # Internal development files
 internal/
+docs/internal/
+**/internal/
 
 # Database
 *.db

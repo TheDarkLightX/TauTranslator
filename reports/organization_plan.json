@@ -1,0 +1,110 @@
+{
+  "timestamp": "2025-06-10T03:55:53.731131",
+  "files_to_delete": [
+    "build/",
+    "dist/",
+    "mutants/",
+    ".pytest_cache/",
+    "mutants/.pytest_cache/",
+    "htmlcov/",
+    "UNKNOWN.egg-info/"
+  ],
+  "files_to_move": [
+    {
+      "source": "backend/unified/translators/pattern_translator_refactored.py",
+      "destination": "experiments/refactored_implementations/backend/unified/translators/pattern_translator_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "backend/unified/translators/manager_refactored.py",
+      "destination": "experiments/refactored_implementations/backend/unified/translators/manager_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "backend/unified/core/config_refactored.py",
+      "destination": "experiments/refactored_implementations/backend/unified/core/config_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "backend/unified/core/pattern_loader_refactored.py",
+      "destination": "experiments/refactored_implementations/backend/unified/core/pattern_loader_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "backend/unified/api/auth_refactored.py",
+      "destination": "experiments/refactored_implementations/backend/unified/api/auth_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "tests/unit/test_pattern_translator_refactored.py",
+      "destination": "experiments/refactored_implementations/tests/unit/test_pattern_translator_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "tests/unit/test_auth_refactored.py",
+      "destination": "experiments/refactored_implementations/tests/unit/test_auth_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "tests/unit/test_pattern_loader_refactored.py",
+      "destination": "experiments/refactored_implementations/tests/unit/test_pattern_loader_refactored.py",
+      "reason": "Experimental implementation following Intentional Disclosure Principle"
+    },
+    {
+      "source": "ui/tau_translator_desktop_qt.py",
+      "destination": "experiments/ui_implementations/ui/tau_translator_desktop_qt.py",
+      "reason": "PyQt6 implementation - most feature-rich"
+    },
+    {
+      "source": "ui/tau_translator_desktop_tkinter.py",
+      "destination": "experiments/ui_implementations/ui/tau_translator_desktop_tkinter.py",
+      "reason": "Tkinter professional version"
+    },
+    {
+      "source": "ui/tau_translator_desktop_modern.py",
+      "destination": "experiments/ui_implementations/ui/tau_translator_desktop_modern.py",
+      "reason": "Tkinter modern design"
+    },
+    {
+      "source": "ui/tau_translator_desktop_legacy.py",
+      "destination": "experiments/ui_implementations/ui/tau_translator_desktop_legacy.py",
+      "reason": "Tkinter legacy/basic version"
+    },
+    {
+      "source": "ui/gui_comparison.py",
+      "destination": "experiments/ui_implementations/ui/gui_comparison.py",
+      "reason": "UI comparison tool"
+    },
+    {
+      "source": "ui/comprehensive_qt_integration_test.py",
+      "destination": "experiments/ui_implementations/ui/comprehensive_qt_integration_test.py",
+      "reason": "Qt integration test"
+    },
+    {
+      "source": "backend/unified/core/pattern_matching/fsa_engine_fast.py",
+      "destination": "experiments/fsa_variants/backend/unified/core/pattern_matching/fsa_engine_fast.py",
+      "reason": "Fast implementation variant"
+    },
+    {
+      "source": "backend/unified/core/pattern_matching/fsa_engine_hybrid.py",
+      "destination": "experiments/fsa_variants/backend/unified/core/pattern_matching/fsa_engine_hybrid.py",
+      "reason": "Hybrid approach variant"
+    },
+    {
+      "source": "backend/unified/core/pattern_matching/fsa_engine_optimized.py",
+      "destination": "experiments/fsa_variants/backend/unified/core/pattern_matching/fsa_engine_optimized.py",
+      "reason": "Optimized variant"
+    },
+    {
+      "source": "security/",
+      "destination": "experiments/old_security_implementations/security/",
+      "reason": "Old security implementation (now integrated in core.auth)"
+    },
+    {
+      "source": "src/tau_translator_omega/",
+      "destination": "experiments/old_core_engine/tau_translator_omega/",
+      "reason": "Legacy core engine (superseded by backend/unified)"
+    }
+  ],
+  "errors": []
+}

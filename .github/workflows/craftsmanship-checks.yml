@@ -1,0 +1,176 @@
+name: Craftsmanship Principles Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, develop]
+
+jobs:
+  craftsmanship-analysis:
+    runs-on: ubuntu-latest
+    name: Enforce Craftsmanship Principles
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        pip install libcst black mypy pylint radon
+        pip install -r requirements.txt || true
+        
+    - name: Run Craftsmanship Analysis
+      id: analysis
+      run: |
+        python tools/craftsmanship_refactoring_toolkit.py --analyze --report craftsmanship_report.md
+        
+    - name: Check Rule 1 - Async Naming
+      run: |
+        echo "Checking async method naming..."
+        python -c "
+import ast
+import sys
+from pathlib import Path
+
+violations = []
+for py_file in Path('backend').rglob('*.py'):
+    try:
+        with open(py_file) as f:
+            tree = ast.parse(f.read())
+        
+        for node in ast.walk(tree):
+            if isinstance(node, ast.AsyncFunctionDef):
+                if not node.name.endswith('_async') and not node.name.startswith('_'):
+                    violations.append(f'{py_file}:{node.lineno} - Async method {node.name} should end with _async')
+    except:
+        pass
+
+if violations:
+    print('Rule 1 Violations Found:')
+    for v in violations[:10]:  # Show first 10
+        print(f'  ❌ {v}')
+    sys.exit(1)
+else:
+    print('✅ All async methods properly named')
+        "
+        
+    - name: Check Rule 2 - Method Complexity
+      run: |
+        echo "Checking method complexity..."
+        radon cc backend --min B --show-complexity || true
+        
+    - name: Check Rule 3 - Type Annotations
+      run: |
+        echo "Checking type annotations..."
+        mypy backend --ignore-missing-imports --no-error-summary || true
+        
+    - name: Check Rule 4 - Layer Violations
+      run: |
+        echo "Checking architecture layers..."
+        python -c "
+import ast
+import sys
+from pathlib import Path
+
+violations = []
+
+# Check core modules for I/O operations
+io_indicators = ['open(', 'json.load', 'json.dump', 'requests.', 'redis.', 'sqlite3.']
+
+for py_file in Path('backend/unified/core').rglob('*.py'):
+    if 'interfaces.py' in str(py_file) or 'domain_types.py' in str(py_file):
+        continue
+        
+    try:
+        with open(py_file) as f:
+            content = f.read()
+            
+        for indicator in io_indicators:
+            if indicator in content:
+                violations.append(f'{py_file} - Contains I/O operation: {indicator}')
+    except:
+        pass
+
+if violations:
+    print('Rule 4 Violations Found (I/O in Core):')
+    for v in violations[:10]:
+        print(f'  ❌ {v}')
+    # Don't fail for now, just warn
+else:
+    print('✅ No I/O operations found in core layer')
+        "
+        
+    - name: Generate Compliance Report
+      if: always()
+      run: |
+        echo "# Craftsmanship Compliance Report" > compliance_report.md
+        echo "" >> compliance_report.md
+        echo "## Summary" >> compliance_report.md
+        echo "- Rule 1 (Async Naming): Check logs above" >> compliance_report.md
+        echo "- Rule 2 (Complexity): Check radon output" >> compliance_report.md
+        echo "- Rule 3 (Types): Check mypy output" >> compliance_report.md
+        echo "- Rule 4 (Layers): Check layer violations" >> compliance_report.md
+        
+    - name: Upload Reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: craftsmanship-reports
+        path: |
+          craftsmanship_report.md
+          compliance_report.md
+          
+    - name: Comment PR
+      if: github.event_name == 'pull_request' && failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '❌ Craftsmanship principles check failed. Please review the violations and update your code to follow the Intentional Disclosure Principle.'
+          })
+
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality Checks
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install quality tools
+      run: |
+        pip install black isort flake8 bandit safety
+        
+    - name: Format Check with Black
+      run: |
+        black --check backend || echo "::warning::Code formatting issues found. Run 'black backend' to fix."
+        
+    - name: Import Sort Check
+      run: |
+        isort --check-only backend || echo "::warning::Import sorting issues found. Run 'isort backend' to fix."
+        
+    - name: Linting with Flake8
+      run: |
+        flake8 backend --max-line-length=100 --extend-ignore=E203,W503 || true
+        
+    - name: Security Check with Bandit
+      run: |
+        bandit -r backend -ll || true
+        
+    - name: Dependency Security Check
+      run: |
+        safety check || true

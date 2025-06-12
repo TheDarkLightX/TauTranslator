@@ -1,0 +1,191 @@
+// Tau Controlled English (TCE) - Tau Language Compatible
+// Version 1.0.0 - Direct mapping to Tau language constructs
+// Based on IDNI Tau language specification
+// Copyright: DarkLightX / Dana Edwards
+
+?start: specification
+
+// Tau specifications
+specification: spec_item+
+
+spec_item: tau_spec SENTENCE_TERMINATOR
+
+// Main Tau specification types (from Tau grammar)
+tau_spec: local_spec
+        | ALWAYS_KW local_spec
+        | SOMETIMES_KW local_spec  
+        | EVENTUALLY_KW local_spec
+        | spec_conjunction
+        | spec_disjunction
+
+// Specification operators
+spec_conjunction: tau_spec AND3_KW tau_spec  // &&& for spec-level and
+spec_disjunction: tau_spec OR2_KW tau_spec   // || for spec-level or
+
+// Local specifications (boolean formulas at specific time)
+local_spec: boolean_expr
+          | quantified_formula
+          | stream_equation
+
+// Boolean expressions map to Tau operators
+boolean_expr: and_expr
+            | or_expr
+            | not_expr
+            | implies_expr
+            | iff_expr
+            | comparison
+            | atomic_prop
+            | LPAR boolean_expr RPAR
+
+// Logical operators following Tau syntax
+and_expr: boolean_term AND2_KW boolean_term      // Maps to &&
+or_expr: boolean_term OR_KW boolean_term         // Maps to ||
+not_expr: NOT_KW boolean_term                    // Maps to !
+implies_expr: boolean_term IMPLIES_KW boolean_term // Maps to ->
+iff_expr: boolean_term IFF_KW boolean_term       // Maps to <->
+
+boolean_term: comparison
+            | atomic_prop
+            | stream_access
+            | LPAR boolean_expr RPAR
+
+// Comparisons in Tau style
+comparison: term comparison_op term
+
+comparison_op: EQUALS_KW      // Maps to =
+             | NOT_EQUALS_KW  // Maps to !=
+             | LESS_THAN_KW   // Maps to <
+             | GREATER_THAN_KW // Maps to >
+             | LESS_EQUAL_KW  // Maps to <=
+             | GREATER_EQUAL_KW // Maps to >=
+
+// Terms (arithmetic expressions)
+term: arithmetic_expr
+    | stream_access
+    | variable
+    | number
+    | LPAR term RPAR
+
+arithmetic_expr: term PLUS_KW term
+               | term MINUS_KW term
+               | term TIMES_KW term
+               | term DIVIDED_BY_KW term
+
+// Quantified formulas (Tau: all/ex)
+quantified_formula: universal_formula
+                  | existential_formula
+
+universal_formula: FOR_ALL_KW variable_list local_spec
+                 | ALL_KW variable_list COMMA local_spec
+
+existential_formula: THERE_EXISTS_KW variable_list SUCH_THAT_KW local_spec
+                   | EXISTS_KW variable_list COMMA local_spec
+
+variable_list: variable (COMMA variable)*
+
+// Stream handling (core Tau feature)
+stream_equation: stream_access EQUALS_KW term
+
+stream_access: input_stream
+             | output_stream
+
+input_stream: INPUT_KW stream_name time_index
+            | INPUT_STREAM_KW stream_name AT_TIME_KW time_index
+
+output_stream: OUTPUT_KW stream_name time_index
+             | OUTPUT_STREAM_KW stream_name AT_TIME_KW time_index
+
+stream_name: STREAM_ID | number  // i1, i2, o1, o2 or just 1, 2
+
+time_index: LSQB time_expr RSQB
+          | AT_TIME_KW time_expr
+
+time_expr: T_KW
+         | T_KW MINUS number     // t-1, t-2
+         | T_KW PLUS number      // t+1, t+2
+         | number                // absolute time
+
+// Atomic propositions and variables
+atomic_prop: predicate_name [LPAR argument_list RPAR]
+           | variable
+
+predicate_name: IDENTIFIER
+variable: IDENTIFIER
+argument_list: term (COMMA term)*
+
+// Numbers
+number: INTEGER
+      | DECIMAL
+
+// Keywords for Tau compatibility
+// Temporal operators
+ALWAYS_KW: "always " | "□ "
+SOMETIMES_KW: "sometimes " | "◇ "
+EVENTUALLY_KW: "eventually " | "◇ "
+
+// Logical operators
+AND2_KW: " and " | " && "           // Local and
+AND3_KW: " AND " | " &&& "          // Specification and
+OR_KW: " or " | " || "
+OR2_KW: " OR " | " ||| "           // For spec disjunction if needed
+NOT_KW: "not " | "!"
+IMPLIES_KW: " implies " | " -> "
+IFF_KW: " iff " | " <-> "
+
+// Quantifiers
+FOR_ALL_KW: "for all " | "∀"
+ALL_KW: "all "
+THERE_EXISTS_KW: "there exists " | "∃"
+EXISTS_KW: "exists " | "ex "
+SUCH_THAT_KW: " such that "
+
+// Comparison
+EQUALS_KW: " equals " | " = "
+NOT_EQUALS_KW: " not equals " | " != "
+LESS_THAN_KW: " less than " | " < "
+GREATER_THAN_KW: " greater than " | " > "
+LESS_EQUAL_KW: " at most " | " <= "
+GREATER_EQUAL_KW: " at least " | " >= "
+
+// Arithmetic
+PLUS_KW: " plus " | " + "
+MINUS_KW: " minus " | " - "
+TIMES_KW: " times " | " * "
+DIVIDED_BY_KW: " divided by " | " / "
+
+// Stream keywords
+INPUT_KW: "input "
+OUTPUT_KW: "output "
+INPUT_STREAM_KW: "input stream "
+OUTPUT_STREAM_KW: "output stream "
+AT_TIME_KW: " at time "
+T_KW: "t"
+
+// Basic identifiers
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+STREAM_ID: /[io][0-9]+/  // i1, i2, o1, o2, etc.
+INTEGER: /[0-9]+/
+DECIMAL: /[0-9]+\.[0-9]+/
+
+// Punctuation
+COMMA: ","
+LPAR: "("
+RPAR: ")"
+LSQB: "["
+RSQB: "]"
+SENTENCE_TERMINATOR: "."
+
+// Whitespace and comments
+%import common.WS
+%ignore WS
+COMMENT: /\/\/.*/
+%ignore COMMENT
+
+// Precedence hints for Tau operators (from lowest to highest)
+// 1. <-> (iff)
+// 2. -> (implies)  
+// 3. || (or)
+// 4. && (and)
+// 5. ! (not)
+// 6. comparisons (=, !=, <, >, <=, >=)
+// 7. arithmetic (+, -, *, /)

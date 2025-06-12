@@ -159,6 +159,40 @@ class TCETauTranslator:
             "snf": "snf"
         }
 
+        self.arithmetic_operators = {
+            # Arithmetic operators
+            "plus": "+",
+            "minus": "-",
+            "times": "*",
+            "divided_by": "/",
+            "mod": "%",
+            "power": "**"
+        }
+
+        self.comparison_operators = {
+            # Comparison operators
+            "=": "=",
+            "equals": "=",
+            "not_equals": "!=",
+            "!=": "!=",
+            "<": "<",
+            "less_than": "<",
+            ">": ">", 
+            "greater_than": ">",
+            "<=": "<=",
+            "less_than_or_equal": "<=",
+            ">=": ">=",
+            "greater_than_or_equal": ">="
+        }
+
+        self.boolean_operators = {
+            # Boolean operators
+            "and": "&",
+            "or": "|",
+            "not": "'",
+            "xor": "^"
+        }
+
     def translate(self, ast_node: ASTNode) -> TranslationResult:
         """
         Main translation entry point.
