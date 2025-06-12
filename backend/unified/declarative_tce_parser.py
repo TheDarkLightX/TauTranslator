@@ -13,7 +13,7 @@ import logging
 from abc import ABC, abstractmethod
 
 # Import existing AST nodes
-from src.tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     ASTNode, ExprNode, QuantifierBlockNode, VariableNode, 
     ConstantNode, PredicateCallNode, ComparisonNode
 )

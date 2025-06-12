@@ -10,7 +10,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import Dict, List, Optional, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.tgf_service import (
     TGFParsingService, LarkConversionService, GrammarManagementService,
@@ -34,7 +34,7 @@ class TGFGrammarLoaderRefactored:
         self._config_service = ConfigManagementService(self._config)
         self._state: Optional[GrammarLoadingState] = None
     
-    def load_all_grammars_async(self) -> Result[GrammarLoadingState, str]:
+    def load_all_grammars_async(self) -> Result[GrammarLoadingState]:
         """Load all grammars from configuration and directory scan."""
         # Validate directory structure
         validation_result = self._validate_directories()
@@ -59,7 +59,7 @@ class TGFGrammarLoaderRefactored:
         self._state = self._grammar_service.create_loading_state(grammars)
         return Success(self._state)
     
-    def load_grammar_file_async(self, filename: str) -> Result[LoadedGrammar, str]:
+    def load_grammar_file_async(self, filename: str) -> Result[LoadedGrammar]:
         """Load a specific grammar file."""
         result = self._grammar_service.load_single_grammar(TGFFilename(filename))
         if isinstance(result, Success):
@@ -75,7 +75,7 @@ class TGFGrammarLoaderRefactored:
             return self._state.active_grammar
         return None
     
-    def set_active_grammar_async(self, filename: str) -> Result[bool, str]:
+    def set_active_grammar_async(self, filename: str) -> Result[bool]:
         """Set a grammar as active and update configuration."""
         if not self._state:
             return Failure("No grammars loaded")
@@ -98,7 +98,7 @@ class TGFGrammarLoaderRefactored:
         
         return Success(True)
     
-    def get_grammar_for_parser_async(self) -> Result[str, str]:
+    def get_grammar_for_parser_async(self) -> Result[str]:
         """Get active grammar in Lark format for parser use."""
         if not self._state:
             return Failure("No grammars loaded")
@@ -109,7 +109,7 @@ class TGFGrammarLoaderRefactored:
         
         return Failure(result.failure())
     
-    def convert_grammar_to_lark_async(self, filename: str) -> Result[LarkConversionResult, str]:
+    def convert_grammar_to_lark_async(self, filename: str) -> Result[LarkConversionResult]:
         """Convert specific grammar to Lark format."""
         if not self._state or filename not in self._state.loaded_grammars:
             return Failure(f"Grammar not found: {filename}")
@@ -139,7 +139,7 @@ class TGFGrammarLoaderRefactored:
             }
         }
     
-    def scan_available_grammars_async(self) -> Result[List[str], str]:
+    def scan_available_grammars_async(self) -> Result[List[str]]:
         """Scan directory for available grammar files."""
         scan_result = TGFFileScanner.scan_grammar_directory(self._config.grammar_directory)
         if isinstance(scan_result, Success):
@@ -160,7 +160,7 @@ class TGFGrammarLoaderRefactored:
         
         return GrammarLoaderConfig.create_default()
     
-    def _validate_directories(self) -> Result[None, str]:
+    def _validate_directories(self) -> Result[None]:
         """Validate required directories exist and are accessible."""
         # Validate grammar directory
         grammar_result = DirectoryValidator.validate_grammar_directory(
@@ -207,7 +207,7 @@ class TGFGrammarLoaderFactory:
     async def create_initialized_loader_async(
         grammar_dir: Optional[str] = None,
         config_file: Optional[str] = None
-    ) -> Result[TGFGrammarLoaderRefactored, str]:
+    ) -> Result[TGFGrammarLoaderRefactored]:
         """Create and initialize a TGF grammar loader."""
         loader = TGFGrammarLoaderFactory.create_loader(grammar_dir, config_file)
         

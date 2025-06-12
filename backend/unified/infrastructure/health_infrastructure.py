@@ -12,7 +12,7 @@ import psutil
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from fastapi import Request
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.health_types import (
     SystemMetrics, CpuPercent, MemoryPercent, DiskPercent, 
@@ -53,7 +53,7 @@ class SystemMetricsCollector:
     """Collects system performance metrics."""
     
     @staticmethod
-    async def collect_system_metrics_async() -> Result[SystemMetrics, str]:
+    async def collect_system_metrics_async() -> Result[SystemMetrics]:
         """Collect system performance metrics with error handling."""
         try:
             cpu_percent = CpuPercent(psutil.cpu_percent(interval=1))
@@ -86,7 +86,7 @@ class EngineHealthCollector:
     def __init__(self, infrastructure: HealthInfrastructure):
         self._infra = infrastructure
     
-    async def collect_engine_availability_async(self) -> Result[EngineAvailability, str]:
+    async def collect_engine_availability_async(self) -> Result[EngineAvailability]:
         """Collect engine availability with enhanced monitoring support."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
@@ -106,7 +106,7 @@ class EngineHealthCollector:
         except Exception as e:
             return Failure(f"Could not collect engine availability: {e}")
     
-    async def _collect_from_health_monitor(self, health_monitor: TranslationHealthMonitor) -> Result[EngineAvailability, str]:
+    async def _collect_from_health_monitor(self, health_monitor: TranslationHealthMonitor) -> Result[EngineAvailability]:
         """Collect availability from health monitor."""
         try:
             engine_health = health_monitor.get_engine_health()
@@ -123,7 +123,7 @@ class EngineHealthCollector:
         except Exception as e:
             return Failure(f"Health monitor error: {e}")
     
-    async def _collect_from_translation_manager(self, translation_manager: Any) -> Result[EngineAvailability, str]:
+    async def _collect_from_translation_manager(self, translation_manager: Any) -> Result[EngineAvailability]:
         """Collect availability from legacy translation manager."""
         try:
             if hasattr(translation_manager, 'get_available_engines'):
@@ -151,7 +151,7 @@ class HealthMonitoringInfrastructure:
     def __init__(self, infrastructure: HealthInfrastructure):
         self._infra = infrastructure
     
-    async def get_health_metrics_async(self, hours: float) -> Result[Dict[str, Any], str]:
+    async def get_health_metrics_async(self, hours: float) -> Result[Dict[str, Any]]:
         """Get health metrics from monitoring system."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
@@ -177,7 +177,7 @@ class HealthMonitoringInfrastructure:
         except Exception as e:
             return Failure(f"Failed to get health history: {e}")
     
-    async def reset_engine_health_async(self, engine_name: str) -> Result[bool, str]:
+    async def reset_engine_health_async(self, engine_name: str) -> Result[bool]:
         """Reset health metrics for specific engine."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
@@ -190,7 +190,7 @@ class HealthMonitoringInfrastructure:
         except Exception as e:
             return Failure(f"Failed to reset engine health: {e}")
     
-    async def start_monitoring_async(self) -> Result[Dict[str, Any], str]:
+    async def start_monitoring_async(self) -> Result[Dict[str, Any]]:
         """Start continuous health monitoring."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
@@ -224,7 +224,7 @@ class HealthMonitoringInfrastructure:
         
         return engines_map
     
-    async def stop_monitoring_async(self) -> Result[Dict[str, Any], str]:
+    async def stop_monitoring_async(self) -> Result[Dict[str, Any]]:
         """Stop continuous health monitoring."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
@@ -238,7 +238,7 @@ class HealthMonitoringInfrastructure:
         except Exception as e:
             return Failure(f"Failed to stop monitoring: {e}")
     
-    async def get_monitoring_status_async(self) -> Result[Dict[str, Any], str]:
+    async def get_monitoring_status_async(self) -> Result[Dict[str, Any]]:
         """Get current monitoring status."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()

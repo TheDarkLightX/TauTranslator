@@ -11,7 +11,7 @@ import re
 import json
 import logging
 from typing import Dict, List, Optional, Tuple, Union, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.ilr_types import (
     PatternType, PatternMatch, ExpressionText, VariableName,
@@ -69,7 +69,7 @@ class PatternMatcher:
     }
     
     @classmethod
-    def match_pattern(cls, text: str) -> Result[PatternMatch, str]:
+    def match_pattern(cls, text: str) -> Result[PatternMatch]:
         """Match text against all patterns and return the best match."""
         normalized_text = text.strip()
         
@@ -238,7 +238,7 @@ class TemporalReferenceParser:
     TEMPORAL_PATTERN = re.compile(r'^(\w+)\[t([+-]\d+)?\]$')
     
     @classmethod
-    def parse_temporal_reference(cls, text: str) -> Result[Tuple[VariableName, TemporalOffset], str]:
+    def parse_temporal_reference(cls, text: str) -> Result[Tuple[VariableName, TemporalOffset]]:
         """Parse temporal reference and extract variable name and offset."""
         match = cls.TEMPORAL_PATTERN.match(text.strip())
         
@@ -339,7 +339,7 @@ class OperatorMapper:
     }
     
     @classmethod
-    def map_comparison_operator(cls, op_str: str) -> Result[ComparisonOperator, str]:
+    def map_comparison_operator(cls, op_str: str) -> Result[ComparisonOperator]:
         """Map string to comparison operator."""
         op = cls.COMPARISON_MAP.get(op_str)
         if op is None:
@@ -347,7 +347,7 @@ class OperatorMapper:
         return Success(op)
     
     @classmethod
-    def map_logical_operator(cls, op_str: str) -> Result[LogicalOperator, str]:
+    def map_logical_operator(cls, op_str: str) -> Result[LogicalOperator]:
         """Map string to logical operator."""
         op = cls.LOGICAL_MAP.get(op_str.lower())
         if op is None:
@@ -355,7 +355,7 @@ class OperatorMapper:
         return Success(op)
     
     @classmethod
-    def map_arithmetic_operator(cls, op_str: str) -> Result[ArithmeticOperator, str]:
+    def map_arithmetic_operator(cls, op_str: str) -> Result[ArithmeticOperator]:
         """Map string to arithmetic operator."""
         op = cls.ARITHMETIC_MAP.get(op_str)
         if op is None:
@@ -372,7 +372,7 @@ class JsonSerializer:
     """Handles JSON serialization for ILR."""
     
     @staticmethod
-    def serialize_ilr(ilr_dict: Dict[str, Any]) -> Result[str, str]:
+    def serialize_ilr(ilr_dict: Dict[str, Any]) -> Result[str]:
         """Serialize ILR dictionary to JSON string."""
         try:
             json_str = json.dumps(ilr_dict, indent=2)
@@ -381,7 +381,7 @@ class JsonSerializer:
             return Failure(f"Failed to serialize ILR to JSON: {e}")
     
     @staticmethod
-    def deserialize_ilr(json_str: str) -> Result[Dict[str, Any], str]:
+    def deserialize_ilr(json_str: str) -> Result[Dict[str, Any]]:
         """Deserialize JSON string to ILR dictionary."""
         try:
             ilr_dict = json.loads(json_str)

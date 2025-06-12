@@ -11,7 +11,7 @@ import os
 import logging
 from pathlib import Path
 from typing import Optional, Any, Dict
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.grammar_types import (
     GrammarPath, GrammarContent, GrammarFileInfo, ParserConfiguration,
@@ -25,7 +25,7 @@ class GrammarFileLoader:
     """Handles all grammar file I/O operations."""
     
     @staticmethod
-    def load_grammar_content(path: GrammarPath) -> Result[GrammarContent, str]:
+    def load_grammar_content(path: GrammarPath) -> Result[GrammarContent]:
         """Load grammar content from file with error handling."""
         try:
             if not os.path.exists(path):
@@ -53,7 +53,7 @@ class GrammarFileLoader:
         return GrammarFileInfo.from_path(str(path))
     
     @staticmethod
-    def load_default_tce_grammar() -> Result[GrammarContent, str]:
+    def load_default_tce_grammar() -> Result[GrammarContent]:
         """Load the default TCE grammar from embedded location."""
         try:
             # Calculate path relative to this file
@@ -72,7 +72,7 @@ class LarkParserFactory:
     """Factory for creating Lark parser instances."""
     
     @staticmethod
-    def create_parser(config: ParserConfiguration) -> Result[Any, str]:
+    def create_parser(config: ParserConfiguration) -> Result[Any]:
         """Create Lark parser instance from configuration."""
         try:
             from lark import Lark
@@ -94,7 +94,7 @@ class TransformerFactory:
     """Factory for creating transformer instances."""
     
     @staticmethod
-    def create_transformer(config: TransformerConfiguration) -> Result[Any, str]:
+    def create_transformer(config: TransformerConfiguration) -> Result[Any]:
         """Create transformer instance from configuration."""
         if not config.is_available:
             return Failure(f"Transformer {config.class_name} is not available")
@@ -118,7 +118,7 @@ class TransformerFactory:
             return Failure(f"Failed to create transformer {config.class_name}: {e}")
     
     @staticmethod
-    def create_default_tce_transformer() -> Result[Any, str]:
+    def create_default_tce_transformer() -> Result[Any]:
         """Create default TCE to Tau transformer."""
         config = TransformerConfiguration(
             class_name="TCEToTauTransformer",
@@ -127,7 +127,7 @@ class TransformerFactory:
         return TransformerFactory.create_transformer(config)
     
     @staticmethod
-    def create_default_tau_transformer() -> Result[Any, str]:
+    def create_default_tau_transformer() -> Result[Any]:
         """Create default Tau to TCE transformer."""
         config = TransformerConfiguration(
             class_name="TauToTCETransformer", 
@@ -145,7 +145,7 @@ class GrammarDirectoryResolver:
         """Resolve the grammar directory path."""
         return self._config.resolve_path()
     
-    def validate_directory_access(self) -> Result[str, str]:
+    def validate_directory_access(self) -> Result[str]:
         """Validate directory exists and is accessible."""
         resolved_path = self.resolve_directory_path()
         
@@ -165,7 +165,7 @@ class ParseTreeAnalyzer:
     """Analyzes Lark parse trees for metadata extraction."""
     
     @staticmethod
-    def extract_patterns(tree: Any) -> Result[list, str]:
+    def extract_patterns(tree: Any) -> Result[list]:
         """Extract pattern types from parse tree."""
         try:
             patterns = set()
@@ -187,7 +187,7 @@ class ParseTreeAnalyzer:
             return Failure(f"Failed to extract patterns from parse tree: {e}")
     
     @staticmethod
-    def analyze_tree_structure(tree: Any) -> Result[Dict[str, int], str]:
+    def analyze_tree_structure(tree: Any) -> Result[Dict[str, int]]:
         """Analyze tree structure for metrics."""
         try:
             node_count = 0

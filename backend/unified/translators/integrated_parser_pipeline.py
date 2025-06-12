@@ -7,7 +7,7 @@ Following craftsmanship principles with methods ≤10 lines.
 """
 
 from typing import Optional, List
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 import logging
 
 from ..core.domain_types import SourceText, TargetText

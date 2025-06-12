@@ -51,7 +51,7 @@ def main():
     print("   ✅ Renamed pattern_translator_refactored.py to pattern_translator.py")
     
     # Step 4: Update test file
-    test_current = project_root / "tests/unit/test_pattern_translator_refactored.py"
+    test_current = project_root / "tests/unit/test_pattern_translator.py"
     test_new = project_root / "tests/unit/test_pattern_translator_new.py"
     
     if test_current.exists():

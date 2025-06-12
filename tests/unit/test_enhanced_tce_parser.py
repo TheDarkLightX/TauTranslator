@@ -13,7 +13,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "backend/unified"))
 
-from tce_parser import TCEParser as EnhancedTCEParser, ParseContext
+from tce_parser import TCEParser as EnhancedTCEParser
+from tce_parser_v1_01 import ParseContext
 
 
 class TestEnhancedTCEParser:

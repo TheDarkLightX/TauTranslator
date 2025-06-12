@@ -10,7 +10,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import Dict, Any, Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.ilr_types import (
     PatternMatch, TranslationResult, ILRJson, TauCode
@@ -95,7 +95,7 @@ class ILRTranslatorRefactored:
             }
         }
     
-    def validate_ilr_json(self, ilr_json: str) -> Result[Dict[str, Any], str]:
+    def validate_ilr_json(self, ilr_json: str) -> Result[Dict[str, Any]]:
         """Validate ILR JSON structure."""
         return JsonSerializer.deserialize_ilr(ilr_json)
     

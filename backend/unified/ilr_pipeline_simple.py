@@ -21,7 +21,7 @@ from backend.unified.domain.nlp_types import NaturalLanguageText
 from backend.unified.domain.ilr_to_tce_transformer import ILRToTCETransformer
 from backend.unified.tce_to_tau_wrapper import TCEToTauWrapper
 from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
-from returns.result import Success, Failure
+from ..core.result_enhanced import Success, Failure
 
 
 @dataclass(frozen=True)

@@ -387,7 +387,7 @@ class GradientDescentParser(LearningPlugin):
         """Neural parser can handle any text."""
         return True
     
-    def process(self, text: str, context: ParseContext) -> Result[str, ParseError]:
+    def process(self, text: str, context: ParseContext) -> Result[str]:
         """Process text using neural network."""
         return neural_parse_text(text, self.network_state)
     
@@ -424,7 +424,7 @@ class GradientDescentParser(LearningPlugin):
 
 # === NEURAL PROCESSING FUNCTIONS ===
 
-def neural_parse_text(text: str, state: ParseNetworkState) -> Result[str, ParseError]:
+def neural_parse_text(text: str, state: ParseNetworkState) -> Result[str]:
     """Parse text using neural network."""
     features = extract_parsing_features(text)
     input_vector = features_to_vector(features)

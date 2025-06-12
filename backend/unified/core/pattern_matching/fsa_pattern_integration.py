@@ -12,11 +12,11 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 
 from ..pattern_loader import (
-    PatternManager,
+    PatternLoader,
     PatternRule,
     PatternType,
     PatternDirection,
-    get_pattern_manager as get_loader_manager
+    get_pattern_loader
 )
 from .fsa_engine import (
     OptimizedPatternMatcher,
@@ -74,14 +74,14 @@ class FSAPatternAdapter:
         return False
 
 
-class FSAEnabledPatternManager:
+class FSAEnabledPatternLoader:
     """
     Pattern manager that uses FSA for applicable patterns and falls back
     to traditional methods for complex patterns.
     """
     
     def __init__(self):
-        self.pattern_manager = get_loader_manager()
+        self.pattern_loader = get_pattern_loader()
         self.fsa_matcher = get_pattern_matcher()
         self.adapter = FSAPatternAdapter()
         self.fsa_patterns: Dict[str, PatternRule] = {}
@@ -93,14 +93,14 @@ class FSAEnabledPatternManager:
         self.regex_matches = 0
     
     def sync_patterns(self, direction: Optional[PatternDirection] = None) -> None:
-        """Synchronize patterns from PatternManager to FSA."""
+        """Synchronize patterns from PatternLoader to FSA."""
         # Clear existing patterns
         self.fsa_matcher.clear_patterns()
         self.fsa_patterns.clear()
         self.regex_patterns.clear()
         
         # Get all enabled patterns
-        patterns = self.pattern_manager.get_patterns(direction=direction, enabled_only=True)
+        patterns = self.pattern_loader.get_patterns(direction=direction, enabled_only=True)
         
         fsa_patterns = []
         for pattern in patterns:
@@ -197,16 +197,16 @@ class FSAEnabledPatternManager:
     
     def reload_patterns(self) -> None:
         """Reload patterns from files and resync."""
-        reloaded = self.pattern_manager.reload_pattern_sets()
+        reloaded = self.pattern_loader.reload_pattern_sets()
         if reloaded > 0:
             self.sync_patterns()
             self.logger.info(f"Resynced patterns after reloading {reloaded} pattern sets")
 
 
 # Global FSA-enabled pattern manager
-_global_fsa_pattern_manager = FSAEnabledPatternManager()
+_global_fsa_pattern_manager = FSAEnabledPatternLoader()
 
 
-def get_fsa_pattern_manager() -> FSAEnabledPatternManager:
+def get_fsa_pattern_manager() -> FSAEnabledPatternLoader:
     """Get the global FSA-enabled pattern manager."""
     return _global_fsa_pattern_manager

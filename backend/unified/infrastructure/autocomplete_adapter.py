@@ -8,7 +8,7 @@ Copyright (c) 2025 DarkLightX/Dana Edwards. All rights reserved.
 """
 
 from typing import List, Optional, Dict, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..core.autocomplete import (
     EducationalAutocompleteService,
@@ -49,7 +49,7 @@ class AutocompleteAdapter:
         text: str,
         position: int,
         context: Optional[Dict[str, Any]]
-    ) -> Result[SuggestionRequest, str]:
+    ) -> Result[SuggestionRequest]:
         """Create domain request from API parameters."""
         try:
             source = SourceText(text)
@@ -132,7 +132,7 @@ class AutocompleteAdapter:
         self,
         text: str,
         context: Optional[str] = None
-    ) -> Result[List[str], str]:
+    ) -> Result[List[str]]:
         """Provide backward compatible simple string suggestions."""
         api_context = {'context': context} if context else None
         result = await self.get_suggestions_async(text, len(text), api_context)

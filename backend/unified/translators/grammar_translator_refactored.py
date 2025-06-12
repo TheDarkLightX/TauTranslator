@@ -11,7 +11,7 @@ Copyright: DarkLightX / Dana Edwards
 
 import time
 from typing import Dict, Any, Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.grammar_service import GrammarService, TranslationResultBuilder
 from ..domain.grammar_types import (
@@ -27,7 +27,7 @@ class GrammarTranslatorRefactored:
         self._service = GrammarService(grammar_dir)
         self._initialized = False
     
-    async def initialize_async(self) -> Result[Dict[str, Any], str]:
+    async def initialize_async(self) -> Result[Dict[str, Any]]:
         """Initialize the translator with default TCE grammar."""
         result = await self._service.initialize_default_tce_async()
         if isinstance(result, Success):
@@ -36,7 +36,7 @@ class GrammarTranslatorRefactored:
         
         return Failure(result.failure())
     
-    async def load_tau_grammar_async(self, grammar_path: str) -> Result[Dict[str, Any], str]:
+    async def load_tau_grammar_async(self, grammar_path: str) -> Result[Dict[str, Any]]:
         """Load Tau grammar from file path."""
         result = await self._service.load_tau_grammar_async(GrammarPath(grammar_path))
         if isinstance(result, Success):
@@ -45,7 +45,7 @@ class GrammarTranslatorRefactored:
         
         return Failure(result.failure())
     
-    async def load_cnl_grammar_async(self, grammar_path: str, transformer_class=None) -> Result[Dict[str, Any], str]:
+    async def load_cnl_grammar_async(self, grammar_path: str, transformer_class=None) -> Result[Dict[str, Any]]:
         """Load CNL grammar from file path with optional transformer."""
         result = await self._service.load_cnl_grammar_async(
             GrammarPath(grammar_path), 
@@ -92,7 +92,7 @@ class GrammarTranslatorRefactored:
             return self._service.can_translate_to_cnl()
         return False
     
-    def set_custom_transformer(self, transformer_class, target: str) -> Result[None, str]:
+    def set_custom_transformer(self, transformer_class, target: str) -> Result[None]:
         """Set custom transformer for CNL or Tau operations."""
         if target == "cnl":
             return self._service.set_custom_cnl_transformer(transformer_class)
@@ -179,7 +179,7 @@ class GrammarTranslatorFactory:
         return GrammarTranslatorRefactored(grammar_dir)
     
     @staticmethod
-    async def create_initialized_translator_async(grammar_dir: Optional[str] = None) -> Result[GrammarTranslatorRefactored, str]:
+    async def create_initialized_translator_async(grammar_dir: Optional[str] = None) -> Result[GrammarTranslatorRefactored]:
         """Create and initialize a grammar translator."""
         translator = GrammarTranslatorFactory.create_translator(grammar_dir)
         

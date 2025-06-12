@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Any
 from dataclasses import dataclass
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 from returns.pipeline import flow
 
 # Add project root to path
@@ -65,7 +65,7 @@ class ILRPipelineRefactored:
         self._tau_translator = TCEToTauWrapper()
         self._steps: List[TranslationStep] = []
     
-    def translate_async(self, english: str) -> Result[PipelineResult, str]:
+    def translate_async(self, english: str) -> Result[PipelineResult]:
         """Main translation pipeline orchestrator."""
         source = SourceText(english)
         self._steps = []
@@ -79,7 +79,7 @@ class ILRPipelineRefactored:
             self._create_pipeline_result
         )
     
-    def _process_nl_to_text(self, source: SourceText) -> Result[NLText, str]:
+    def _process_nl_to_text(self, source: SourceText) -> Result[NLText]:
         """Step 1: Process natural language."""
         try:
             nl_input = NaturalLanguageText(source)
@@ -88,7 +88,7 @@ class ILRPipelineRefactored:
         except Exception as e:
             return self._record_error_step("NL_Processing", source, str(e))
     
-    def _generate_ilr_from_text(self, text: NLText) -> Result[ILRNode, str]:
+    def _generate_ilr_from_text(self, text: NLText) -> Result[ILRNode]:
         """Step 2: Generate ILR semantic structure."""
         try:
             ilr_result = self._ilr_generator.convert_text_to_ilr(text)
@@ -100,7 +100,7 @@ class ILRPipelineRefactored:
         except Exception as e:
             return self._record_error_step("ILR_Generation", text, str(e))
     
-    def _transform_ilr_to_tce(self, ilr_node: ILRNode) -> Result[TCEStatements, str]:
+    def _transform_ilr_to_tce(self, ilr_node: ILRNode) -> Result[TCEStatements]:
         """Step 3: Transform ILR to TCE statements."""
         try:
             tce_result = self._ilr_to_tce.transform_ilr_to_tce_async(ilr_node)
@@ -112,7 +112,7 @@ class ILRPipelineRefactored:
         except Exception as e:
             return self._record_error_step("ILR_to_TCE", ilr_node, str(e))
     
-    def _translate_tce_to_tau(self, tce_statements: TCEStatements) -> Result[TauCode, str]:
+    def _translate_tce_to_tau(self, tce_statements: TCEStatements) -> Result[TauCode]:
         """Step 4: Translate TCE to Tau code."""
         try:
             if not tce_statements:
@@ -128,7 +128,7 @@ class ILRPipelineRefactored:
         except Exception as e:
             return self._record_error_step("TCE_to_Tau", tce_statements, str(e))
     
-    def _create_pipeline_result(self, tau_code: TauCode) -> Result[PipelineResult, str]:
+    def _create_pipeline_result(self, tau_code: TauCode) -> Result[PipelineResult]:
         """Create final pipeline result."""
         tce_text = self._extract_tce_from_steps()
         success = all(step.success for step in self._steps)
@@ -142,7 +142,7 @@ class ILRPipelineRefactored:
         return Success(result)
     
     def _record_step_and_return(self, step_name: str, input_data: Any, output_data: Any, 
-                               success: bool, error: str = "") -> Result[Any, str]:
+                               success: bool, error: str = "") -> Result[Any]:
         """Record pipeline step and return result."""
         step = TranslationStep(step_name, input_data, output_data, success, error)
         self._steps.append(step)
@@ -152,7 +152,7 @@ class ILRPipelineRefactored:
         else:
             return Failure(error or f"{step_name} failed")
     
-    def _record_error_step(self, step_name: str, input_data: Any, error: str) -> Result[Any, str]:
+    def _record_error_step(self, step_name: str, input_data: Any, error: str) -> Result[Any]:
         """Record error step."""
         return self._record_step_and_return(step_name, input_data, None, False, error)
     

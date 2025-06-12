@@ -1,0 +1,287 @@
+{
+  "timestamp": "2025-06-12T04:27:07.710770",
+  "dry_run": false,
+  "backup_location": "~/TauTranslator/backups/core_engine_backup_20250612_042707",
+  "changes": [
+    {
+      "action": "backup_created",
+      "location": "~/TauTranslator/backups/core_engine_backup_20250612_042707"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/ast",
+      "description": "AST-related modules"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers",
+      "description": "Parser implementations"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/translators",
+      "description": "Translation engines"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/semantic",
+      "description": "Semantic analysis"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr",
+      "description": "ILR (Intermediate Language Representation)"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins",
+      "description": "Plugin system"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/preprocessing",
+      "description": "Preprocessor and directives"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/utils",
+      "description": "Utility modules"
+    },
+    {
+      "action": "directory_created",
+      "path": "~/TauTranslator/src/tau_translator_omega/core_engine/config",
+      "description": "Configuration modules"
+    },
+    {
+      "action": "test_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/test_visitor_pattern.py",
+      "destination": "~/TauTranslator/tests/unit/test_visitor_pattern.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/config/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/utils/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/semantic/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "duplicate_removed",
+      "file": "~/TauTranslator/src/tau_translator_omega/core_engine/preprocessing/__init__.py",
+      "kept": "~/TauTranslator/src/tau_translator_omega/core_engine/tgf_macro_processor.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ast_nodes.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ast/ast_nodes.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ast_visitor.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ast/ast_visitor.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/expression_builders.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ast/expression_builders.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/parser_refactored.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/parser_refactored.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/enhanced_parser.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/enhanced_parser.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/grammar_driven_parser.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/grammar_driven_parser.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/parser.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/parser.py"
+    },
+    {
+      "action": "directory_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/cnl_parser",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/cnl_parser"
+    },
+    {
+      "action": "directory_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ebnf_parser",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/ebnf_parser"
+    },
+    {
+      "action": "directory_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/parser",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/parsers/parser"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/core_translator.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/core_translator.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr_translator.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/ilr_translator.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/nlp_translator_refactored.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/nlp_translator_refactored.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/nlp_translator.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/nlp_translator.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/tce_tau_translator.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/tce_tau_translator.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/tce_tau_transformer.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/tce_tau_transformer.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/semantic_analyzer.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/semantic/semantic_analyzer.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/semantic_analyzer_core.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/semantic/semantic_analyzer_core.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr_nodes.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr/ilr_nodes.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr_config.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr/ilr_config.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr_pattern_handlers.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr/ilr_pattern_handlers.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr_pattern_analyzer_refactored.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/ilr/ilr_pattern_analyzer_refactored.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/plugin_manager.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins/plugin_manager.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/plugin_manager_refactored.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins/plugin_manager_refactored.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/generic_plugin_validator.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins/generic_plugin_validator.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/grammar_plugin_validator.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins/grammar_plugin_validator.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/grammar_plugin_validator_v2.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/plugins/grammar_plugin_validator_v2.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/preprocessor_directives.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/preprocessing/preprocessor_directives.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/preprocessor_errors.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/preprocessing/preprocessor_errors.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/bloom_filter.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/utils/bloom_filter.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/lazy_loader.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/utils/lazy_loader.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/logging_config.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/utils/logging_config.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/validation_pipeline.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/utils/validation_pipeline.py"
+    },
+    {
+      "action": "file_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/reorganize_structure.py",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/utils/reorganize_structure.py"
+    },
+    {
+      "action": "directory_moved",
+      "source": "~/TauTranslator/src/tau_translator_omega/core_engine/nlp_enhanced",
+      "destination": "~/TauTranslator/src/tau_translator_omega/core_engine/translators/nlp_enhanced"
+    },
+    {
+      "action": "imports_need_update",
+      "note": "Run update_imports_after_cleanup.py after reorganization"
+    }
+  ],
+  "summary": {
+    "directories_created": 9,
+    "files_moved": 31,
+    "tests_moved": 1,
+    "duplicates_removed": 8,
+    "demos_extracted": 0
+  }
+}

@@ -11,7 +11,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.tgf_types import (
     TGFFilename, TGFContent, ConfigPath, GrammarDirectory,
@@ -25,7 +25,7 @@ class ConfigFileManager:
     """Handles all grammar configuration file I/O operations."""
     
     @staticmethod
-    def load_config(config_path: ConfigPath) -> Result[List[GrammarConfig], str]:
+    def load_config(config_path: ConfigPath) -> Result[List[GrammarConfig]]:
         """Load grammar configuration from file."""
         try:
             config_file = Path(config_path)
@@ -48,7 +48,7 @@ class ConfigFileManager:
             return Failure(f"Error loading grammar config: {e}")
     
     @staticmethod
-    def save_config(config_path: ConfigPath, configs: List[GrammarConfig]) -> Result[None, str]:
+    def save_config(config_path: ConfigPath, configs: List[GrammarConfig]) -> Result[None]:
         """Save grammar configuration to file."""
         try:
             config_file = Path(config_path)
@@ -72,7 +72,7 @@ class GrammarFileReader:
     """Handles grammar file reading operations."""
     
     @staticmethod
-    def read_grammar_file(grammar_dir: GrammarDirectory, filename: TGFFilename) -> Result[TGFContent, str]:
+    def read_grammar_file(grammar_dir: GrammarDirectory, filename: TGFFilename) -> Result[TGFContent]:
         """Read grammar file content with error handling."""
         try:
             filepath = Path(grammar_dir) / filename
@@ -117,7 +117,7 @@ class DirectoryValidator:
     """Validates directory structure and permissions."""
     
     @staticmethod
-    def validate_grammar_directory(grammar_dir: GrammarDirectory) -> Result[str, str]:
+    def validate_grammar_directory(grammar_dir: GrammarDirectory) -> Result[str]:
         """Validate grammar directory exists and is accessible."""
         try:
             dir_path = Path(grammar_dir)
@@ -138,7 +138,7 @@ class DirectoryValidator:
             return Failure(f"Error validating grammar directory {grammar_dir}: {e}")
     
     @staticmethod
-    def validate_config_directory(config_path: ConfigPath) -> Result[str, str]:
+    def validate_config_directory(config_path: ConfigPath) -> Result[str]:
         """Validate config file directory structure."""
         try:
             config_file = Path(config_path)
@@ -209,7 +209,7 @@ class TGFFileScanner:
     """Scans directories for grammar files."""
     
     @staticmethod
-    def scan_grammar_directory(grammar_dir: GrammarDirectory) -> Result[List[TGFFilename], str]:
+    def scan_grammar_directory(grammar_dir: GrammarDirectory) -> Result[List[TGFFilename]]:
         """Scan directory for grammar files."""
         try:
             dir_path = Path(grammar_dir)

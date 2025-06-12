@@ -8,7 +8,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import List, Optional, Tuple, Dict, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.semantic_types import (
     SemanticError, Symbol, SymbolTable, TypeInfo, ErrorCollector,

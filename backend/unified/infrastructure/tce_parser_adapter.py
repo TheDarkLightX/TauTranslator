@@ -6,7 +6,7 @@ Isolates impure I/O operations for TCE parsing.
 """
 
 from typing import Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 import logging
 import sys
 from pathlib import Path
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class TCEParserAdapter:
     """Infrastructure adapter for TCE parsing operations."""
     
-    def parse_tce_text_to_ast(self, tce_text: str) -> Result[Any, str]:
+    def parse_tce_text_to_ast(self, tce_text: str) -> Result[Any]:
         """Parse TCE text to AST via external parser (I/O operation)."""
         try:
             # Import the external parser (file I/O)

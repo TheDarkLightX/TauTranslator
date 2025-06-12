@@ -7,7 +7,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import Dict, Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .nlp_types import (
     PatternType, PatternMatch, Entity, Predicate, Relation,
@@ -21,7 +21,7 @@ from ..infrastructure.nlp_infrastructure import (
 class PatternHandlerBase:
     """Base class for pattern handlers."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle pattern match and generate output."""
         raise NotImplementedError("Subclasses must implement handle method")
     
@@ -33,7 +33,7 @@ class PatternHandlerBase:
 class UniversalPatternHandler(PatternHandlerBase):
     """Handles universal quantification patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle universal quantifier pattern."""
         components = self.extract_components(match.matched_groups)
         
@@ -80,7 +80,7 @@ class UniversalPatternHandler(PatternHandlerBase):
 class ExistentialPatternHandler(PatternHandlerBase):
     """Handles existential quantification patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle existential quantifier pattern."""
         components = self.extract_components(match.matched_groups)
         
@@ -126,7 +126,7 @@ class ExistentialPatternHandler(PatternHandlerBase):
 class ConditionalPatternHandler(PatternHandlerBase):
     """Handles conditional (if-then) patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle conditional pattern."""
         components = self.extract_components(match.matched_groups)
         
@@ -175,7 +175,7 @@ class ConditionalPatternHandler(PatternHandlerBase):
 class PredicatePatternHandler(PatternHandlerBase):
     """Handles simple predicate patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle predicate pattern."""
         components = self.extract_components(match.matched_groups)
         
@@ -203,7 +203,7 @@ class PredicatePatternHandler(PatternHandlerBase):
 class RelationPatternHandler(PatternHandlerBase):
     """Handles relation patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle relation pattern."""
         components = self.extract_components(match.matched_groups)
         
@@ -248,7 +248,7 @@ class RelationPatternHandler(PatternHandlerBase):
 class AlwaysPropertyHandler(PatternHandlerBase):
     """Handles 'always' property patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle always property pattern."""
         components = self.extract_components(match.matched_groups)
         
@@ -277,7 +277,7 @@ class AlwaysPropertyHandler(PatternHandlerBase):
 class DisjunctionPatternHandler(PatternHandlerBase):
     """Handles disjunction (either/or) patterns."""
     
-    def handle(self, match: PatternMatch) -> Result[str, str]:
+    def handle(self, match: PatternMatch) -> Result[str]:
         """Handle disjunction pattern."""
         components = self.extract_components(match.matched_groups)
         

@@ -16,7 +16,7 @@ from unittest.mock import Mock, MagicMock, patch, mock_open
 from datetime import datetime
 
 # Import components to test
-from src.tau_translator_omega.core_engine.plugin_manager_refactored import (
+from .manager import (
     # Domain types
     PluginId, ModulePath, ClassName, ManifestPath, PluginDirectory,
     ErrorCode, ErrorMessage, VersionString, PluginType,

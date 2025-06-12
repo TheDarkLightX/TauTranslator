@@ -36,7 +36,7 @@ class EnhancedNLPTranslationService(NLPTranslationService):
         super().__init__()
         self.complex_parser = ComplexEnglishParser()
         
-    def translate_to_tce(self, source: SourceText) -> Result[TCEExpression, str]:
+    def translate_to_tce(self, source: SourceText) -> Result[TCEExpression]:
         """Translate English to TCE with enhanced parsing."""
         text = source.text.strip()
         
@@ -49,7 +49,7 @@ class EnhancedNLPTranslationService(NLPTranslationService):
         # Fall back to pattern-based translation
         return super().translate_to_tce(source)
     
-    def translate_to_tau(self, source: SourceText) -> Result[str, str]:
+    def translate_to_tau(self, source: SourceText) -> Result[str]:
         """Direct English to TAU translation using complex parser."""
         text = source.text.strip()
         
@@ -63,8 +63,11 @@ class EnhancedNLPTranslationService(NLPTranslationService):
             if tce_result.is_error():
                 return Failure(f"Complex parsing failed: {e}, TCE fallback failed: {tce_result.error}")
             
-            # Would need TCE→TAU converter here
-            return Failure("TCE to TAU conversion not implemented in this path")
+            # Convert TCE to TAU
+            from .ilr_tau_translation_service import create_ilr_tau_translation_service
+            tau_service = create_ilr_tau_translation_service()
+            tau_result = tau_service.translate_tce_to_tau(tce_result.unwrap().expression)
+            return tau_result
     
     def _should_use_complex_parser(self, text: str) -> bool:
         """Determine if text needs complex parsing."""
@@ -89,7 +92,7 @@ class EnhancedNLPTranslationService(NLPTranslationService):
         # Use complex parser if score > 2 or has relative clauses
         return complexity_score >= 2 or any(rel in text_lower for rel in ['who', 'which', 'that'])
     
-    def _translate_with_complex_parser(self, text: str) -> Result[TCEExpression, str]:
+    def _translate_with_complex_parser(self, text: str) -> Result[TCEExpression]:
         """Use complex parser to generate TCE."""
         try:
             # Parse to logical form

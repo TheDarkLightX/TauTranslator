@@ -672,11 +672,65 @@ class TauTranslatorEducational(QMainWindow):
         # Use educational translation service
         self.status_bar.showMessage("Translating...", 0)
         
-        # TODO: Implement actual translation
-        # For now, show placeholder
-        result = f"// Educational translation from {self.left_language.currentText()} to {self.right_language.currentText()}\n"
-        result += f"// Learning level: {self.learning_level.currentText()}\n\n"
-        result += source_text
+        # Perform actual translation using the backend
+        source_lang = self.left_language.currentText()
+        target_lang = self.right_language.currentText()
+        
+        try:
+            # Import translation manager
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend', 'unified'))
+            from translators.manager import TranslationManager
+            
+            # Create translation manager
+            manager = TranslationManager()
+            
+            # Determine direction
+            if source_lang == "English" and target_lang == "TCE":
+                direction = "to_tce"
+            elif source_lang == "English" and target_lang == "TAU":
+                direction = "to_tau"
+            elif source_lang == "TCE" and target_lang == "TAU":
+                direction = "to_tau"
+            elif source_lang == "TAU" and target_lang == "English":
+                direction = "to_english"
+            elif source_lang == "TCE" and target_lang == "English":
+                direction = "to_english"
+            elif source_lang == "TAU" and target_lang == "TCE":
+                direction = "to_tce"
+            else:
+                # Same language
+                result = source_text
+                self.right_editor.setPlainText(result)
+                self.status_bar.showMessage("Same language selected", 3000)
+                return
+            
+            # Translate
+            translation_result = manager.translate(source_text, direction)
+            
+            if translation_result.success:
+                result = translation_result.translated_text
+                
+                # Add educational annotations based on learning level
+                level = self.learning_level.currentText()
+                if level == "Beginner":
+                    result = self._add_beginner_annotations(result, source_text, source_lang, target_lang)
+                elif level == "Intermediate":
+                    result = self._add_intermediate_annotations(result, source_text, source_lang, target_lang)
+                
+                # Show confidence if available
+                if hasattr(translation_result, 'confidence') and translation_result.confidence:
+                    self.status_bar.showMessage(f"Translation complete (confidence: {translation_result.confidence:.0%})", 3000)
+                else:
+                    self.status_bar.showMessage("Translation complete", 3000)
+            else:
+                result = f"// Translation error: {translation_result.error_message}\n\n{source_text}"
+                self.status_bar.showMessage(f"Translation failed: {translation_result.error_message}", 5000)
+                
+        except Exception as e:
+            result = f"// Error during translation: {str(e)}\n\n{source_text}"
+            self.status_bar.showMessage(f"Error: {str(e)}", 5000)
         
         self.right_editor.setPlainText(result)
         self.status_bar.showMessage("Translation complete", 3000)
@@ -691,6 +745,72 @@ class TauTranslatorEducational(QMainWindow):
         
         if active_editor.learning_tip:
             self.learning_tip_label.setText(f"📚 Tip: {active_editor.learning_tip}")
+    
+    def _add_beginner_annotations(self, translated: str, original: str, source_lang: str, target_lang: str) -> str:
+        """Add beginner-level educational annotations."""
+        result = f"// Educational Translation: {source_lang} → {target_lang}\n"
+        result += f"// Learning Level: Beginner\n"
+        result += "// " + "="*50 + "\n\n"
+        
+        result += f"// Original ({source_lang}):\n// {original}\n\n"
+        result += f"// Translation ({target_lang}):\n{translated}\n\n"
+        
+        # Add beginner explanations
+        result += "// Key Concepts:\n"
+        
+        if target_lang == "TAU":
+            if "∀" in translated:
+                result += "// ∀ = 'for all' (universal quantifier)\n"
+            if "∃" in translated:
+                result += "// ∃ = 'there exists' (existential quantifier)\n"
+            if "→" in translated:
+                result += "// → = 'implies' (logical implication)\n"
+            if "∧" in translated:
+                result += "// ∧ = 'and' (logical conjunction)\n"
+            if "∨" in translated:
+                result += "// ∨ = 'or' (logical disjunction)\n"
+            if "¬" in translated:
+                result += "// ¬ = 'not' (logical negation)\n"
+        
+        elif target_lang == "TCE":
+            if "forall" in translated.lower():
+                result += "// 'forall' = universal quantification (all entities)\n"
+            if "exists" in translated.lower():
+                result += "// 'exists' = existential quantification (at least one)\n"
+            if "such that" in translated.lower():
+                result += "// 'such that' = specifies conditions\n"
+        
+        return result
+    
+    def _add_intermediate_annotations(self, translated: str, original: str, source_lang: str, target_lang: str) -> str:
+        """Add intermediate-level educational annotations."""
+        result = f"// Educational Translation: {source_lang} → {target_lang}\n"
+        result += f"// Learning Level: Intermediate\n"
+        result += "// " + "="*50 + "\n\n"
+        
+        result += f"// Translation:\n{translated}\n\n"
+        
+        # Add intermediate explanations
+        result += "// Analysis:\n"
+        
+        # Analyze structure
+        if target_lang == "TAU":
+            if ":" in translated:
+                result += "// Quantifier scope indicated by ':'\n"
+            if "(" in translated and ")" in translated:
+                result += "// Parentheses control precedence\n"
+            
+            # Count logical operators
+            import re
+            quantifiers = len(re.findall(r'[∀∃]', translated))
+            connectives = len(re.findall(r'[→∧∨¬]', translated))
+            
+            if quantifiers > 0:
+                result += f"// Contains {quantifiers} quantifier(s)\n"
+            if connectives > 0:
+                result += f"// Contains {connectives} logical connective(s)\n"
+        
+        return result
 
 
 def main():

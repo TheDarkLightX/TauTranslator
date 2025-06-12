@@ -6,7 +6,7 @@ Transforms ILR nodes to TCE statements with methods ≤10 lines.
 """
 
 from typing import List, Optional, Dict
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .ilr_types import (
     ILRNode, VariableReference, BooleanConstant, NumericConstant,
@@ -25,7 +25,7 @@ class ILRToTCETransformer:
         self._operator_map = self._create_operator_map()
         self._pattern_templates = self._create_pattern_templates()
     
-    def transform_ilr_to_tce_async(self, ilr: ILRNode) -> Result[List[TCEStatement], str]:
+    def transform_ilr_to_tce_async(self, ilr: ILRNode) -> Result[List[TCEStatement]]:
         """Transform ILR node to TCE statements."""
         try:
             statements = self._transform_node(ilr)

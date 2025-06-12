@@ -112,7 +112,7 @@ class ImportUpdater:
         """Fix specific import patterns."""
         # Fix test imports
         content = re.sub(
-            r"test_pattern_translator_refactored",
+            r"test_pattern_translator",
             "test_pattern_translator",
             content
         )

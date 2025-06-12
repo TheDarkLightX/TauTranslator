@@ -10,7 +10,7 @@ Copyright: DarkLightX / Dana Edwards
 import time
 from datetime import datetime
 from typing import Dict, Any, Optional, List
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .health_types import (
     ServiceHealth, HealthSummary, SystemMetrics, EngineAvailability,
@@ -122,7 +122,7 @@ class HealthService:
         
         return {"statistics": {}, "message": "Statistics not available"}
     
-    async def get_health_metrics_async(self, query: HealthQuery) -> Result[Dict[str, Any], str]:
+    async def get_health_metrics_async(self, query: HealthQuery) -> Result[Dict[str, Any]]:
         """Get aggregated health metrics for time window."""
         if not query.validate():
             return Failure("Invalid query parameters")
@@ -137,19 +137,19 @@ class HealthService:
         engine_name = str(query.engine_filter) if query.engine_filter else None
         return await self._monitoring_infra.get_health_history_async(engine_name, float(query.time_window_hours))
     
-    async def reset_engine_health_async(self, engine_name: EngineName) -> Result[bool, str]:
+    async def reset_engine_health_async(self, engine_name: EngineName) -> Result[bool]:
         """Reset health metrics for specific engine."""
         return await self._monitoring_infra.reset_engine_health_async(str(engine_name))
     
-    async def start_monitoring_async(self) -> Result[Dict[str, Any], str]:
+    async def start_monitoring_async(self) -> Result[Dict[str, Any]]:
         """Start continuous health monitoring."""
         return await self._monitoring_infra.start_monitoring_async()
     
-    async def stop_monitoring_async(self) -> Result[Dict[str, Any], str]:
+    async def stop_monitoring_async(self) -> Result[Dict[str, Any]]:
         """Stop continuous health monitoring."""
         return await self._monitoring_infra.stop_monitoring_async()
     
-    async def get_monitoring_status_async(self) -> Result[Dict[str, Any], str]:
+    async def get_monitoring_status_async(self) -> Result[Dict[str, Any]]:
         """Get current monitoring status."""
         return await self._monitoring_infra.get_monitoring_status_async()
     

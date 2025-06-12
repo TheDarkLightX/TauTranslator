@@ -31,6 +31,14 @@ class TCEBinding:
 
 
 @dataclass(frozen=True)
+class TCEExpression:
+    """Represents a TCE expression."""
+    expression: str
+    pattern_type: Optional[TCEPattern] = None
+    bindings: Optional[List[TCEBinding]] = None
+
+
+@dataclass(frozen=True)
 class TCEStatement:
     """A single TCE statement."""
     pattern: str

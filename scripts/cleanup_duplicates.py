@@ -155,7 +155,7 @@ class CodebaseCleanup:
             "backend/unified/core/pattern_loader_refactored.py",
             "backend/unified/api/auth_refactored.py",
             # Test files for refactored code
-            "tests/unit/test_pattern_translator_refactored.py",
+            "tests/unit/test_pattern_translator.py",
             "tests/unit/test_auth_refactored.py",
             "tests/unit/test_pattern_loader_refactored.py",
         ]

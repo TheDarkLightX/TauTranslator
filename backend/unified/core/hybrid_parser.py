@@ -252,7 +252,7 @@ class HybridEarleyGradientParser(LearningPlugin):
         """Hybrid parser can handle any text."""
         return True
     
-    def process(self, text: str, context: ParseContext) -> Result[str, Any]:
+    def process(self, text: str, context: ParseContext) -> Result[str]:
         """Process using hybrid approach."""
         return hybrid_parse_text(text, self.earley_parser, self.gradient_parser)
     
@@ -275,7 +275,7 @@ class HybridEarleyGradientParser(LearningPlugin):
 
 # === HYBRID PROCESSING FUNCTIONS ===
 
-def hybrid_parse_text(text: str, earley: SimpleEarleyParser, gradient: GradientDescentParser) -> Result[str, Any]:
+def hybrid_parse_text(text: str, earley: SimpleEarleyParser, gradient: GradientDescentParser) -> Result[str]:
     """Parse using hybrid approach."""
     earley_result = earley.can_parse(text)
     context = ParseContext(original_text=text, preprocessed_text=text)
@@ -284,7 +284,7 @@ def hybrid_parse_text(text: str, earley: SimpleEarleyParser, gradient: GradientD
     return combine_parsing_results(text, earley_result, gradient_result)
 
 
-def combine_parsing_results(text: str, earley_success: bool, gradient_result: Result) -> Result[str, Any]:
+def combine_parsing_results(text: str, earley_success: bool, gradient_result: Result) -> Result[str]:
     """Combine results from both parsers."""
     if earley_success and isinstance(gradient_result, Success):
         return Success(f"hybrid_agreed({gradient_result.unwrap()})")

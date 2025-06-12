@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch, AsyncMock
 from typing import List, Dict, Any
 
 from fastapi.testclient import TestClient
-from returns.result import Success, Failure
+from ..core.result_enhanced import Success, Failure
 
 from backend.unified.api.nlp import router, AutocompleteRequest
 from backend.unified.core.autocomplete.models import (

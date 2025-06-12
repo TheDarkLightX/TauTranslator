@@ -54,7 +54,7 @@ def create_parsing_strategies(enhanced_parser) -> List[ParsingStrategy]:
     ]
 
 
-def try_parsing_strategy(strategy: ParsingStrategy, text: str) -> Result[str, ParseError]:
+def try_parsing_strategy(strategy: ParsingStrategy, text: str) -> Result[str]:
     """Try single parsing strategy."""
     if not strategy.enabled:
         return create_strategy_disabled_error(strategy.name)
@@ -62,16 +62,10 @@ def try_parsing_strategy(strategy: ParsingStrategy, text: str) -> Result[str, Pa
     return strategy.parser_func(text)
 
 
-def create_strategy_disabled_error(strategy_name: str) -> Result[str, ParseError]:
+def create_strategy_disabled_error(strategy_name: str) -> Result[str]:
     """Create error for disabled strategy."""
     from backend.unified.core.error_handling import create_parse_error, ErrorType
-    error = create_parse_error(
-        ErrorType.PATTERN_MISMATCH,
-        f"Strategy '{strategy_name}' is disabled",
-        0,
-        ""
-    )
-    return Failure(error)
+    return Failure("STRATEGY_DISABLED", f"Strategy '{strategy_name}' is disabled")
 
 
 def execute_parsing_strategies(strategies: List[ParsingStrategy], text: str) -> Tuple[Optional[str], List[ParseError]]:
@@ -288,46 +282,32 @@ class EnhancedTCEParser:
     
     # === STRATEGY IMPLEMENTATIONS ===
     
-    def _parse_with_plugins(self, text: str) -> Result[str, ParseError]:
+    def _parse_with_plugins(self, text: str) -> Result[str]:
         """Parse using plugin system."""
         return self.plugin_manager.parse_with_plugins(text)
     
-    def _parse_with_neural(self, text: str) -> Result[str, ParseError]:
+    def _parse_with_neural(self, text: str) -> Result[str]:
         """Parse using neural network."""
         context = ParseContext(original_text=text, preprocessed_text=text)
         return self.neural_parser.process(text, context)
     
-    def _parse_with_combinators(self, text: str) -> Result[str, ParseError]:
+    def _parse_with_combinators(self, text: str) -> Result[str]:
         """Parse using parser combinators."""
         result = self.combinator_parser.parse(text)
         if isinstance(result, Success):
             return result
         else:
-            from backend.unified.core.error_handling import create_parse_error, ErrorType
-            error = create_parse_error(
-                ErrorType.PATTERN_MISMATCH,
-                f"Combinator parsing failed: {result.failure()}",
-                0,
-                text
-            )
-            return Failure(error)
+            return Failure("COMBINATOR_PARSE_FAILED", f"Combinator parsing failed: {result.failure()}")
     
-    def _parse_with_semantic(self, text: str) -> Result[str, ParseError]:
+    def _parse_with_semantic(self, text: str) -> Result[str]:
         """Parse using semantic parser."""
         try:
             result = self.semantic_parser.parse(text)
             return Success(result)
         except Exception as e:
-            from backend.unified.core.error_handling import create_parse_error, ErrorType
-            error = create_parse_error(
-                ErrorType.SEMANTIC_ERROR,
-                f"Semantic parsing failed: {e}",
-                0,
-                text
-            )
-            return Failure(error)
+            return Failure("SEMANTIC_PARSE_FAILED", f"Semantic parsing failed: {e}")
     
-    def _parse_fallback(self, text: str) -> Result[str, ParseError]:
+    def _parse_fallback(self, text: str) -> Result[str]:
         """Fallback parsing strategy."""
         # Simple fallback - just return the text
         return Success(f"fallback({text})")

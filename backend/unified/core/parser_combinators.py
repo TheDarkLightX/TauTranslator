@@ -45,7 +45,7 @@ class Parser(Generic[T], ABC):
     """Base class for all parsers."""
     
     @abstractmethod
-    def parse(self, state: ParseState) -> Result[ParseResult[T], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[T]]:
         """Parse input and return result or error."""
         pass
     
@@ -86,7 +86,7 @@ class LiteralParser(Parser[str]):
     def __init__(self, literal: str):
         self.literal = literal
     
-    def parse(self, state: ParseState) -> Result[ParseResult[str], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[str]]:
         return parse_literal(self.literal, state)
 
 
@@ -96,21 +96,21 @@ class RegexParser(Parser[str]):
     def __init__(self, pattern: str, flags: int = 0):
         self.pattern = re.compile(pattern, flags)
     
-    def parse(self, state: ParseState) -> Result[ParseResult[str], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[str]]:
         return parse_regex(self.pattern, state)
 
 
 class WhitespaceParser(Parser[str]):
     """Parser for whitespace."""
     
-    def parse(self, state: ParseState) -> Result[ParseResult[str], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[str]]:
         return parse_whitespace(state)
 
 
 class EndOfInputParser(Parser[None]):
     """Parser that succeeds only at end of input."""
     
-    def parse(self, state: ParseState) -> Result[ParseResult[None], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[None]]:
         return parse_end_of_input(state)
 
 
@@ -123,7 +123,7 @@ class MapParser(Parser[U]):
         self.parser = parser
         self.func = func
     
-    def parse(self, state: ParseState) -> Result[ParseResult[U], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[U]]:
         return parse_with_map(self.parser, self.func, state)
 
 
@@ -134,7 +134,7 @@ class FlatMapParser(Parser[U]):
         self.parser = parser
         self.func = func
     
-    def parse(self, state: ParseState) -> Result[ParseResult[U], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[U]]:
         return parse_with_flat_map(self.parser, self.func, state)
 
 
@@ -145,7 +145,7 @@ class OrElseParser(Parser[T]):
         self.first = first
         self.second = second
     
-    def parse(self, state: ParseState) -> Result[ParseResult[T], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[T]]:
         return parse_with_or_else(self.first, self.second, state)
 
 
@@ -155,7 +155,7 @@ class OptionalParser(Parser[Optional[T]]):
     def __init__(self, parser: Parser[T]):
         self.parser = parser
     
-    def parse(self, state: ParseState) -> Result[ParseResult[Optional[T]], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[Optional[T]]]:
         return parse_optional(self.parser, state)
 
 
@@ -165,7 +165,7 @@ class ManyParser(Parser[List[T]]):
     def __init__(self, parser: Parser[T]):
         self.parser = parser
     
-    def parse(self, state: ParseState) -> Result[ParseResult[List[T]], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[List[T]]]:
         return parse_many(self.parser, state)
 
 
@@ -175,7 +175,7 @@ class Many1Parser(Parser[List[T]]):
     def __init__(self, parser: Parser[T]):
         self.parser = parser
     
-    def parse(self, state: ParseState) -> Result[ParseResult[List[T]], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[List[T]]]:
         return parse_many1(self.parser, state)
 
 
@@ -186,7 +186,7 @@ class SeparatedByParser(Parser[List[T]]):
         self.parser = parser
         self.separator = separator
     
-    def parse(self, state: ParseState) -> Result[ParseResult[List[T]], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[List[T]]]:
         return parse_separated_by(self.parser, self.separator, state)
 
 
@@ -196,13 +196,13 @@ class SequenceParser(Parser[List[Any]]):
     def __init__(self, parsers: List[Parser[Any]]):
         self.parsers = parsers
     
-    def parse(self, state: ParseState) -> Result[ParseResult[List[Any]], str]:
+    def parse(self, state: ParseState) -> Result[ParseResult[List[Any]]]:
         return parse_sequence(self.parsers, state)
 
 
 # === PURE PARSING FUNCTIONS (CC=1 each) ===
 
-def parse_literal(literal: str, state: ParseState) -> Result[ParseResult[str], str]:
+def parse_literal(literal: str, state: ParseState) -> Result[ParseResult[str]]:
     """Parse exact literal string."""
     if state.remaining.startswith(literal):
         return create_success_result(literal, advance_state(state, len(literal)))
@@ -210,7 +210,7 @@ def parse_literal(literal: str, state: ParseState) -> Result[ParseResult[str], s
         return create_parse_failure(f"Expected '{literal}' at position {state.position}")
 
 
-def parse_regex(pattern: re.Pattern, state: ParseState) -> Result[ParseResult[str], str]:
+def parse_regex(pattern: re.Pattern, state: ParseState) -> Result[ParseResult[str]]:
     """Parse regex pattern."""
     match = pattern.match(state.remaining)
     if match:
@@ -220,13 +220,13 @@ def parse_regex(pattern: re.Pattern, state: ParseState) -> Result[ParseResult[st
         return create_parse_failure(f"Pattern {pattern.pattern} not found at position {state.position}")
 
 
-def parse_whitespace(state: ParseState) -> Result[ParseResult[str], str]:
+def parse_whitespace(state: ParseState) -> Result[ParseResult[str]]:
     """Parse whitespace characters."""
     whitespace_pattern = re.compile(r'\s*')
     return parse_regex(whitespace_pattern, state)
 
 
-def parse_end_of_input(state: ParseState) -> Result[ParseResult[None], str]:
+def parse_end_of_input(state: ParseState) -> Result[ParseResult[None]]:
     """Parse end of input."""
     if state.is_end:
         return create_success_result(None, state)
@@ -234,12 +234,12 @@ def parse_end_of_input(state: ParseState) -> Result[ParseResult[None], str]:
         return create_parse_failure(f"Expected end of input at position {state.position}")
 
 
-def create_success_result(value: T, new_state: ParseState) -> Result[ParseResult[T], str]:
+def create_success_result(value: T, new_state: ParseState) -> Result[ParseResult[T]]:
     """Create successful parse result."""
     return Success(ParseResult(value=value, new_state=new_state))
 
 
-def create_parse_failure(message: str) -> Result[ParseResult[T], str]:
+def create_parse_failure(message: str) -> Result[ParseResult[T]]:
     """Create parse failure."""
     return Failure(message)
 
@@ -249,7 +249,7 @@ def advance_state(state: ParseState, chars: int) -> ParseState:
     return ParseState(input_text=state.input_text, position=state.position + chars)
 
 
-def parse_with_map(parser: Parser[T], func: Callable[[T], U], state: ParseState) -> Result[ParseResult[U], str]:
+def parse_with_map(parser: Parser[T], func: Callable[[T], U], state: ParseState) -> Result[ParseResult[U]]:
     """Parse with mapping function."""
     result = parser.parse(state)
     if isinstance(result, Success):
@@ -260,7 +260,7 @@ def parse_with_map(parser: Parser[T], func: Callable[[T], U], state: ParseState)
         return result
 
 
-def parse_with_flat_map(parser: Parser[T], func: Callable[[T], Parser[U]], state: ParseState) -> Result[ParseResult[U], str]:
+def parse_with_flat_map(parser: Parser[T], func: Callable[[T], Parser[U]], state: ParseState) -> Result[ParseResult[U]]:
     """Parse with flat mapping function."""
     result = parser.parse(state)
     if isinstance(result, Success):
@@ -271,7 +271,7 @@ def parse_with_flat_map(parser: Parser[T], func: Callable[[T], Parser[U]], state
         return result
 
 
-def parse_with_or_else(first: Parser[T], second: Parser[T], state: ParseState) -> Result[ParseResult[T], str]:
+def parse_with_or_else(first: Parser[T], second: Parser[T], state: ParseState) -> Result[ParseResult[T]]:
     """Parse with alternative."""
     result = first.parse(state)
     if isinstance(result, Success):
@@ -280,7 +280,7 @@ def parse_with_or_else(first: Parser[T], second: Parser[T], state: ParseState) -
         return second.parse(state)
 
 
-def parse_optional(parser: Parser[T], state: ParseState) -> Result[ParseResult[Optional[T]], str]:
+def parse_optional(parser: Parser[T], state: ParseState) -> Result[ParseResult[Optional[T]]]:
     """Parse optional element."""
     result = parser.parse(state)
     if isinstance(result, Success):
@@ -290,7 +290,7 @@ def parse_optional(parser: Parser[T], state: ParseState) -> Result[ParseResult[O
         return create_success_result(None, state)
 
 
-def parse_many(parser: Parser[T], state: ParseState) -> Result[ParseResult[List[T]], str]:
+def parse_many(parser: Parser[T], state: ParseState) -> Result[ParseResult[List[T]]]:
     """Parse many occurrences."""
     results = []
     current_state = state
@@ -307,7 +307,7 @@ def parse_many(parser: Parser[T], state: ParseState) -> Result[ParseResult[List[
     return create_success_result(results, current_state)
 
 
-def parse_many1(parser: Parser[T], state: ParseState) -> Result[ParseResult[List[T]], str]:
+def parse_many1(parser: Parser[T], state: ParseState) -> Result[ParseResult[List[T]]]:
     """Parse one or more occurrences."""
     first_result = parser.parse(state)
     if isinstance(first_result, Failure):
@@ -324,7 +324,7 @@ def parse_many1(parser: Parser[T], state: ParseState) -> Result[ParseResult[List
         return many_result
 
 
-def parse_separated_by(parser: Parser[T], separator: Parser[Any], state: ParseState) -> Result[ParseResult[List[T]], str]:
+def parse_separated_by(parser: Parser[T], separator: Parser[Any], state: ParseState) -> Result[ParseResult[List[T]]]:
     """Parse separated list."""
     # Try to parse first element
     first_result = parser.parse(state)
@@ -353,7 +353,7 @@ def parse_separated_by(parser: Parser[T], separator: Parser[Any], state: ParseSt
     return create_success_result(results, current_state)
 
 
-def parse_sequence(parsers: List[Parser[Any]], state: ParseState) -> Result[ParseResult[List[Any]], str]:
+def parse_sequence(parsers: List[Parser[Any]], state: ParseState) -> Result[ParseResult[List[Any]]]:
     """Parse sequence of parsers."""
     results = []
     current_state = state
@@ -490,7 +490,7 @@ class TCEParserCombinator:
         """Initialize TCE parser combinator."""
         self.main_parser = self._build_main_parser()
     
-    def parse(self, text: str) -> Result[str, str]:
+    def parse(self, text: str) -> Result[str]:
         """Parse TCE text using combinators."""
         state = ParseState(input_text=text.strip())
         result = self.main_parser.parse(state)

@@ -37,7 +37,7 @@ class RefactoredMigration:
                 'current': 'backend/unified/translators/pattern_translator.py',
                 'refactored': 'backend/unified/translators/pattern_translator_refactored.py',
                 'tests_current': ['tests/unit/test_pattern_translator.py'],
-                'tests_refactored': ['tests/unit/test_pattern_translator_refactored.py']
+                'tests_refactored': ['tests/unit/test_pattern_translator.py']
             },
             {
                 'current': 'backend/unified/translators/manager.py',
@@ -230,7 +230,7 @@ class RefactoredMigration:
             ('auth_refactored', 'auth'),
             ('config_refactored', 'config'),
             ('pattern_loader_refactored', 'pattern_loader'),
-            ('test_pattern_translator_refactored', 'test_pattern_translator'),
+            ('test_pattern_translator', 'test_pattern_translator'),
             ('test_auth_refactored', 'test_auth'),
             ('test_pattern_loader_refactored', 'test_pattern_loader'),
         ]

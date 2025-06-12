@@ -11,10 +11,10 @@ import re
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
-from core.domain_types import (
+from ..core.domain_types import (
     Result, Success, Failure, success, failure
 )
-from core.functional_utils import guard, guard_not_none
+from ..core.functional_utils import guard, guard_not_none
 
 
 @dataclass(frozen=True)

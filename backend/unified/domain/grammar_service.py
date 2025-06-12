@@ -9,7 +9,7 @@ Copyright: DarkLightX / Dana Edwards
 
 import time
 from typing import List, Optional, Dict, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .grammar_types import (
     GrammarPath, GrammarType, GrammarLoadResult, GrammarEngineState,
@@ -49,7 +49,7 @@ class GrammarService:
             default_tce_available=False
         )
     
-    async def initialize_default_tce_async(self) -> Result[GrammarLoadResult, str]:
+    async def initialize_default_tce_async(self) -> Result[GrammarLoadResult]:
         """Initialize default TCE parser and transformer."""
         grammar_result = GrammarFileLoader.load_default_tce_grammar()
         if isinstance(grammar_result, Failure):
@@ -77,7 +77,7 @@ class GrammarService:
         
         return Success(GrammarLoadResult.success_result(GrammarType.TCE, "TCE (default)"))
     
-    async def load_tau_grammar_async(self, grammar_path: GrammarPath) -> Result[GrammarLoadResult, str]:
+    async def load_tau_grammar_async(self, grammar_path: GrammarPath) -> Result[GrammarLoadResult]:
         """Load Tau grammar from file path."""
         grammar_result = GrammarFileLoader.load_grammar_content(grammar_path)
         if isinstance(grammar_result, Failure):
@@ -106,7 +106,7 @@ class GrammarService:
         
         return Success(GrammarLoadResult.success_result(GrammarType.TAU, str(self._state.tau_grammar_name)))
     
-    async def load_cnl_grammar_async(self, grammar_path: GrammarPath, transformer_class=None) -> Result[GrammarLoadResult, str]:
+    async def load_cnl_grammar_async(self, grammar_path: GrammarPath, transformer_class=None) -> Result[GrammarLoadResult]:
         """Load CNL grammar from file path with optional custom transformer."""
         grammar_result = GrammarFileLoader.load_grammar_content(grammar_path)
         if isinstance(grammar_result, Failure):
@@ -148,7 +148,7 @@ class GrammarService:
         """Check if engine can translate to CNL."""
         return self._state.can_translate_to_cnl
     
-    async def parse_and_transform_to_tau_async(self, cnl_text: str) -> Result[str, ParseError]:
+    async def parse_and_transform_to_tau_async(self, cnl_text: str) -> Result[str]:
         """Parse CNL text and transform to Tau."""
         if not self._cnl_parser or not self._cnl_transformer:
             return Failure(ParseError("CNL parser not available"))
@@ -161,7 +161,7 @@ class GrammarService:
         except Exception as e:
             return Failure(ParseError.from_lark_exception(e))
     
-    async def parse_and_transform_to_cnl_async(self, tau_text: str) -> Result[str, ParseError]:
+    async def parse_and_transform_to_cnl_async(self, tau_text: str) -> Result[str]:
         """Parse Tau text and transform to CNL."""
         if not self._tau_parser or not self._tau_transformer:
             return Failure(ParseError("Tau parser not available"))
@@ -183,7 +183,7 @@ class GrammarService:
         else:
             return ParseTreeInfo.from_patterns([])
     
-    def set_custom_tau_transformer(self, transformer_class) -> Result[None, str]:
+    def set_custom_tau_transformer(self, transformer_class) -> Result[None]:
         """Set custom transformer for Tau operations."""
         if not self._tau_parser:
             return Failure("Cannot set transformer - Tau grammar not loaded")
@@ -194,7 +194,7 @@ class GrammarService:
         except Exception as e:
             return Failure(f"Failed to set custom transformer: {e}")
     
-    def set_custom_cnl_transformer(self, transformer_class) -> Result[None, str]:
+    def set_custom_cnl_transformer(self, transformer_class) -> Result[None]:
         """Set custom transformer for CNL operations."""
         if not self._cnl_parser:
             return Failure("Cannot set transformer - CNL grammar not loaded")
@@ -212,7 +212,7 @@ class GrammarService:
         from pathlib import Path
         return Path(grammar_path).stem
     
-    async def _create_cnl_transformer(self, transformer_class=None) -> Result[Any, str]:
+    async def _create_cnl_transformer(self, transformer_class=None) -> Result[Any]:
         """Create CNL transformer (custom or default)."""
         if transformer_class:
             try:

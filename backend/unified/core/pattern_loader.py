@@ -313,7 +313,6 @@ class PatternApplicator:
         return result
     
     @staticmethod
-    @mutation_free  
     def _has_changed(old_text: str, new_text: str) -> bool:
         """Check if text has changed."""
         return old_text != new_text
@@ -475,3 +474,21 @@ class PatternLoader:
         await self._event_publisher.setup_file_watch_handler(
             source_path, self.load_patterns_from_source_async
         )
+
+
+# Singleton instance
+_pattern_loader_instance = None
+
+
+def get_pattern_loader() -> PatternLoader:
+    """Get the singleton PatternLoader instance."""
+    global _pattern_loader_instance
+    if _pattern_loader_instance is None:
+        from .interfaces import IPatternRepository
+        from ..infrastructure.repositories.file_pattern_repository import FilePatternRepository
+        
+        # Create with default file repository
+        pattern_repo = FilePatternRepository()
+        _pattern_loader_instance = PatternLoader(pattern_repo)
+    
+    return _pattern_loader_instance

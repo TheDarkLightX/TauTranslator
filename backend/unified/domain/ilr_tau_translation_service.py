@@ -7,7 +7,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import Dict, Any, List, Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .ilr_types import (
     TauCode, NodeType, ComparisonOperator, LogicalOperator,
@@ -19,7 +19,7 @@ from ..infrastructure.ilr_infrastructure import OperatorMapper, JsonSerializer
 class TauTranslationService:
     """Translates ILR structures to TAU code."""
     
-    def translate_ilr_to_tau(self, ilr_json: str) -> Result[TauCode, str]:
+    def translate_ilr_to_tau(self, ilr_json: str) -> Result[TauCode]:
         """Translate ILR JSON to TAU code."""
         # Deserialize JSON
         ilr_result = JsonSerializer.deserialize_ilr(ilr_json)
@@ -40,7 +40,7 @@ class TauTranslationService:
         program = ilr_dict.get("program", {})
         return "sbf_declaration" in program
     
-    def _translate_sbf_declaration(self, ilr_dict: Dict[str, Any]) -> Result[TauCode, str]:
+    def _translate_sbf_declaration(self, ilr_dict: Dict[str, Any]) -> Result[TauCode]:
         """Translate SBF declaration to TAU."""
         sbf_decl = ilr_dict["program"]["sbf_declaration"]
         direction = sbf_decl["direction"].lower()
@@ -51,7 +51,7 @@ class TauTranslationService:
         
         return Success(TauCode(tau_code))
     
-    def _translate_program(self, program: Dict[str, Any]) -> Result[TauCode, str]:
+    def _translate_program(self, program: Dict[str, Any]) -> Result[TauCode]:
         """Translate program structure to TAU."""
         tau_lines = []
         
@@ -78,14 +78,14 @@ class TauTranslationService:
         
         return Success(TauCode("\n".join(tau_lines)))
     
-    def _translate_declaration(self, decl: Dict[str, Any]) -> Result[str, str]:
+    def _translate_declaration(self, decl: Dict[str, Any]) -> Result[str]:
         """Translate declaration to TAU."""
         if "parameters" in decl:  # Function declaration
             return self._translate_function_declaration(decl)
         else:  # Variable declaration
             return self._translate_variable_declaration(decl)
     
-    def _translate_function_declaration(self, decl: Dict[str, Any]) -> Result[str, str]:
+    def _translate_function_declaration(self, decl: Dict[str, Any]) -> Result[str]:
         """Translate function declaration to TAU."""
         name = decl["name"]
         params = [p["name"] for p in decl.get("parameters", [])]
@@ -102,7 +102,7 @@ class TauTranslationService:
         
         return Failure(f"Invalid function body for {name}")
     
-    def _translate_variable_declaration(self, decl: Dict[str, Any]) -> Result[str, str]:
+    def _translate_variable_declaration(self, decl: Dict[str, Any]) -> Result[str]:
         """Translate variable declaration to TAU."""
         name = decl["name"]
         
@@ -116,7 +116,7 @@ class TauTranslationService:
         # Variable without initial value
         return Success(f"# Variable {name} declared")
     
-    def _translate_statement(self, stmt: Dict[str, Any]) -> Result[str, str]:
+    def _translate_statement(self, stmt: Dict[str, Any]) -> Result[str]:
         """Translate statement to TAU."""
         stmt_type = stmt.get("type")
         
@@ -129,7 +129,7 @@ class TauTranslationService:
         else:
             return Failure(f"Unknown statement type: {stmt_type}")
     
-    def _translate_assignment(self, stmt: Dict[str, Any]) -> Result[str, str]:
+    def _translate_assignment(self, stmt: Dict[str, Any]) -> Result[str]:
         """Translate assignment statement to TAU."""
         target = stmt["target"]
         value_result = self._translate_expression(stmt["value"])
@@ -139,7 +139,7 @@ class TauTranslationService:
         
         return Success(f"{target} = {value_result.unwrap()}.")
     
-    def _translate_assertion(self, stmt: Dict[str, Any]) -> Result[str, str]:
+    def _translate_assertion(self, stmt: Dict[str, Any]) -> Result[str]:
         """Translate assertion statement to TAU."""
         expr_result = self._translate_expression(stmt["expression"])
         
@@ -148,7 +148,7 @@ class TauTranslationService:
         
         return Success(f"{expr_result.unwrap()}.")
     
-    def _translate_temporal_statement(self, stmt: Dict[str, Any]) -> Result[str, str]:
+    def _translate_temporal_statement(self, stmt: Dict[str, Any]) -> Result[str]:
         """Translate temporal statement to TAU."""
         operator = stmt["operator"].lower()
         expr_result = self._translate_expression(stmt["expression"])
@@ -158,7 +158,7 @@ class TauTranslationService:
         
         return Success(f"{operator} {expr_result.unwrap()}.")
     
-    def _translate_expression(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_expression(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate expression to TAU."""
         node_type = expr.get("node_type")
         
@@ -182,7 +182,7 @@ class TauTranslationService:
         
         return translator(expr)
     
-    def _translate_variable_reference(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_variable_reference(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate variable reference to TAU."""
         name = expr["name"]
         
@@ -199,19 +199,19 @@ class TauTranslationService:
         
         return Success(name)
     
-    def _translate_boolean_constant(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_boolean_constant(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate boolean constant to TAU."""
         return Success(str(expr["value"]).lower())
     
-    def _translate_numeric_constant(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_numeric_constant(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate numeric constant to TAU."""
         return Success(str(expr["value"]))
     
-    def _translate_string_constant(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_string_constant(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate string constant to TAU."""
         return Success(f'"{expr["value"]}"')
     
-    def _translate_comparison(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_comparison(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate comparison expression to TAU."""
         left_result = self._translate_expression(expr["left_operand"])
         right_result = self._translate_expression(expr["right_operand"])
@@ -227,7 +227,7 @@ class TauTranslationService:
         
         return Success(f"{left_result.unwrap()} {tau_op} {right_result.unwrap()}")
     
-    def _translate_logical(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_logical(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate logical expression to TAU."""
         operator = expr["operator"]
         operands = expr["operands"]
@@ -262,7 +262,7 @@ class TauTranslationService:
         
         return Success(joined)
     
-    def _translate_arithmetic(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_arithmetic(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate arithmetic expression to TAU."""
         operator = expr["operator"]
         operands = expr["operands"]
@@ -292,7 +292,7 @@ class TauTranslationService:
         
         return Success(f"({joined})")
     
-    def _translate_function_call(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_function_call(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate function call to TAU."""
         name = expr["function_name"]
         
@@ -307,7 +307,7 @@ class TauTranslationService:
         args_str = ", ".join(r.unwrap() for r in arg_results)
         return Success(f"{name}({args_str})")
     
-    def _translate_quantifier(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_quantifier(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate quantifier expression to TAU."""
         quantifier = expr["quantifier"]
         bound_vars = expr["bound_variables"]
@@ -324,7 +324,7 @@ class TauTranslationService:
         else:  # EXISTS
             return Success(f"exists {var_list} such that {body_result.unwrap()}")
     
-    def _translate_conditional(self, expr: Dict[str, Any]) -> Result[str, str]:
+    def _translate_conditional(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate conditional expression to TAU."""
         cond_result = self._translate_expression(expr["condition"])
         then_result = self._translate_expression(expr["then_expression"])

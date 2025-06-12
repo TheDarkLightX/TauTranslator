@@ -6,7 +6,7 @@ Converts text directly to ILR following craftsmanship principles.
 """
 
 from typing import Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .ilr_types import (
     ILRNode, VariableReference, NumericConstant, BooleanConstant,
@@ -19,7 +19,7 @@ from .ilr_types import (
 class TextToILRService:
     """Converts text directly to ILR nodes with logical operation support."""
     
-    def convert_text_to_ilr(self, text: str) -> Result[ILRNode, str]:
+    def convert_text_to_ilr(self, text: str) -> Result[ILRNode]:
         """Convert text to ILR node using orchestrator pattern."""
         text = self._normalize_text(text)
         

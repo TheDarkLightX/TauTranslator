@@ -8,7 +8,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import Dict, List, Optional, Tuple
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .tgf_types import (
     TGFFilename, TGFContent, TGFRuleName, TerminalSymbol, NonTerminalSymbol,
@@ -25,7 +25,7 @@ from ..infrastructure.tgf_infrastructure import (
 class TGFParsingService:
     """Pure business logic for TGF grammar parsing."""
     
-    def parse_tgf_content(self, content: TGFContent) -> Result[ParsedTGFGrammar, TGFParseError]:
+    def parse_tgf_content(self, content: TGFContent) -> Result[ParsedTGFGrammar]:
         """Parse TGF content into structured grammar representation."""
         try:
             rules_dict = {}
@@ -58,7 +58,7 @@ class TGFParsingService:
                 error_message=f"Failed to parse TGF content: {e}"
             ))
     
-    def _extract_rules_from_content(self, content: str) -> Result[Dict[str, str], TGFParseError]:
+    def _extract_rules_from_content(self, content: str) -> Result[Dict[str, str]]:
         """Extract raw rule definitions from TGF content."""
         lines = content.strip().split('\n')
         rules = {}
@@ -116,7 +116,7 @@ class TGFParsingService:
         """Check if line starts a new rule definition."""
         return '::=' in line or ('=' in line and '==' not in line)
     
-    def _handle_rule_start(self, line: str) -> Result[Tuple[str, List[str]], TGFParseError]:
+    def _handle_rule_start(self, line: str) -> Result[Tuple[str, List[str]]]:
         """Handle the start of a new rule definition."""
         if '::=' in line:
             parts = line.split('::=', 1)
@@ -262,7 +262,7 @@ class GrammarManagementService:
         self._parsing_service = TGFParsingService()
         self._conversion_service = LarkConversionService()
     
-    def load_single_grammar(self, filename: TGFFilename) -> Result[LoadedGrammar, str]:
+    def load_single_grammar(self, filename: TGFFilename) -> Result[LoadedGrammar]:
         """Load a single grammar file."""
         # Read file content
         content_result = GrammarFileReader.read_grammar_file(
@@ -297,7 +297,7 @@ class GrammarManagementService:
         )
     
     def activate_grammar(self, grammars: Dict[str, LoadedGrammar], 
-                        filename: TGFFilename) -> Result[Dict[str, LoadedGrammar], str]:
+                        filename: TGFFilename) -> Result[Dict[str, LoadedGrammar]]:
         """Activate a specific grammar and deactivate others."""
         if str(filename) not in grammars:
             return Failure(f"Grammar not found: {filename}")
@@ -310,7 +310,7 @@ class GrammarManagementService:
         
         return Success(updated_grammars)
     
-    def get_active_grammar_for_parser(self, state: GrammarLoadingState) -> Result[LarkGrammar, str]:
+    def get_active_grammar_for_parser(self, state: GrammarLoadingState) -> Result[LarkGrammar]:
         """Get active grammar in Lark format for parser use."""
         if not state.has_active_grammar:
             return Failure("No active grammar selected")
@@ -328,7 +328,7 @@ class ConfigManagementService:
     def __init__(self, config: GrammarLoaderConfig):
         self._config = config
     
-    def load_grammar_configs(self) -> Result[List[GrammarConfig], str]:
+    def load_grammar_configs(self) -> Result[List[GrammarConfig]]:
         """Load grammar configurations from file."""
         result = ConfigFileManager.load_config(self._config.config_file_path)
         if isinstance(result, Failure):
@@ -336,7 +336,7 @@ class ConfigManagementService:
         
         return Success(result.unwrap())
     
-    def save_grammar_state(self, state: GrammarLoadingState) -> Result[None, str]:
+    def save_grammar_state(self, state: GrammarLoadingState) -> Result[None]:
         """Save current grammar state to configuration."""
         configs = []
         for grammar in state.loaded_grammars.values():

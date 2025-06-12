@@ -240,7 +240,7 @@ class SemanticValidator:
         """Validate complete statement for semantic consistency."""
         return validate_statement_components(self.lexicon, parsed_components)
     
-    def validate_relation(self, subject: str, relation: str, object_: str) -> Result[bool, ValidationError]:
+    def validate_relation(self, subject: str, relation: str, object_: str) -> Result[bool]:
         """Validate subject-relation-object triplet."""
         return validate_triplet(self.lexicon, subject, relation, object_)
     
@@ -303,7 +303,7 @@ def validate_all_quantifiers(quantifiers: List[Dict]) -> List[ValidationError]:
     return errors
 
 
-def validate_triplet(lexicon: SemanticLexicon, subject: str, relation: str, object_: str) -> Result[bool, ValidationError]:
+def validate_triplet(lexicon: SemanticLexicon, subject: str, relation: str, object_: str) -> Result[bool]:
     """Validate subject-relation-object triplet."""
     subject_type = lexicon.classify_entity(subject)
     object_type = lexicon.classify_entity(object_)

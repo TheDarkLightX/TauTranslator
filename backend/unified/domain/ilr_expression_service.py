@@ -7,7 +7,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import List, Tuple, Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .ilr_types import (
     ILRNode, VariableReference, BooleanConstant, NumericConstant,
@@ -28,7 +28,7 @@ class ExpressionParsingService:
     def __init__(self, context: Optional[ExpressionContext] = None):
         self._context = context or ExpressionContext()
     
-    def parse_expression(self, text: str) -> Result[ILRNode, str]:
+    def parse_expression(self, text: str) -> Result[ILRNode]:
         """Parse expression text into ILR node."""
         text = text.strip()
         
@@ -46,7 +46,7 @@ class ExpressionParsingService:
                 or self._try_parse_atom(text)
                 or Failure(f"Cannot parse expression: {text}"))
     
-    def _try_parse_parentheses(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_parentheses(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse parentheses expression."""
         if text.startswith('(') and text.endswith(')'):
             inner = text[1:-1]
@@ -54,7 +54,7 @@ class ExpressionParsingService:
                 return self.parse_expression(inner)
         return None
     
-    def _try_parse_logical_or(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_logical_or(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse OR/XOR expression."""
         for op_str in [' or ', ' xor ']:
             parts = text.split(op_str, 1)
@@ -62,7 +62,7 @@ class ExpressionParsingService:
                 return self._build_logical_expression(parts, op_str.strip())
         return None
     
-    def _try_parse_logical_and(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_logical_and(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse AND expression."""
         parts = text.split(' and ', 1)
         if len(parts) > 1:
@@ -74,14 +74,14 @@ class ExpressionParsingService:
         
         return None
     
-    def _try_parse_comparison(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_comparison(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse comparison expression."""
         for op_str in ['<=', '>=', '!=', '=', '<', '>']:
             if op_str in text:
                 return self._parse_comparison_with_op(text, op_str)
         return None
     
-    def _try_parse_arithmetic(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_arithmetic(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse arithmetic expression."""
         # Try addition/subtraction first (lowest precedence)
         for op_str in ['+', '-']:
@@ -97,7 +97,7 @@ class ExpressionParsingService:
         
         return None
     
-    def _try_parse_predicate(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_predicate(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse predicate expressions like 'x is positive'."""
         if ' is ' in text:
             parts = text.split(' is ', 1)
@@ -118,7 +118,7 @@ class ExpressionParsingService:
         
         return None
     
-    def _try_parse_atom(self, text: str) -> Optional[Result[ILRNode, str]]:
+    def _try_parse_atom(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse atomic expression."""
         text = text.strip()
         
@@ -168,7 +168,7 @@ class ExpressionParsingService:
                 return False
         return depth == 0
     
-    def _build_logical_expression(self, parts: List[str], op_str: str) -> Result[ILRNode, str]:
+    def _build_logical_expression(self, parts: List[str], op_str: str) -> Result[ILRNode]:
         """Build logical expression from parts."""
         op_result = OperatorMapper.map_logical_operator(op_str)
         if isinstance(op_result, Failure):
@@ -184,7 +184,7 @@ class ExpressionParsingService:
         operands = [r.unwrap() for r in operand_results]
         return Success(LogicalExpression(op_result.unwrap(), operands))
     
-    def _parse_not_expression(self, text: str) -> Result[ILRNode, str]:
+    def _parse_not_expression(self, text: str) -> Result[ILRNode]:
         """Parse NOT expression."""
         inner_text = text[4:].strip()  # Remove 'not '
         inner_result = self.parse_expression(inner_text)
@@ -194,7 +194,7 @@ class ExpressionParsingService:
         
         return Success(LogicalExpression(LogicalOperator.NOT, [inner_result.unwrap()]))
     
-    def _parse_comparison_with_op(self, text: str, op_str: str) -> Result[ILRNode, str]:
+    def _parse_comparison_with_op(self, text: str, op_str: str) -> Result[ILRNode]:
         """Parse comparison with specific operator."""
         parts = text.split(op_str, 1)
         if len(parts) != 2:
@@ -218,7 +218,7 @@ class ExpressionParsingService:
             right_result.unwrap()
         ))
     
-    def _build_arithmetic_expression(self, parts: List[str], op_str: str) -> Result[ILRNode, str]:
+    def _build_arithmetic_expression(self, parts: List[str], op_str: str) -> Result[ILRNode]:
         """Build arithmetic expression from parts."""
         op_result = OperatorMapper.map_arithmetic_operator(op_str)
         if isinstance(op_result, Failure):
@@ -234,7 +234,7 @@ class ExpressionParsingService:
         operands = [r.unwrap() for r in operand_results]
         return Success(ArithmeticExpression(op_result.unwrap(), operands))
     
-    def _parse_function_call(self, text: str) -> Result[ILRNode, str]:
+    def _parse_function_call(self, text: str) -> Result[ILRNode]:
         """Parse function call expression."""
         paren_idx = text.index('(')
         func_name = text[:paren_idx].strip()
@@ -320,7 +320,7 @@ class ExpressionParsingService:
         
         return parts if len(parts) > 1 else [text]
     
-    def _parse_temporal_reference(self, text: str) -> Result[ILRNode, str]:
+    def _parse_temporal_reference(self, text: str) -> Result[ILRNode]:
         """Parse temporal reference like o1[t-1]."""
         result = TemporalReferenceParser.parse_temporal_reference(text)
         
@@ -342,7 +342,7 @@ class TemporalExpressionService(ExpressionParsingService):
     def __init__(self):
         super().__init__(ExpressionContext(allow_temporal=True))
     
-    def parse_temporal_expression(self, text: str) -> Result[ILRNode, str]:
+    def parse_temporal_expression(self, text: str) -> Result[ILRNode]:
         """Parse expression that may contain temporal references."""
         # Handle complement operator (o1' for NOT o1)
         if text.endswith("'"):

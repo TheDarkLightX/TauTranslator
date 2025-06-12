@@ -7,7 +7,7 @@ Each method clearly discloses its purpose and side effects.
 """
 
 from typing import List
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 import logging
 
 from ..core.domain_types import (

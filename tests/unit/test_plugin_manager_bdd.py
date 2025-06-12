@@ -16,7 +16,7 @@ import tempfile
 import os
 
 # Import components under test
-from src.tau_translator_omega.core_engine.plugin_manager_refactored import (
+from .manager import (
     PluginManager, PluginError, ErrorCode, ErrorMessage, PluginId,
     ManifestPath, PluginDirectory, ValidationResult,
     ManifestFileRepository, PluginValidator, PluginRegistry

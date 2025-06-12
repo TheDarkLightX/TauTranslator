@@ -7,7 +7,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import List, Optional
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .nlp_types import (
     NaturalLanguageText, TCEText, TAUText, PatternMatch,

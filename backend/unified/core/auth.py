@@ -310,3 +310,56 @@ class AuthenticationService:
         Note: This is a pure function (no side effects).
         Publish authentication-related events."""
         await self._event_bus.publish_event_async(f"auth.{event_type}", data)
+    
+    async def delete_api_key_async(self, provider: str, session_id: SessionId) -> Result[bool]:
+        """
+        Delete an API key for a provider after session validation.
+        Rule 1: Name clearly indicates deletion operation for provider.
+        Returns Success(True) if deleted, Success(False) if not found.
+        """
+        session_valid = await self._ensure_valid_session(session_id)
+        return session_valid if isinstance(session_valid, Failure) else await self._delete_provider_api_key(provider)
+    
+    async def _delete_provider_api_key(self, provider: str) -> Result[bool]:
+        """
+        Note: This is a pure function (no side effects).
+        Delete API key for provider and notify."""
+        # First check if the key exists
+        keys_result = await self._auth_repo.load_api_keys_async()
+        if isinstance(keys_result, Failure):
+            return keys_result
+        
+        api_keys = keys_result.value
+        if provider not in api_keys:
+            return Success(False)  # Key doesn't exist
+        
+        # Delete the key
+        delete_result = await self._auth_repo.delete_api_key_async(provider)
+        if isinstance(delete_result, Success):
+            await self._publish_auth_event(
+                "api_key_deleted",
+                {"provider": provider}
+            )
+            return Success(True)  # Successfully deleted
+        return delete_result.map(lambda _: True)  # Convert Result[None] to Result[bool]
+    
+    async def list_api_keys_async(self, session_id: SessionId) -> Result[Dict[str, bool]]:
+        """
+        List all providers with stored API keys after session validation.
+        Rule 1: Name clearly indicates listing operation.
+        Returns dict mapping provider names to True (for security).
+        """
+        session_valid = await self._ensure_valid_session(session_id)
+        return session_valid if isinstance(session_valid, Failure) else await self._list_provider_api_keys()
+    
+    async def _list_provider_api_keys(self) -> Result[Dict[str, bool]]:
+        """
+        Note: This is a pure function (no side effects).
+        List providers with API keys."""
+        keys_result = await self._auth_repo.load_api_keys_async()
+        if isinstance(keys_result, Failure):
+            return keys_result
+        
+        api_keys = keys_result.value
+        # Return dict with provider names mapped to True (don't expose actual keys)
+        return Success({provider: True for provider in api_keys.keys()})

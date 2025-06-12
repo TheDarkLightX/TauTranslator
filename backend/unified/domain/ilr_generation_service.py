@@ -7,7 +7,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import List, Dict, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from .ilr_types import (
     ILRNode, ILRProgram, FunctionDeclaration, VariableDeclaration,
@@ -28,7 +28,7 @@ class ILRGenerationService:
         self._expression_parser = ExpressionParsingService()
         self._temporal_parser = TemporalExpressionService()
     
-    def generate_ilr_from_pattern(self, pattern_match: PatternMatch, text: str) -> Result[ILRJson, str]:
+    def generate_ilr_from_pattern(self, pattern_match: PatternMatch, text: str) -> Result[ILRJson]:
         """Generate ILR JSON from pattern match."""
         components = PatternMatcher.extract_pattern_components(pattern_match)
         
@@ -55,7 +55,7 @@ class ILRGenerationService:
         
         return generator(components)
     
-    def _generate_predicate_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_predicate_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for predicate definition."""
         # Parse predicate body
         body_result = self._expression_parser.parse_expression(components['body'])
@@ -77,7 +77,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[func_decl], statements=[])
         return Success(program.to_json())
     
-    def _generate_function_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_function_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for function definition."""
         # Parse function body
         body_result = self._expression_parser.parse_expression(components['body'])
@@ -99,7 +99,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[func_decl], statements=[])
         return Success(program.to_json())
     
-    def _generate_universal_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_universal_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for universal quantification."""
         # Parse condition
         condition_result = self._expression_parser.parse_expression(components['condition'])
@@ -121,7 +121,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[assertion])
         return Success(program.to_json())
     
-    def _generate_existential_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_existential_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for existential quantification."""
         # Parse condition
         condition_result = self._expression_parser.parse_expression(components['condition'])
@@ -143,7 +143,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[assertion])
         return Success(program.to_json())
     
-    def _generate_conditional_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_conditional_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for conditional statement."""
         # Parse condition and consequence
         cond_result = self._expression_parser.parse_expression(components['condition'])
@@ -165,7 +165,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[assertion])
         return Success(program.to_json())
     
-    def _generate_assignment_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_assignment_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for assignment statement."""
         # Parse value expression
         value_result = self._expression_parser.parse_expression(components['value'])
@@ -183,7 +183,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[var_decl], statements=[])
         return Success(program.to_json())
     
-    def _generate_boolean_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_boolean_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for boolean expression."""
         # Parse expression
         expr_result = self._expression_parser.parse_expression(components['expression'])
@@ -195,7 +195,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[assertion])
         return Success(program.to_json())
     
-    def _generate_negation_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_negation_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for negation."""
         # Parse inner expression
         expr_result = self._expression_parser.parse_expression(components['expression'])
@@ -210,7 +210,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[assertion])
         return Success(program.to_json())
     
-    def _generate_stream_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_stream_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for stream assignment."""
         # Create stream variable with temporal qualifier
         stream_ref = VariableReference(
@@ -238,7 +238,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[stream_decl], statements=[assignment])
         return Success(program.to_json())
     
-    def _generate_stream_rule_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_stream_rule_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for stream rule."""
         # Parse left side (stream reference)
         left_parts = components['left_side'].split('[')
@@ -258,7 +258,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[assignment])
         return Success(program.to_json())
     
-    def _generate_temporal_always_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_temporal_always_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for temporal always."""
         # Parse temporal expression
         expr_result = self._temporal_parser.parse_temporal_expression(components['expression'])
@@ -274,7 +274,7 @@ class ILRGenerationService:
         program = ILRProgram(declarations=[], statements=[temporal_stmt])
         return Success(program.to_json())
     
-    def _generate_sbf_input_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_sbf_input_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for SBF input declaration."""
         # Extract stream names from sbf_input(i1, i2, ...)
         params_text = components.get('group_0', '')
@@ -302,7 +302,7 @@ class ILRGenerationService:
         import json
         return Success(ILRJson(json.dumps(program_dict, indent=2)))
     
-    def _generate_sbf_output_ilr(self, components: Dict[str, str]) -> Result[ILRJson, str]:
+    def _generate_sbf_output_ilr(self, components: Dict[str, str]) -> Result[ILRJson]:
         """Generate ILR for SBF output declaration."""
         # Extract stream names from sbf_output(o1, o2, ...)
         params_text = components.get('group_0', '')

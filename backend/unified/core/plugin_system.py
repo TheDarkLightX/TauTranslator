@@ -69,7 +69,7 @@ class ParsingPlugin(ABC):
         pass
     
     @abstractmethod
-    def process(self, text: str, context: ParseContext) -> Result[str, ParseError]:
+    def process(self, text: str, context: ParseContext) -> Result[str]:
         """Process text and return result or error."""
         pass
     
@@ -130,7 +130,7 @@ class BusinessDomainPlugin(DomainSpecificPlugin):
         """Check if text contains business terms."""
         return has_business_indicators(text)
     
-    def process(self, text: str, context: ParseContext) -> Result[str, ParseError]:
+    def process(self, text: str, context: ParseContext) -> Result[str]:
         """Process business domain text."""
         return process_business_text(text, self.get_domain_patterns())
     
@@ -180,7 +180,7 @@ class SimpleLearningPlugin(LearningPlugin):
         """Simple learning can handle any text."""
         return True
     
-    def process(self, text: str, context: ParseContext) -> Result[str, ParseError]:
+    def process(self, text: str, context: ParseContext) -> Result[str]:
         """Process text with learned adaptations."""
         return apply_learned_adaptations(text, self.corrections_cache)
     
@@ -223,7 +223,7 @@ class ValidationPlugin(ParsingPlugin):
         """Validation can handle any parsed text."""
         return True
     
-    def process(self, text: str, context: ParseContext) -> Result[str, ParseError]:
+    def process(self, text: str, context: ParseContext) -> Result[str]:
         """Validate text for logical consistency."""
         return validate_enhanced_semantics(text, context)
 
@@ -236,7 +236,7 @@ def has_business_indicators(text: str) -> bool:
     return any(term in text.lower() for term in business_terms)
 
 
-def process_business_text(text: str, patterns: Dict[str, str]) -> Result[str, ParseError]:
+def process_business_text(text: str, patterns: Dict[str, str]) -> Result[str]:
     """Process text using business domain patterns."""
     import re
     
@@ -248,7 +248,7 @@ def process_business_text(text: str, patterns: Dict[str, str]) -> Result[str, Pa
     return Success(text)  # No transformation needed
 
 
-def apply_learned_adaptations(text: str, corrections_cache: Dict) -> Result[str, ParseError]:
+def apply_learned_adaptations(text: str, corrections_cache: Dict) -> Result[str]:
     """Apply learned adaptations to text."""
     adapted_text = text
     
@@ -322,7 +322,7 @@ def save_simple_model(model_path: Path, corrections_cache: Dict, pattern_frequen
         pass  # Fail silently if can't save
 
 
-def validate_enhanced_semantics(text: str, context: ParseContext) -> Result[str, ParseError]:
+def validate_enhanced_semantics(text: str, context: ParseContext) -> Result[str]:
     """Validate text with enhanced semantic checks."""
     # Simple validation - could be enhanced
     if len(text.split()) > 50:
@@ -359,7 +359,7 @@ class PluginManager:
         """Unregister a plugin."""
         unregister_plugin_from_manager(self, plugin_name)
     
-    def parse_with_plugins(self, text: str) -> Result[str, ParseError]:
+    def parse_with_plugins(self, text: str) -> Result[str]:
         """Parse text using appropriate plugins."""
         return execute_plugin_pipeline(self, text)
     
@@ -402,7 +402,7 @@ def update_plugin_order(manager: PluginManager):
     )
 
 
-def execute_plugin_pipeline(manager: PluginManager, text: str) -> Result[str, ParseError]:
+def execute_plugin_pipeline(manager: PluginManager, text: str) -> Result[str]:
     """Execute plugin pipeline in priority order."""
     context = ParseContext(original_text=text, preprocessed_text=text)
     

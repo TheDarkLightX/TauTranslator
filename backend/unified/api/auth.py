@@ -8,13 +8,17 @@ Copyright: DarkLightX/Dana Edwards
 """
 
 from typing import Optional, Dict, Any
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from ..core.domain_types import SessionId, UserId, ApiKey, Result, Success, Failure
+from ..core.domain_types import SessionId, UserId, ApiKey
+from ..core.result_enhanced import Result, Success, Failure
 from ..core.interfaces import IAuthenticationRepository, IEventBus
 from ..infrastructure.di_container import get_container
 from ..core.responses import create_success_response, create_error_response
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -232,12 +236,48 @@ async def delete_api_key_for_provider_async(
     Delete stored API key for specified provider.
     Rule 1: Name explicitly indicates deletion for provider.
     """
-    # Note: In refactored auth service, we'd need to add this method
-    # For now, showing the pattern
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Delete operation not yet implemented in refactored service"
-    )
+    try:
+        # Check if provider exists
+        stored_keys_result = await auth_service.list_api_keys_async(session_id)
+        if isinstance(stored_keys_result, Failure):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(stored_keys_result.failure())
+            )
+        
+        stored_keys = stored_keys_result.unwrap()
+        if provider not in stored_keys:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No API key found for provider: {provider}"
+            )
+        
+        # Delete the API key
+        result = await auth_service.delete_api_key_async(provider, session_id)
+        
+        if isinstance(result, Failure):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete API key: {result.failure()}"
+            )
+        
+        if result.unwrap():
+            logger.info(f"Successfully deleted API key for provider: {provider}")
+            return  # 204 No Content
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found or already deleted"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting API key for {provider}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error while deleting API key"
+        )
 
 
 @router.get("/api-keys", response_model=Dict[str, Any])

@@ -7,6 +7,9 @@ from typing import NewType, TypeVar, Union, List, Dict, Optional, Any, Generic
 from pathlib import Path
 from enum import Enum
 
+# Re-export Result types from result_enhanced
+from .result_enhanced import Result, Success, Failure
+
 
 # Core Domain Types
 TranslationId = NewType("TranslationId", str)

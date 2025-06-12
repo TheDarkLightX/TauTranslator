@@ -10,7 +10,7 @@ Copyright: DarkLightX / Dana Edwards
 import re
 import logging
 from typing import List, Dict, Optional, Any
-from returns.result import Result, Success, Failure
+from ..core.result_enhanced import Result, Success, Failure
 
 from ..domain.nlp_types import (
     LanguagePattern, PatternType, PatternTemplate, NormalizationType,
@@ -93,7 +93,7 @@ class PatternRegistry:
         ]
     
     @staticmethod
-    def load_custom_patterns(pattern_file: str) -> Result[List[LanguagePattern], str]:
+    def load_custom_patterns(pattern_file: str) -> Result[List[LanguagePattern]]:
         """Load custom patterns from file."""
         try:
             # This would load patterns from a configuration file
@@ -265,7 +265,7 @@ class EntityExtractor:
     """Extracts entities and their properties from text."""
     
     @staticmethod
-    def extract_entity_from_phrase(phrase: str) -> Result[Dict[str, str], str]:
+    def extract_entity_from_phrase(phrase: str) -> Result[Dict[str, str]]:
         """Extract entity information from a phrase."""
         words = phrase.strip().split()
         

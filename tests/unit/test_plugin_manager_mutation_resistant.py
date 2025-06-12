@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 import json
 
-from src.tau_translator_omega.core_engine.plugin_manager_refactored import (
+from .manager import (
     PluginId, ErrorCode, ErrorMessage, ManifestPath, PluginDirectory,
     PluginError, ValidationResult, PluginValidator, PluginRegistry,
     ManifestFileRepository, VersionCompatibilityChecker, PluginInstantiator,
@@ -114,7 +114,7 @@ class TestOperatorReplacementMutations:
     def test_error_collector_preserves_order(self):
         """Test that error collector preserves error order."""
         # Catches mutations in list operations
-        from src.tau_translator_omega.core_engine.plugin_manager_refactored import ErrorCollector
+        from .manager import ErrorCollector
         
         collector = ErrorCollector()
         
@@ -231,7 +231,7 @@ class TestConditionalMutations:
     def test_entry_point_type_checking(self):
         """Test entry point type is checked with exact string match."""
         # Catches mutations in string comparisons
-        from src.tau_translator_omega.core_engine.plugin_manager_refactored import PluginLoadingService
+        from .manager import PluginLoadingService
         
         service = PluginLoadingService(Mock(), Mock(), Mock())
         
@@ -310,7 +310,7 @@ class TestLoopMutations:
     
     def test_error_collector_get_errors_returns_all(self):
         """Test that get_errors returns all errors, not subset."""
-        from src.tau_translator_omega.core_engine.plugin_manager_refactored import ErrorCollector
+        from .manager import ErrorCollector
         
         collector = ErrorCollector()
         
@@ -355,7 +355,7 @@ class TestExceptionHandlingMutations:
             # Test ImportError
             mock_import.side_effect = ImportError("Module not found")
             
-            from src.tau_translator_omega.core_engine.plugin_manager_refactored import ModuleImporter
+            from .manager import ModuleImporter
             
             result1 = ModuleImporter.import_plugin_module(
                 "missing_module",
