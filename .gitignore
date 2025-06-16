@@ -144,4 +144,4 @@ mutants/
 *_rc.py
 
 # Submodules and external repos
-mcp-memory-service/
+mcp-memory-service/acli
