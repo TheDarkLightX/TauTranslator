@@ -12,6 +12,9 @@ import sys
 import subprocess
 import time
 import tempfile
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 def run_quick_mutation_test(test_file, source_file, description):
     """Run a quick mutation test with limited mutants."""
@@ -23,7 +26,7 @@ def run_quick_mutation_test(test_file, source_file, description):
     config_content = f"""[mutmut]
 paths_to_mutate = {source_file}
 backup = False
-runner = PYTHONPATH=~/TauTranslator/src python3 -m pytest {test_file} -x --tb=no --disable-warnings -q
+runner = PYTHONPATH=src python3 -m pytest {test_file} -x --tb=no --disable-warnings -q
 tests_dir = tests/
 """
     
@@ -43,7 +46,7 @@ tests_dir = tests/
         result = subprocess.run([
             sys.executable, '-m', 'mutmut', 'run'
         ], 
-        cwd='~/TauTranslator',
+        cwd=str(PROJECT_ROOT),
         env=env,
         capture_output=True, 
         text=True,
@@ -56,7 +59,7 @@ tests_dir = tests/
         results = subprocess.run([
             sys.executable, '-m', 'mutmut', 'results'
         ], 
-        cwd='~/TauTranslator',
+        cwd=str(PROJECT_ROOT),
         env=env,
         capture_output=True, 
         text=True,
@@ -69,7 +72,7 @@ tests_dir = tests/
         subprocess.run([
             sys.executable, '-m', 'mutmut', 'reset'
         ], 
-        cwd='~/TauTranslator',
+        cwd=str(PROJECT_ROOT),
         env=env,
         capture_output=True,
         timeout=10

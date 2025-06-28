@@ -207,6 +207,9 @@ class TauSuggestionEngine:
                 "$stream[t-1]",
                 "$stream[t+1]"
             ],
+            ContextType.QUANTIFIER_EXPRESSION: [
+                "($property)"
+            ],
             ContextType.TEMPORAL_CONSTRAINT: [
                 "always ($property)",
                 "sometimes ($property)",
@@ -398,7 +401,8 @@ class TauSuggestionEngine:
             "$var = $expr": "Simple equation",
             "$eq1 && $eq2": "System of equations",
             "{$var}:$type $constraint": "Type annotation for solver",
-            "$output[t] = $input[t]": "Stream processing rule"
+            "$output[t] = $input[t]": "Stream processing rule",
+            "($property)": "A property that must hold for all values"
         }
         
         return EducationalSuggestion(
@@ -418,6 +422,7 @@ class TauSuggestionEngine:
             "$var = $expr": "x = 0",
             "$eq1 && $eq2": "x = 0 && y = 1",
             "{$var}:$type $constraint": "{a}:sbf x = 0",
-            "$output[t] = $input[t]": "output[t] = input1[t] & input2[t]"
+            "$output[t] = $input[t]": "output[t] = input1[t] & input2[t]",
+            "($property)": "(x > 0)"
         }
         return examples.get(pattern, "")

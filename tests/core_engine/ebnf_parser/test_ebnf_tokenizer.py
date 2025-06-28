@@ -6,7 +6,7 @@ Following TDD principles - test first, implement after.
 
 import pytest
 import re
-from tau_translator_omega.core_engine.ebnf_parser.ebnf_parser import EBNFTokenizer
+from tau_translator_omega.core_engine.parsers.ebnf_parser.ebnf_parser import EBNFTokenizer
 
 
 class TestEBNFTokenizerInitialization:

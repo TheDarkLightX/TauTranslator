@@ -2,7 +2,7 @@
 
 import unittest
 
-from tau_translator_omega.core_engine.ilr_config import CORE_ILR_VERSION
+from tau_translator_omega.core_engine.ilr.ilr_config import CORE_ILR_VERSION
 
 
 class TestILRConfigConstants(unittest.TestCase):

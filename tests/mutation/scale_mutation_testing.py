@@ -4,7 +4,7 @@ Scaled Mutation Testing for TauTranslator Core Modules
 =====================================================
 
 Runs mutation testing across all working test modules to assess 
-project-wide test quality following VibeArchitect principles.
+project-wide test quality following established best practices.
 """
 
 import os
@@ -20,8 +20,7 @@ class MutationTestRunner:
     """Handles mutation testing for multiple modules."""
     
     def __init__(self):
-        self.base_dir = '~/TauTranslator'
-        self.src_dir = f'{self.base_dir}/src'
+        self.base_dir = Path(__file__).resolve().parent.parent.parent
         
         # Mapping of test modules to their corresponding source files
         self.test_module_mapping = {
@@ -80,7 +79,7 @@ class MutationTestRunner:
         config_content = f"""[mutmut]
 paths_to_mutate = {source_file}
 backup = False
-runner = PYTHONPATH={self.src_dir} python3 -m pytest {test_file} -x --tb=no --disable-warnings -q
+runner = PYTHONPATH=src python3 -m pytest {test_file} -x --tb=no --disable-warnings -q
 tests_dir = tests/
 """
         return config_content
@@ -341,11 +340,11 @@ tests_dir = tests/
         if avg_mutation_score >= 80 and meeting_count >= total_tests * 0.8:
             quality_level = "EXCELLENT"
             quality_emoji = "🟢"
-            quality_desc = "Project meets VibeArchitect standards"
+            quality_desc = "Project meets quality standards"
         elif avg_mutation_score >= 70 and meeting_count >= total_tests * 0.6:
             quality_level = "GOOD"
             quality_emoji = "🟡"
-            quality_desc = "Project approaching VibeArchitect standards"
+            quality_desc = "Project approaching quality standards"
         elif avg_mutation_score >= 60:
             quality_level = "ACCEPTABLE"
             quality_emoji = "🟠"
@@ -393,7 +392,7 @@ tests_dir = tests/
 
 def main():
     """Main execution function."""
-    os.chdir('~/TauTranslator')
+    pass  # Project root is now handled by the MutationTestRunner class
     
     runner = MutationTestRunner()
     

@@ -1,0 +1,12 @@
+# A simple AND gate specification.
+# This demonstrates Tau's stream processing capabilities for digital logic.
+
+# Define two input streams and one output stream from the console.
+# In a real application, these could be mapped to files or other I/O.
+tau i1 = console
+tau i2 = console
+tau o1 = console
+
+# Define the logical relationship for the AND gate.
+# The output stream o1 at time t is the logical AND of the input streams i1 and i2 at time t.
+o1[t] = i1[t] && i2[t]

@@ -8,7 +8,7 @@ Each method follows the 10-line limit rule.
 
 from typing import List, Optional
 from dataclasses import dataclass
-from ..core.result_enhanced import Result, Success, Failure
+from .domain_types import Result, Success, Failure, AppError
 from abc import ABC, abstractmethod
 
 from .domain_types import SourceText, TranslationResult

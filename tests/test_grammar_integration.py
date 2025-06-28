@@ -11,12 +11,13 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.tau_translator_omega.lmql_engine.grammar_integrated_translator import (
+from tau_translator_omega.lmql_engine.grammar_integrated_translator import (
     GrammarIntegratedTranslator, TranslationMethod, get_integrated_translator
 )
-from src.tau_translator_omega.core_engine.tgf_grammar_loader import (
-    TGFGrammarLoader, LoadedGrammar
+from tau_translator_omega.core_engine.grammar_processing import (
+    TGFGrammarService, LoadedGrammar
 )
+from tau_translator_omega.core_engine.parsers.grammar_driven_parser import GrammarDrivenTranslationStrategy
 
 
 class TestGrammarIntegration:
@@ -30,7 +31,7 @@ class TestGrammarIntegration:
     def test_translator_initialization(self, translator):
         """Test translator initializes with available strategies."""
         assert translator is not None
-        assert translator.grammar_loader is not None
+        assert translator.grammar_service is not None
         assert translator.default_method == TranslationMethod.HYBRID
         
         # Pattern-based should always be available
@@ -214,4 +215,4 @@ class TestRealGrammarIntegration:
             )
             # We don't assert success as it depends on grammar content
             assert 'method' in result
-            assert result['method'] == 'grammar'
+            assert result['method'] == 'grammar-driven'

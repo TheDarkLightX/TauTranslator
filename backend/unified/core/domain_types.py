@@ -6,9 +6,10 @@ Copyright: DarkLightX/Dana Edwards
 from typing import NewType, TypeVar, Union, List, Dict, Optional, Any, Generic
 from pathlib import Path
 from enum import Enum
+from dataclasses import dataclass
 
-# Re-export Result types from result_enhanced
-from .result_enhanced import Result, Success, Failure
+# Re-export Result types from the `returns` library
+from returns.result import Result, Success, Failure
 
 
 # Core Domain Types
@@ -32,6 +33,7 @@ Email = NewType("Email", str)
 
 # Translation Types
 SourceText = NewType("SourceText", str)
+
 TargetText = NewType("TargetText", str)
 TranslationResult = NewType("TranslationResult", Dict[str, Any])
 
@@ -65,8 +67,17 @@ T = TypeVar('T')
 TInput = TypeVar('TInput')
 TOutput = TypeVar('TOutput')
 
-# Import enhanced Result types
-from .result_enhanced import Result, Success, Failure, success, failure, sequence, traverse, try_catch
+# Import functional helpers from the `returns` library
+from returns.result import safe
+
+
+
+@dataclass(frozen=True)
+class AppError:
+    """A standard application error type for use with the Result monad."""
+    error_code: str
+    message: str
+    details: Optional[dict] = None
 
 # I/O Operation Markers
 class IOBoundary:

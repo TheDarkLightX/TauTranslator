@@ -27,10 +27,10 @@ from returns.functions import tap
 from toolz import pipe, compose, curry, memoize
 
 # Import existing types
-from .plugin import Plugin, PluginEntryPoint, BasePluginValidator
-from .version_handler import VersionHandler
+from ..plugin import Plugin, PluginEntryPoint, BasePluginValidator
+from ..version_handler import VersionHandler
 from .grammar_plugin_validator import GrammarPluginValidator
-from .semantic_construct_plugin_validator import SemanticConstructPluginValidator
+from ..semantic_construct_plugin_validator import SemanticConstructPluginValidator
 from .generic_plugin_validator import GenericPluginValidator
 
 # =======================

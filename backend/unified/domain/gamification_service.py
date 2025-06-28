@@ -306,11 +306,11 @@ class GamificationService:
             name="Feature Explorer",
             description="Use 5 different autocomplete suggestions",
             type=ChallengeType.DAILY,
-            reward_xp=ExperiencePoints(50),
-            target_value=5,
+            reward_xp=self._rules.xp_per_feature_challenge,
+            target_value=1,
             current_value=0,
-            expires_at=current_date + timedelta(days=1),
-            skill_areas=[SkillArea.PATTERN_MATCHING]
+            expires_at=current_date + timedelta(days=self._rules.challenge_duration_days),
+            skill_areas=[SkillArea.SYSTEM_KNOWLEDGE]
         )
     
     def _create_skill_challenge(
@@ -331,10 +331,10 @@ class GamificationService:
             name=f"Master {weakest_skill.value.replace('_', ' ').title()}",
             description=f"Complete 3 actions using {weakest_skill.value}",
             type=ChallengeType.DAILY,
-            reward_xp=ExperiencePoints(75),
+            reward_xp=self._rules.xp_per_skill_challenge,
             target_value=3,
             current_value=0,
-            expires_at=current_date + timedelta(days=1),
+            expires_at=current_date + timedelta(days=self._rules.challenge_duration_days),
             skill_areas=[weakest_skill]
         )
     
@@ -349,11 +349,11 @@ class GamificationService:
             name="Consistent Learner",
             description="Complete 10 translations today",
             type=ChallengeType.DAILY,
-            reward_xp=ExperiencePoints(100),
-            target_value=10,
-            current_value=0,
-            expires_at=current_date + timedelta(days=1),
-            skill_areas=[]
+            reward_xp=self._rules.xp_per_consistency_challenge,
+            target_value=self._rules.consistency_challenge_days,
+            current_value=profile.daily_streak, # Track against current streak
+            expires_at=current_date + timedelta(days=self._rules.challenge_duration_days),
+            skill_areas=[SkillArea.CONSISTENCY]
         )
     
     # Achievement checking helpers

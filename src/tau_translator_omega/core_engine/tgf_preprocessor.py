@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Set, Union
 
-from .preprocessor_errors import PreprocessorError, CircularIncludeError, MacroExpansionError, ConditionalDirectiveError, IncludeFileNotFoundError
+from .preprocessing.preprocessor_errors import PreprocessorError, CircularIncludeError, MacroExpansionError, ConditionalDirectiveError, IncludeFileNotFoundError
 from .tgf_directive_handler import TGFDirectiveHandler
 
 

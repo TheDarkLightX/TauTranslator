@@ -3,11 +3,13 @@ Defines the base classes and data structures for Abstract Syntax Tree (AST) node
 used in TauTranslatorOmega.
 """
 
+import re
 from typing import Optional, Any, List, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field # Keep for other dataclasses if any
+from pydantic import BaseModel, ConfigDict, Field, field_validator # Added field_validator, removed validator
 
 
-@dataclass
+@dataclass(frozen=True)
 class SourceLocation:
     """Represents a location in the source code."""
     line: int
@@ -18,11 +20,12 @@ class SourceLocation:
     absolute_char_end_index: Optional[int] = None
 
 
-class ASTNode:
+class ASTNode(BaseModel):
     """Base class for all AST nodes."""
     
-    def __init__(self, location: Optional[SourceLocation] = None):
-        self.location: Optional[SourceLocation] = location
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    location: Optional[SourceLocation] = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>"
@@ -33,9 +36,17 @@ class ASTNode:
 
 class IdentifierNode(ASTNode):
     """Represents an identifier (e.g., variable name, function name)."""
-    def __init__(self, name: str, location: Optional[SourceLocation] = None):
-        super().__init__(location=location)
-        self.name: str = name
+    name: str
+
+    @field_validator('name')
+    def validate_name(cls, v):
+        if not isinstance(v, str):
+            raise TypeError('Identifier name must be a string')
+        if not v or v.isspace():
+            raise ValueError('Identifier name cannot be empty or just whitespace')
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', v):
+            raise ValueError(f'Identifier "{v}" is not a valid identifier')
+        return v
 
     def __repr__(self) -> str:
         return f"<IdentifierNode name='{self.name}'>"
@@ -43,9 +54,7 @@ class IdentifierNode(ASTNode):
 
 class LiteralNode(ASTNode):
     """Represents a literal value (e.g., number, string, boolean)."""
-    def __init__(self, value: Any, location: Optional[SourceLocation] = None):
-        super().__init__(location=location)
-        self.value: Any = value
+    value: Any
 
     def __repr__(self) -> str:
         # For string literals, include quotes in the repr for clarity
@@ -56,11 +65,10 @@ class LiteralNode(ASTNode):
 
 class BinaryExpressionNode(ASTNode):
     """Represents a binary operation (e.g., a + b, x > y)."""
-    def __init__(self, left: ASTNode, operator: str, right: ASTNode, location: Optional[SourceLocation] = None):
-        super().__init__(location=location)
-        self.left: ASTNode = left
-        self.operator: str = operator
-        self.right: ASTNode = right
+    left: 'ASTNode' # Forward reference for recursive types
+    operator: str
+    right: 'ASTNode' # Forward reference
+
 
     def __repr__(self) -> str:
         return (
@@ -73,10 +81,9 @@ class BinaryExpressionNode(ASTNode):
 
 class UnaryExpressionNode(ASTNode):
     """Represents a unary operation (e.g., -a, not flag)."""
-    def __init__(self, operator: str, operand: ASTNode, location: Optional[SourceLocation] = None):
-        super().__init__(location=location)
-        self.operator: str = operator
-        self.operand: ASTNode = operand
+    operator: str
+    operand: 'ASTNode' # Forward reference
+
 
     def __repr__(self) -> str:
         return (

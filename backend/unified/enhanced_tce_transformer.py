@@ -152,69 +152,62 @@ class EnhancedTCETransformer(Transformer):
     
     def universal_formula(self, items):
         """Process universal quantification with scope tracking."""
-        variables = []
-        spec = ""
-        
-        for item in items:
-            if isinstance(item, list):  # variable_list
-                variables = item
-            elif isinstance(item, str) and item not in ['all', 'for all', ',']:
-                spec = item
-        
-        if variables and spec:
-            # Create scope for each variable
-            result_parts = []
-            for var in variables:
-                scope = Scope(quantifier='all', variable=var, parent=self.current_scope)
-                self.scope_stack.append(scope)
-                self.current_scope = scope
-                result_parts.append(f"all {var}")
-            
-            # Build nested quantifiers
-            result = ': '.join(result_parts) + f": {spec}"
-            
-            # Pop scopes
-            for _ in variables:
-                if self.scope_stack:
-                    self.scope_stack.pop()
-                    self.current_scope = self.scope_stack[-1] if self.scope_stack else None
-            
-            return result
-        
-        return ""
+        variables, spec = items[0], items[1]
+
+        if not isinstance(variables, list):
+            variables = [variables]
+
+        # Manage scope
+        for var in variables:
+            scope = Scope(quantifier='all', variable=var, parent=self.current_scope)
+            self.scope_stack.append(scope)
+            self.current_scope = scope
+
+        quantifier_str = ' '.join([f"all {var}" for var in variables])
+
+        # Check if the inner spec is already a quantified formula to avoid double-parentheses
+        # and create a flat structure like `all x ex y (...)`
+        if spec.strip().startswith(('all ', 'ex ')):
+            result = f"{quantifier_str} {spec}"
+        else:
+            result = f"{quantifier_str} ({spec})"
+
+        # Pop scopes after they've been used to build the result
+        for _ in variables:
+            if self.scope_stack:
+                self.scope_stack.pop()
+                self.current_scope = self.scope_stack[-1] if self.scope_stack else None
+
+        return result
     
     def existential_formula(self, items):
         """Process existential quantification with scope tracking."""
-        variables = []
-        spec = ""
-        
-        for item in items:
-            if isinstance(item, list):  # variable_list
-                variables = item
-            elif isinstance(item, str) and item not in ['exists', 'there exists', 'such that', ',']:
-                spec = item
-        
-        if variables and spec:
-            # Create scope for each variable
-            result_parts = []
-            for var in variables:
-                scope = Scope(quantifier='ex', variable=var, parent=self.current_scope)
-                self.scope_stack.append(scope)
-                self.current_scope = scope
-                result_parts.append(f"ex {var}")
-            
-            # Build nested quantifiers
-            result = ': '.join(result_parts) + f": {spec}"
-            
-            # Pop scopes
-            for _ in variables:
-                if self.scope_stack:
-                    self.scope_stack.pop()
-                    self.current_scope = self.scope_stack[-1] if self.scope_stack else None
-            
-            return result
-        
-        return ""
+        variables, spec = items[0], items[1]
+
+        if not isinstance(variables, list):
+            variables = [variables]
+
+        # Manage scope
+        for var in variables:
+            scope = Scope(quantifier='ex', variable=var, parent=self.current_scope)
+            self.scope_stack.append(scope)
+            self.current_scope = scope
+
+        quantifier_str = ' '.join([f"ex {var}" for var in variables])
+
+        # Check if the inner spec is already a quantified formula
+        if spec.strip().startswith(('all ', 'ex ')): 
+            result = f"{quantifier_str} {spec}"
+        else:
+            result = f"{quantifier_str} ({spec})"
+
+        # Pop scopes
+        for _ in variables:
+            if self.scope_stack:
+                self.scope_stack.pop()
+                self.current_scope = self.scope_stack[-1] if self.scope_stack else None
+
+        return result
     
     def variable_list(self, items):
         """Process list of variables."""

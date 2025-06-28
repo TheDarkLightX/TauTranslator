@@ -16,8 +16,8 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from backend.unified.translators.base import TranslationDirection
-from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
-from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
+from tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -111,10 +111,54 @@ class EnglishToTauTranslator:
             text += '.'
         
         return text
+
+    # ------------------------------------------------------------------
+    #  Quantifier / Relative-Clause helper (CNL Level 2)
+    # ------------------------------------------------------------------
+    def _quantifier_relative_to_tau(self, english: str) -> Tuple[bool, str]:
+        """Detect and convert sentences of the form:
+        "Every/Each/All <entity> who/that <condition> must/shall <action>."
+        into a Tau universal-implication rule.
+        Returns (success, tau_code).
+        """
+        import re
+
+        sentence = english.strip().rstrip('.').lower()
+        pattern = r"^(every|each|all) (?P<entity>\w+) (?:who|that) (?P<cond>.+?) (?:must|shall|has to) (?P<action>.+)$"
+        m = re.match(pattern, sentence)
+        if not m:
+            return False, ""
+
+        entity = m.group("entity")
+        cond_clause = m.group("cond")
+        action_clause = m.group("action")
+
+        def phrase_to_pred(phrase: str) -> str:
+            # crude token→predicate mapping: drop stop-words, replace spaces with underscore
+            clean = (
+                phrase.replace("has ", "")
+                .replace("have ", "")
+                .replace("is ", "")
+                .replace("are ", "")
+                .strip()
+            )
+            pred_name = clean.replace(" ", "_")
+            return f"{pred_name}({entity})"
+
+        condition_pred = phrase_to_pred(cond_clause)
+        action_pred = phrase_to_pred(action_clause)
+
+        tau_code = f"forall {entity} ( {condition_pred} -> {action_pred} )."
+        return True, tau_code
     
     def _try_alternative_parsing(self, english: str, tce_text: str) -> Tuple[bool, str, str]:
         """Try alternative parsing strategies when main parser fails."""
         
+        # Attempt quantifier + relative clause pattern first
+        success, tau_rule = self._quantifier_relative_to_tau(english)
+        if success:
+            return True, tau_rule, tce_text
+
         # Strategy 1: Direct pattern matching for simple cases
         text = english.strip().lower()
         

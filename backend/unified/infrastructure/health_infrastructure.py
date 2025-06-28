@@ -78,7 +78,7 @@ class SystemMetricsCollector:
             return Success(metrics)
             
         except Exception as e:
-            return Failure(f"Could not get system metrics: {e}")
+            return Failure("SYSTEM_METRICS_ERROR", f"Could not get system metrics: {e}")
 
 class EngineHealthCollector:
     """Collects engine health and availability information."""
@@ -156,15 +156,14 @@ class HealthMonitoringInfrastructure:
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
             if not health_monitor:
-                return Failure("Health monitor not available")
+                return Failure(error_code="HEALTH_MONITOR_UNAVAILABLE", message="Health monitor not available")
             
-            metrics = health_monitor.get_health_metrics(hours=hours)
-            return Success(metrics)
+            return health_monitor.get_health_metrics(hours=hours)
             
         except Exception as e:
-            return Failure(f"Failed to get health metrics: {e}")
+            return Failure(error_code="HEALTH_METRICS_ERROR", message=f"Failed to get health metrics: {e}")
     
-    async def get_health_history_async(self, engine_name: Optional[str], hours: float) -> Result[List[Dict[str, Any]], str]:
+    async def get_health_history_async(self, engine_name: Optional[str], hours: float) -> Result[List[Dict[str, Any]]]:
         """Get health history from monitoring system."""
         try:
             health_monitor = await self._infra.resolve_health_monitor_async()
@@ -252,7 +251,7 @@ class HealthMonitoringInfrastructure:
             return Success(status)
             
         except Exception as e:
-            return Failure(f"Failed to get monitoring status: {e}")
+            return Failure(error_code="MONITORING_STATUS_ERROR", message=f"Failed to get monitoring status: {e}")
 
 class StartupTimeTracker:
     """Tracks application startup time."""

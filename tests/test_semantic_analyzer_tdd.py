@@ -19,10 +19,10 @@ from typing import List, Dict, Any
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.semantic_analyzer import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import (
     SemanticAnalyzer, SemanticError, Symbol, SymbolTable
 )
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     ASTNode, VariableNode, ConstantNode, NumberNode, StringNode,
     ArithmeticBinaryOpNode, BooleanBinaryOpNode, ComparisonNode,
     PredicateCallNode, FunctionDefinitionNode, PredicateDefinitionNode,

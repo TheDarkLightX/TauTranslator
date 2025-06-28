@@ -23,8 +23,8 @@ spec_conjunction: tau_spec AND3_KW tau_spec  // &&& for spec-level and
 spec_disjunction: tau_spec OR2_KW tau_spec   // || for spec-level or
 
 // Local specifications (boolean formulas at specific time)
-local_spec: wff
-          | quantified_formula
+local_spec: quantified_formula
+          | wff
           | stream_equation
 
 // Boolean expressions map to Tau operators
@@ -41,6 +41,8 @@ wff: and_expr
 and_expr: wff AND2_KW wff      // Maps to &&
 or_expr: wff OR_KW wff         // Maps to ||
 not_expr: NOT_KW wff                    // Maps to !
+implies_expr: wff IMPLIES_KW wff // Maps to ->
+iff_expr: wff IFF_KW wff       // Maps to <->
 
 // Comparisons in Tau style
 comparison: bf comparison_op bf
@@ -68,13 +70,13 @@ arithmetic_expr: bf PLUS_KW bf
 quantified_formula: universal_formula
                   | existential_formula
 
-universal_formula: FOR_ALL_KW variable_list local_spec
-                 | ALL_KW variable_list COMMA local_spec
+universal_formula: _FOR_ALL_KW variable_list local_spec
+                 | _ALL_KW variable_list _COMMA local_spec
 
-existential_formula: THERE_EXISTS_KW variable_list SUCH_THAT_KW local_spec
-                   | EXISTS_KW variable_list COMMA local_spec
+existential_formula: _THERE_EXISTS_KW variable_list _SUCH_THAT_KW local_spec
+                   | _EXISTS_KW variable_list _COMMA local_spec
 
-variable_list: IDENTIFIER (COMMA IDENTIFIER)*
+variable_list: IDENTIFIER (_COMMA IDENTIFIER)*
 
 // Stream handling (core Tau feature)
 stream_equation: stream_access EQUALS_KW bf
@@ -102,64 +104,65 @@ time_expr: T_KW
 atomic_prop: IDENTIFIER LPAR [argument_list] RPAR
 
 
-argument_list: bf (COMMA bf)*
+argument_list: bf (_COMMA bf)*
 
 // Numbers
 number: INTEGER
       | DECIMAL
 
 // Keywords for Tau compatibility
+// Higher priority (2) for keywords to distinguish them from generic identifiers.
 // Temporal operators
-ALWAYS_KW: "always " | "□ "
-SOMETIMES_KW: "sometimes " | "◇ "
-EVENTUALLY_KW: "eventually " | "◇ "
+ALWAYS_KW.2: "always" | "□"
+SOMETIMES_KW.2: "sometimes" | "◇"
+EVENTUALLY_KW.2: "eventually" | "◇"
 
 // Logical operators
-AND2_KW: " and " | " && "           // Local and
-AND3_KW: " AND " | " &&& "          // Specification and
-OR_KW: " or " | " || "
-OR2_KW: " OR " | " ||| "           // For spec disjunction if needed
-NOT_KW: "not " | "!"
-IMPLIES_KW: " implies " | " -> "
-IFF_KW: " iff " | " <-> "
+AND2_KW.2: "and" | "&&"           // Local and
+AND3_KW.2: "AND" | "&&&"          // Specification and
+OR_KW.2: "or" | "||"
+OR2_KW.2: "OR" | "|||"           // For spec disjunction if needed
+NOT_KW.2: "not" | "!"
+IMPLIES_KW.2: "implies" | "->"
+IFF_KW.2: "iff" | "<->"
 
 // Quantifiers
-FOR_ALL_KW: "for all " | "∀"
-ALL_KW: "all "
-THERE_EXISTS_KW: "there exists " | "∃"
-EXISTS_KW: "exists " | "ex "
-SUCH_THAT_KW: " such that "
+_FOR_ALL_KW.2: "for all" | "for every" | "∀"
+_ALL_KW.2: "all"
+_THERE_EXISTS_KW.2: "there exists" | "there is some" | "∃"
+_EXISTS_KW.2: "exists" | "ex"
+_SUCH_THAT_KW.2: "such that"
 
 // Comparison
-EQUALS_KW: " equals " | " = "
-NOT_EQUALS_KW: " not equals " | " != "
-LESS_THAN_KW: " less than " | " < "
-GREATER_THAN_KW: " greater than " | " > "
-LESS_EQUAL_KW: " at most " | " <= "
-GREATER_EQUAL_KW: " at least " | " >= "
+EQUALS_KW.2: "is" | "equals" | "="
+NOT_EQUALS_KW.2: "not equals" | "!="
+LESS_THAN_KW.2: "less than" | "<"
+GREATER_THAN_KW.2: "greater than" | ">"
+LESS_EQUAL_KW.2: "at most" | "<="
+GREATER_EQUAL_KW.2: "at least" | ">="
 
 // Arithmetic
-PLUS_KW: " plus " | " + "
-MINUS_KW: " minus " | " - "
-TIMES_KW: " times " | " * "
-DIVIDED_BY_KW: " divided by " | " / "
+PLUS_KW.2: "plus" | "+"
+MINUS_KW.2: "minus" | "-"
+TIMES_KW.2: "times" | "*"
+DIVIDED_BY_KW.2: "divided by" | "/"
 
 // Stream keywords
-INPUT_KW: "input "
-OUTPUT_KW: "output "
-INPUT_STREAM_KW: "input stream "
-OUTPUT_STREAM_KW: "output stream "
-AT_TIME_KW: " at time "
-T_KW: "t"
+INPUT_KW.2: "input"
+OUTPUT_KW.2: "output"
+INPUT_STREAM_KW.2: "input stream"
+OUTPUT_STREAM_KW.2: "output stream"
+AT_TIME_KW.2: "at time"
+T_KW.2: "t"
 
 // Basic identifiers
-IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+IDENTIFIER.1: /[a-zA-Z_][a-zA-Z0-9_]*/
 STREAM_ID: /[io][0-9]+/  // i1, i2, o1, o2, etc.
 INTEGER: /[0-9]+/
 DECIMAL: /[0-9]+\.[0-9]+/
 
 // Punctuation
-COMMA: ","
+_COMMA: ","
 LPAR: "("
 RPAR: ")"
 LSQB: "["

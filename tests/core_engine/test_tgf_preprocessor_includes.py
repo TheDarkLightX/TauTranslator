@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch, mock_open # Removed MagicMock as it's not directly used yet
 
 from tau_translator_omega.core_engine.tgf_preprocessor import TGFPreprocessor
-from tau_translator_omega.core_engine.preprocessor_errors import CircularIncludeError, IncludeFileNotFoundError, PreprocessorError
+from tau_translator_omega.core_engine.preprocessing.preprocessor_errors import CircularIncludeError, IncludeFileNotFoundError, PreprocessorError
 
 class TestTGFPreprocessorIncludes:
     """Tests focusing on #include directive processing."""

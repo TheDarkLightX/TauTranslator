@@ -2,7 +2,7 @@
 Refactored Bidirectional Translator for Tau ↔ TCE
 ================================================
 
-Refactored from 792 lines to <300 lines following VibeArchitect principles.
+Refactored from 792 lines to <300 lines for improved maintainability.
 Uses Strategy pattern for translation approaches and Factory pattern for creation.
 
 Key improvements:
@@ -33,7 +33,7 @@ class LMQLBidirectionalTranslator:
     """
     Main translator class using Strategy pattern for bidirectional Tau ↔ TCE translation.
     
-    Follows VibeArchitect principles:
+    
     - Strategy pattern for flexible translation approaches
     - Factory pattern for strategy creation
     - Single Responsibility: Coordination only

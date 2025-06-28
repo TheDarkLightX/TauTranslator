@@ -16,6 +16,7 @@ from enum import Enum
 
 from .pattern_analyzers import TauPatternAnalyzer, TCEPatternAnalyzer
 from .recognizers import RecognizerFactory, RecognitionResult
+from ..llm_services.unified_llm_service import UnifiedLLMService, UnifiedRequest, ProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class PatternBasedTranslationStrategy(TranslationStrategy):
     """
     Pattern-based translation strategy using regex pattern matching.
     
-    Follows VibeArchitect principles:
+    
     - Strategy pattern implementation
     - Clear error handling
     - Separation of concerns
@@ -640,272 +641,148 @@ class PatternBasedTranslationStrategy(TranslationStrategy):
         return tau
 
 
+import asyncio
+from ..llm_services.unified_llm_service import UnifiedLLMService, UnifiedRequest, ProviderType
+
+
 class LMQLTranslationStrategy(TranslationStrategy):
     """
     LMQL-based translation strategy for enhanced accuracy.
-    
-    Falls back to pattern-based translation if LMQL unavailable.
+
+    This strategy leverages a UnifiedLLMService to translate natural language
+    into Tau Controlled English (TCE). It is designed to understand user
+    intent and handle ambiguity. It falls back to a simpler pattern-based
+    strategy if the LLM service is unavailable or fails.
     """
-    
-    def __init__(self, direction: TranslationDirection):
+
+    def __init__(self, direction: TranslationDirection, llm_service: UnifiedLLMService):
+        """
+        Initializes the strategy with a translation direction and LLM service.
+        """
         self.direction = direction
+        self.llm_service = llm_service
         self.pattern_fallback = PatternBasedTranslationStrategy(direction)
         self._check_lmql_availability()
-    
+
     def _check_lmql_availability(self) -> None:
-        """Check if LMQL is available."""
+        """
+        Checks if the 'lmql' library is installed and logs a warning if not.
+        """
         try:
             import lmql
             self.lmql_available = True
         except ImportError:
             self.lmql_available = False
-            logger.warning("LMQL not available - using pattern-based fallback")
-    
+            logger.warning("LMQL library not found. LMQLTranslationStrategy will use fallback.")
+
     def translate(self, source_text: str) -> TranslationResult:
         """
-        Translate using LMQL or fallback to pattern-based.
-        
-        Args:
-            source_text: Text to translate
-            
-        Returns:
-            TranslationResult with translation outcome
+        Translates the source text using the LLM service.
+
+        If the LLM service is not available or the translation fails, it
+        gracefully falls back to the PatternBasedTranslationStrategy.
         """
         if not self.lmql_available:
             return self.pattern_fallback.translate(source_text)
-        
+
         try:
-            return self._translate_with_lmql(source_text)
+            # Note: This is a synchronous wrapper around an async call.
+            # In a fully async application, this method itself would be async.
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self._translate_with_lmql(source_text))
         except Exception as e:
-            logger.warning(f"LMQL translation failed: {e}, falling back to pattern-based")
+            logger.warning(f"LMQL translation failed: {e}, falling back to pattern-based.")
             return self.pattern_fallback.translate(source_text)
-    
-    def _translate_with_lmql(self, source_text: str) -> TranslationResult:
-        """Translate using LMQL query language for better accuracy."""
+
+    async def _translate_with_lmql(self, source_text: str) -> TranslationResult:
+        """
+        Performs the actual translation using the UnifiedLLMService.
+        """
+        if self.direction != TranslationDirection.NL_TO_TCE:
+            logger.warning(f"LMQL strategy only supports NL_TO_TCE, not {self.direction}. Falling back.")
+            return self.pattern_fallback.translate(source_text)
+
+        system_prompt = (
+            "You are an expert in translating ambiguous natural language requirements into precise Tau Controlled English (TCE). "
+            "Your task is to understand the user's intent and convert it into a single, clear, structured TCE statement. "
+            "TCE uses simple, direct language like 'if a condition then a consequence'."
+        )
+        user_prompt = f'''
+        Translate the following natural language sentence into a single, precise Tau Controlled English (TCE) statement.
+
+        Here are some examples:
+        1. Natural Language: "The heater should turn on if the room gets colder than 68 degrees."
+           TCE: "if the temperature is less than 68 then the heater is on"
+
+        2. Natural Language: "A user must always be logged in to access the dashboard."
+           TCE: "always (a user accesses the dashboard implies the user is logged in)"
+
+        3. Natural Language: "Send a notification whenever an order is placed."
+           TCE: "when an order is placed then send a notification"
+
+        Now, translate this sentence:
+        Natural Language: "{source_text}"
+        TCE: '''
+
         try:
-            # LMQL-based translation using structured prompts
-            # This provides better context understanding than pure pattern matching
-            
-            if self.direction == TranslationDirection.TCE_TO_TAU:
-                # Build LMQL query for TCE to TAU translation
-                query_template = """
-                Given the English requirement: "{text}"
-                
-                Identify the logical structure:
-                - Temporal aspects: {temporal}
-                - Quantifiers: {quantifiers}
-                - Conditions: {conditions}
-                - Actions/Properties: {properties}
-                
-                Generate TAU code following these patterns:
-                - Use 'always' for invariants
-                - Use 'forall/exists' for quantification
-                - Use '->' for implications
-                - Use proper TAU syntax
-                """
-                
-                # Extract components from text
-                temporal = self._extract_temporal_keywords(source_text)
-                quantifiers = self._extract_quantifiers(source_text)
-                conditions = self._extract_conditions(source_text)
-                properties = self._extract_properties(source_text)
-                
-                # Generate TAU based on extracted components
-                tau_code = self._build_tau_from_components(
-                    temporal, quantifiers, conditions, properties, source_text
-                )
-                
+            request = UnifiedRequest(
+                prompt=user_prompt,
+                system_prompt=system_prompt,
+                provider_preference=ProviderType.OPENROUTER
+            )
+            response = await self.llm_service.generate(request)
+
+            if response.success:
                 return TranslationResult(
                     success=True,
-                    output=tau_code,
-                    confidence=0.85,
-                    patterns_detected=["lmql_structured", "component_analysis"],
+                    output=response.generated_text.strip(),
+                    confidence=response.confidence_score,
+                    patterns_detected=["llm_translation", response.model_used],
                     errors=[],
-                    warnings=[]
+                    warnings=[] if not response.cached else ["Result from cache"]
                 )
-                
-            else:  # TAU_TO_TCE
-                # Parse TAU structure
-                components = self._parse_tau_structure(source_text)
-                
-                # Generate natural language from components
-                english_text = self._build_english_from_tau(components)
-                
-                return TranslationResult(
-                    success=True,
-                    output=english_text,
-                    confidence=0.85,
-                    patterns_detected=["lmql_structured", "tau_parsing"],
-                    errors=[],
-                    warnings=[]
-                )
-                
+            else:
+                logger.error(f"LLM translation failed: {response.error_message}")
+                return TranslationResult(success=False, output="", confidence=0.0, errors=[response.error_message], patterns_detected=[], warnings=[])
+
         except Exception as e:
-            logger.error(f"LMQL translation error: {e}")
-            # Fall back to pattern-based
-            result = self.pattern_fallback.translate(source_text)
-            result.warnings.append("LMQL translation failed, using pattern-based fallback")
-            return result
-    
-    def _extract_temporal_keywords(self, text: str) -> List[str]:
-        """Extract temporal keywords from text."""
-        temporal_words = ['always', 'never', 'sometimes', 'eventually', 'until', 'before', 'after']
-        found = [word for word in temporal_words if word in text.lower()]
-        return found
-    
-    def _extract_quantifiers(self, text: str) -> List[str]:
-        """Extract quantifier keywords from text."""
-        quantifier_patterns = ['for all', 'for every', 'there exists', 'there is', 'some', 'any']
-        found = [q for q in quantifier_patterns if q in text.lower()]
-        return found
-    
-    def _extract_conditions(self, text: str) -> List[str]:
-        """Extract conditional patterns from text."""
-        condition_words = ['if', 'when', 'whenever', 'unless', 'provided that', 'given that']
-        conditions = []
-        for word in condition_words:
-            if word in text.lower():
-                conditions.append(word)
-        return conditions
-    
-    def _extract_properties(self, text: str) -> List[str]:
-        """Extract properties and comparisons from text."""
-        # Look for comparison operators and properties
-        properties = []
-        if any(op in text.lower() for op in ['greater than', 'less than', 'equal', 'between']):
-            properties.append('comparison')
-        if any(word in text.lower() for word in ['must', 'shall', 'should', 'will']):
-            properties.append('requirement')
-        return properties
-    
-    def _build_tau_from_components(self, temporal: List[str], quantifiers: List[str], 
-                                   conditions: List[str], properties: List[str], 
-                                   original_text: str) -> str:
-        """Build TAU code from extracted components."""
-        tau_parts = []
-        
-        # Handle temporal logic
-        if 'always' in temporal:
-            tau_parts.append('always (')
-        elif 'never' in temporal:
-            tau_parts.append('!(')
-        elif 'eventually' in temporal:
-            tau_parts.append('<> (')
-        
-        # Handle quantifiers
-        if any('for all' in q or 'for every' in q for q in quantifiers):
-            # Extract variable name if possible
-            tau_parts.append('forall x : ')
-        elif any('there exists' in q or 'there is' in q for q in quantifiers):
-            tau_parts.append('exists x : ')
-        
-        # Handle core logic
-        # This is simplified - real implementation would parse more carefully
-        core_logic = self._extract_core_logic(original_text)
-        tau_parts.append(core_logic)
-        
-        # Close parentheses
-        if any(part.endswith('(') for part in tau_parts):
-            tau_parts.append(')')
-        
-        return ''.join(tau_parts)
-    
-    def _extract_core_logic(self, text: str) -> str:
-        """Extract the core logical expression from text."""
-        # Simplified logic extraction
-        text_lower = text.lower()
-        
-        # Handle comparisons
-        if 'greater than' in text_lower:
-            # Extract operands
-            parts = text_lower.split('greater than')
-            if len(parts) == 2:
-                left = parts[0].strip().split()[-1]
-                right = parts[1].strip().split()[0]
-                return f"{left} > {right}"
-        
-        # Default: return a placeholder
-        return "property_holds"
-    
-    def _parse_tau_structure(self, tau_code: str) -> Dict[str, Any]:
-        """Parse TAU code structure."""
-        components = {
-            'temporal': None,
-            'quantifiers': [],
-            'core_expression': '',
-            'operators': []
-        }
-        
-        # Detect temporal operators
-        if tau_code.startswith('always'):
-            components['temporal'] = 'always'
-        elif tau_code.startswith('sometimes'):
-            components['temporal'] = 'sometimes'
-        
-        # Detect quantifiers
-        if 'forall' in tau_code:
-            components['quantifiers'].append('universal')
-        if 'exists' in tau_code:
-            components['quantifiers'].append('existential')
-        
-        # Extract core expression (simplified)
-        components['core_expression'] = tau_code
-        
-        return components
-    
-    def _build_english_from_tau(self, components: Dict[str, Any]) -> str:
-        """Build English text from TAU components."""
-        parts = []
-        
-        # Handle temporal
-        if components['temporal'] == 'always':
-            parts.append("It is always the case that")
-        elif components['temporal'] == 'sometimes':
-            parts.append("Sometimes")
-        
-        # Handle quantifiers
-        if 'universal' in components['quantifiers']:
-            parts.append("for all values")
-        elif 'existential' in components['quantifiers']:
-            parts.append("there exists a value such that")
-        
-        # Add core expression (simplified)
-        parts.append("the property holds")
-        
-        return ' '.join(parts) + '.'
+            logger.error(f"LLM service call failed: {e}", exc_info=True)
+            # Fallback on service call failure
+            return self.pattern_fallback.translate(source_text)
 
 
 class TranslationStrategyFactory:
     """Factory for creating translation strategies."""
-    
-    @staticmethod
-    def create_pattern_strategy(direction: TranslationDirection) -> PatternBasedTranslationStrategy:
-        """Create pattern-based translation strategy."""
-        return PatternBasedTranslationStrategy(direction)
-    
-    @staticmethod
-    def create_lmql_strategy(direction: TranslationDirection) -> LMQLTranslationStrategy:
-        """Create LMQL translation strategy."""
-        return LMQLTranslationStrategy(direction)
-    
+
+    _llm_service: Optional[UnifiedLLMService] = None
+
+    @classmethod
+    def _get_llm_service(cls) -> UnifiedLLMService:
+        """Get or create a singleton instance of the UnifiedLLMService."""
+        if cls._llm_service is None:
+            logger.info("Creating singleton instance of UnifiedLLMService.")
+            cls._llm_service = UnifiedLLMService()
+        return cls._llm_service
+
     @staticmethod
     def create_strategy(strategy_type: str, direction: TranslationDirection) -> TranslationStrategy:
         """
         Create translation strategy by type.
-        
+
         Args:
             strategy_type: 'pattern' or 'lmql'
             direction: Translation direction
-            
+
         Returns:
             Appropriate translation strategy
-            
+
         Raises:
             ValueError: If strategy_type is not supported
         """
         if strategy_type.lower() == 'pattern':
             return PatternBasedTranslationStrategy(direction)
         elif strategy_type.lower() == 'lmql':
-            return LMQLTranslationStrategy(direction)
+            llm_service = TranslationStrategyFactory._get_llm_service()
+            return LMQLTranslationStrategy(direction, llm_service)
         else:
             raise ValueError(f"Unsupported strategy type: {strategy_type}")

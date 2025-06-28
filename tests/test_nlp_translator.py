@@ -6,7 +6,7 @@ Comprehensive tests for natural language processing functionality.
 """
 
 import pytest
-from src.tau_translator_omega.core_engine.nlp_translator import (
+from tau_translator_omega.core_engine.translators.nlp_translator import (
     NLPPatternMatcher,
     NaturalLanguageTranslator,
     TCEToTauNLPTranslator

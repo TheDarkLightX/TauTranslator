@@ -19,7 +19,7 @@ from ..domain.gamification_types import (
 )
 from ..domain.gamification_service import GamificationService
 from ..infrastructure.gamification_persistence import (
-    GamificationRepository, GamificationCache
+    GamificationRepository
 )
 from ..infrastructure.gamification_ui import GamificationDashboard
 from .autocomplete.educational_autocomplete_service import (
@@ -54,7 +54,7 @@ class GamifiedAutocompleteApplication(QObject):
         self._gamification_service = GamificationService()
         self._autocomplete_service = EducationalAutocompleteService()
         self._repository = GamificationRepository()
-        self._cache = GamificationCache()
+        # self._cache = GamificationCache() # TODO: Refactor or replace caching mechanism
         
         # User state
         self._user_id = user_id or UserId("default_user")

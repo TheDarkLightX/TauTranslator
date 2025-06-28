@@ -1,0 +1,286 @@
+# --- DAO Voting Specification ---
+# This file formally specifies the rules for a simple
+# decentralized autonomous organization (DAO) voting system.
+
+# --- Core Predicates ---
+# These define the basic entities and states of the system.
+
+# A person or entity that can vote.
+# Example: is_voter(alice).
+is_voter(v).
+
+# A proposal being voted on.
+# Example: is_proposal(p1).
+is_proposal(p).
+
+# The token balance of a voter at a specific time.
+# Used for calculating voting power.
+# Example: has_token_balance(alice, 100, 0).
+has_token_balance(v, b, t).
+
+# The state of a proposal being open for votes at a specific time.
+# Example: proposal_is_active(p1, 0).
+proposal_is_active(p, t).
+
+# A record that a voter has cast their vote on a proposal at a specific time.
+# This prevents double-voting.
+# Example: voted_on(alice, p1, 0).
+voted_on(v, p, t).
+
+# A record of a specific 'yes' vote at a specific time.
+# Example: vote_is_yes(alice, p1, 0).
+vote_is_yes(v, p, t).
+
+# A record of a specific 'no' vote at a specific time.
+# Example: vote_is_no(alice, p1, 0).
+vote_is_no(v, p, t).
+
+
+# --- System Invariants ---
+# These rules must always hold true for the system to be considered valid.
+
+# 1. Vote Exclusivity: A voter cannot vote both 'yes' and 'no' on the same proposal at the same time.
+always( (vote_is_yes(v, p, t) & vote_is_no(v, p, t))' ).
+
+# 2. Voter Existence: A vote can only be cast by a registered voter.
+# (voted_on(v, p, t) -> is_voter(v))
+always( voted_on(v, p, t)' | is_voter(v) ).
+
+# 3. Proposal Existence: A vote can only be cast on an existing proposal.
+# (voted_on(v, p, t) -> is_proposal(p))
+always( voted_on(v, p, t)' | is_proposal(p) ).
+
+# 4. Vote implies Voted: Casting a 'yes' or 'no' vote implies a vote has been made.
+# This helps enforce the 'no double-voting' rule.
+# (vote_is_yes(v, p, t) -> voted_on(v, p, t))
+always( vote_is_yes(v, p, t)' | voted_on(v, p, t) ).
+# (vote_is_no(v, p, t) -> voted_on(v, p, t))
+always( vote_is_no(v, p, t)' | voted_on(v, p, t) ).
+
+# 5. Active Proposal: A vote can only be cast while a proposal is active.
+# (voted_on(v, p, t) -> proposal_is_active(p, t))
+always( voted_on(v, p, t)' | proposal_is_active(p, t) ).
+
+
+# --- Proposal Outcome Rules ---
+# These rules define the conditions under which a proposal is passed or failed.
+
+# --- Helper Predicates for Outcomes ---
+
+# A proposal is considered 'decided' at time t if it is no longer active.
+# (proposal_is_active(p, t)' -> proposal_is_decided(p, t))
+always( proposal_is_active(p, t) | proposal_is_decided(p, t) ).
+
+# The proposal meets the voting quorum at time t.
+# The logic for calculating this is complex and will be defined elsewhere.
+meets_quorum(p, t).
+
+# The proposal meets the majority threshold at time t.
+# The logic for calculating this is complex and will be defined elsewhere.
+meets_majority(p, t).
+
+# --- Core Outcome Predicates ---
+
+# A proposal has passed at time t.
+proposal_passed(p, t).
+
+# A proposal has failed at time t.
+proposal_failed(p, t).
+
+# --- Outcome Logic ---
+
+# 1. A proposal passes if it is decided, meets quorum, and meets the majority threshold.
+# (proposal_is_decided(p, t) & meets_quorum(p, t) & meets_majority(p, t)) -> proposal_passed(p, t)
+always( (proposal_is_decided(p, t) & meets_quorum(p, t) & meets_majority(p, t))' | proposal_passed(p, t) ).
+
+# 2. A proposal fails if it is decided but does not meet the quorum.
+# (proposal_is_decided(p, t) & meets_quorum(p, t)') -> proposal_failed(p, t)
+always( (proposal_is_decided(p, t) & meets_quorum(p, t)')' | proposal_failed(p, t) ).
+
+# 3. A proposal fails if it is decided and meets quorum, but does not meet the majority threshold.
+# (proposal_is_decided(p, t) & meets_quorum(p, t) & meets_majority(p, t)') -> proposal_failed(p, t)
+always( (proposal_is_decided(p, t) & meets_quorum(p, t) & meets_majority(p, t)')' | proposal_failed(p, t) ).
+
+# 4. Outcome Exclusivity: A proposal cannot be both passed and failed at the same time.
+always( (proposal_passed(p, t) & proposal_failed(p, t))' ).
+
+
+# --- Vote Weight Calculation ---
+# These rules define how voting power is calculated.
+
+# --- Helper Predicates for Weight ---
+
+# The weight of a single vote, cast by voter v on proposal p, is w at time t.
+# This is typically the voter's token balance.
+vote_weight(v, p, w, t).
+
+# The total weight of all 'yes' votes for a proposal.
+# The logic for this aggregation is complex and will be defined elsewhere.
+total_yes_weight(p, w, t).
+
+# The total weight of all votes (yes and no) for a proposal.
+# The logic for this aggregation is complex and will be defined elsewhere.
+total_vote_weight(p, w, t).
+
+# --- Weight Logic ---
+
+# 1. A voter's vote weight is their token balance at the time of voting.
+# (voted_on(v, p, t) & has_token_balance(v, b, t)) -> vote_weight(v, p, b, t)
+always( (voted_on(v, p, t) & has_token_balance(v, b, t))' | vote_weight(v, p, b, t) ).
+
+
+# --- Voter Ordering for Aggregation ---
+# To sum up vote weights, we need a way to iterate through the voters.
+# These predicates define an explicit ordering for voters on a given proposal.
+# In a real scenario, these orderings would be asserted as facts.
+
+# Voter v is the first in the sequence for proposal p.
+first_voter_for_proposal(p, v).
+
+# Voter v2 comes immediately after v1 in the sequence for proposal p.
+next_voter_for_proposal(p, v1, v2).
+
+# Voter v is the last in the sequence for proposal p.
+last_voter_for_proposal(p, v).
+
+# --- Ordering Invariants ---
+
+# 1. The 'next' voter must actually be a voter.
+# (next_voter_for_proposal(p, v1, v2) -> is_voter(v2))
+always( next_voter_for_proposal(p, v1, v2)' | is_voter(v2) ).
+
+# 2. A voter cannot be their own successor in a proposal's voting list.
+always( next_voter_for_proposal(p, v, v)' ).
+
+# 3. A voter is the last if no other voter comes after them.
+# This rule formally defines the 'last_voter_for_proposal' predicate.
+# (is_voter(v) & is_proposal(p) & (forall v2 : next_voter_for_proposal(p, v, v2)')) -> last_voter_for_proposal(p, v)
+always( (is_voter(v) & is_proposal(p) & (forall v2 : next_voter_for_proposal(p, v, v2)'))' | last_voter_for_proposal(p, v) ).
+
+
+# --- Recursive Vote Weight Aggregation ---
+# These rules define how to sum up the weights of individual votes.
+
+# --- Abstract Arithmetic Predicate ---
+# Defines that c is the sum of a and b. In a real system, this would be
+# a built-in or a more complex definition.
+sum(a, b, c).
+
+# --- Cumulative Weight Predicates ---
+
+# The cumulative 'yes' vote weight for proposal p, up to voter v in the sequence, is w.
+cumulative_yes_weight_up_to(p, v, w, t).
+
+# The cumulative total vote weight for proposal p, up to voter v, is w.
+cumulative_total_weight_up_to(p, v, w, t).
+
+# --- Aggregation Logic (Base Cases) ---
+
+# 1. The cumulative 'yes' weight for the first voter is their own vote weight if they voted yes.
+# (first_voter_for_proposal(p, v) & vote_is_yes(v, p, t) & vote_weight(v, p, w, t)) -> cumulative_yes_weight_up_to(p, v, w, t)
+always( (first_voter_for_proposal(p, v) & vote_is_yes(v, p, t) & vote_weight(v, p, w, t))' | cumulative_yes_weight_up_to(p, v, w, t) ).
+
+# 2. The cumulative 'yes' weight for the first voter is 0 if they did not vote yes.
+# (first_voter_for_proposal(p, v) & vote_is_yes(v, p, t)') -> cumulative_yes_weight_up_to(p, v, 0, t)
+always( (first_voter_for_proposal(p, v) & vote_is_yes(v, p, t)')' | cumulative_yes_weight_up_to(p, v, 0, t) ).
+
+# --- Aggregation Logic (Recursive Steps) ---
+
+# 3. For the next voter in the sequence, add their 'yes' vote weight to the previous cumulative total.
+# (next_voter_for_proposal(p, v1, v2) & cumulative_yes_weight_up_to(p, v1, w1, t) & vote_is_yes(v2, p, t) & vote_weight(v2, p, w2, t) & sum(w1, w2, w3)) -> cumulative_yes_weight_up_to(p, v2, w3, t)
+always( (next_voter_for_proposal(p, v1, v2) & cumulative_yes_weight_up_to(p, v1, w1, t) & vote_is_yes(v2, p, t) & vote_weight(v2, p, w2, t) & sum(w1, w2, w3))' | cumulative_yes_weight_up_to(p, v2, w3, t) ).
+
+# 4. If the next voter did not vote 'yes', the cumulative 'yes' weight does not change.
+# (next_voter_for_proposal(p, v1, v2) & cumulative_yes_weight_up_to(p, v1, w1, t) & vote_is_yes(v2, p, t)') -> cumulative_yes_weight_up_to(p, v2, w1, t)
+always( (next_voter_for_proposal(p, v1, v2) & cumulative_yes_weight_up_to(p, v1, w1, t) & vote_is_yes(v2, p, t)')' | cumulative_yes_weight_up_to(p, v2, w1, t) ).
+
+# --- Final Totals ---
+
+# 5. The final total 'yes' weight for a proposal is the cumulative weight of the last voter in the sequence.
+# (last_voter_for_proposal(p, v) & cumulative_yes_weight_up_to(p, v, w, t)) -> total_yes_weight(p, w, t)
+always( (last_voter_for_proposal(p, v) & cumulative_yes_weight_up_to(p, v, w, t))' | total_yes_weight(p, w, t) ).
+
+# --- Aggregation Logic for Total Vote Weight ---
+
+# 6. The cumulative total weight for the first voter is their own vote weight.
+# (first_voter_for_proposal(p, v) & vote_weight(v, p, w, t)) -> cumulative_total_weight_up_to(p, v, w, t)
+always( (first_voter_for_proposal(p, v) & vote_weight(v, p, w, t))' | cumulative_total_weight_up_to(p, v, w, t) ).
+
+# 7. For the next voter, add their vote weight to the previous cumulative total.
+# (next_voter_for_proposal(p, v1, v2) & cumulative_total_weight_up_to(p, v1, w1, t) & vote_weight(v2, p, w2, t) & sum(w1, w2, w3)) -> cumulative_total_weight_up_to(p, v2, w3, t)
+always( (next_voter_for_proposal(p, v1, v2) & cumulative_total_weight_up_to(p, v1, w1, t) & vote_weight(v2, p, w2, t) & sum(w1, w2, w3))' | cumulative_total_weight_up_to(p, v2, w3, t) ).
+
+# 8. The final total vote weight for a proposal is the cumulative weight of the last voter.
+# (last_voter_for_proposal(p, v) & cumulative_total_weight_up_to(p, v, w, t)) -> total_vote_weight(p, w, t)
+always( (last_voter_for_proposal(p, v) & cumulative_total_weight_up_to(p, v, w, t))' | total_vote_weight(p, w, t) ).
+
+
+# --- Quorum and Majority Definitions ---
+# These rules connect the aggregated weights to the abstract quorum/majority predicates.
+
+# --- Abstract Comparison Predicates ---
+# Defines that a is greater than or equal to b.
+greater_than_or_equal_to(a, b).
+# Defines that a is greater than b.
+greater_than(a, b).
+# Defines a threshold for a proposal.
+quorum_threshold(p, q).
+
+# --- Quorum/Majority Logic ---
+
+# 1. A proposal meets quorum if the total vote weight is >= the required quorum amount.
+# (total_vote_weight(p, w, t) & quorum_threshold(p, q) & greater_than_or_equal_to(w, q)) -> meets_quorum(p, t)
+always( (total_vote_weight(p, w, t) & quorum_threshold(p, q) & greater_than_or_equal_to(w, q))' | meets_quorum(p, t) ).
+
+# 2. A proposal meets majority if the total 'yes' weight is > half the total vote weight.
+# (total_yes_weight(p, yw, t) & total_vote_weight(p, tw, t) & sum(half_tw, half_tw, tw) & greater_than(yw, half_tw)) -> meets_majority(p, t)
+# Note: `sum(half_tw, half_tw, tw)` is a way to represent `half_tw = tw / 2`.
+always( (total_yes_weight(p, yw, t) & total_vote_weight(p, tw, t) & sum(half_tw, half_tw, tw) & greater_than(yw, half_tw))' | meets_majority(p, t) ).
+
+
+# --- Example Scenario & Verification ---
+# This section provides a concrete set of facts to test the specification
+# and a `solve` command to prove a property about the outcome.
+
+# --- Scenario Facts ---
+
+# Entities
+is_voter(alice).
+is_voter(bob).
+is_proposal(p1).
+
+# Voter ordering for proposal p1
+first_voter_for_proposal(p1, alice).
+next_voter_for_proposal(p1, alice, bob).
+
+# State at time t=0 (voting period)
+proposal_is_active(p1, 0).
+has_token_balance(alice, 100, 0).
+has_token_balance(bob, 50, 0).
+
+# Votes cast at t=0
+vote_is_yes(alice, p1, 0).
+vote_is_no(bob, p1, 0).
+
+# State at time t=1 (decision period)
+proposal_is_active(p1, 1)'. # Proposal is no longer active
+
+# --- Thresholds and Arithmetic Facts ---
+# These would be provided by an external oracle or built-in functions.
+
+# Quorum for p1 is 150.
+quorum_threshold(p1, 150).
+
+# Arithmetic facts needed for this scenario
+sum(100, 50, 150).
+sum(75, 75, 150).
+sum(100, 0, 100).
+greater_than_or_equal_to(150, 150).
+greater_than(100, 75).
+
+# --- Verification Query ---
+# Prove that given the facts above, the proposal must have passed at time t=1.
+# The solver should find this UNSATISFIABLE, meaning the conclusion `proposal_passed(p1, 1)'`
+# is impossible, thus proving the proposal *must* have passed.
+
+solve proposal_passed(p1, 1)'.

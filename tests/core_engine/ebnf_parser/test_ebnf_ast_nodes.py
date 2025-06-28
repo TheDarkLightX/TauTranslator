@@ -5,7 +5,7 @@ Following TDD principles - test first, implement after.
 """
 
 import pytest
-from tau_translator_omega.core_engine.ebnf_parser.ebnf_ast_nodes import (
+from tau_translator_omega.core_engine.parsers.ebnf_parser.ebnf_ast_nodes import (
     EBNFNode, GrammarNode, RuleNode, ChoiceNode, SequenceNode,
     TerminalNode, NonTerminalNode, OptionalNode, RepetitionNode,
     GroupNode, LiteralNode, RegexNode, ExpressionNode,

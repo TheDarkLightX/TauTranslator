@@ -1,0 +1,4 @@
+# Tau Specification: Pointwise Revision Single Update Test
+# This specification tests the computational cost of a single, non-contradictory
+# update using the pointwise revision feature.
+run u[t] = i1[t]

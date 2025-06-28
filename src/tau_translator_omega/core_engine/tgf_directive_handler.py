@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Optional, List, Tuple
 if TYPE_CHECKING:
     from .tgf_preprocessor import TgfPreprocessor
 
-from .preprocessor_directives import PreprocessorDirective, IncludeDirective, DefineDirective, UndefDirective, PragmaDirective, TokenDirective, IfDirective, IfDefDirective, IfNDefDirective, ElifDirective, ElseDirective, EndIfDirective
-from .preprocessor_errors import IncludeFileNotFoundError, CircularIncludeError, MacroDefinitionError, ConditionalDirectiveError
+from .preprocessing.preprocessor_directives import PreprocessorDirective, IncludeDirective, DefineDirective, UndefDirective, PragmaDirective, TokenDirective, IfDirective, IfDefDirective, IfNDefDirective, ElifDirective, ElseDirective, EndIfDirective
+from .preprocessing.preprocessor_errors import IncludeFileNotFoundError, CircularIncludeError, MacroDefinitionError, ConditionalDirectiveError
 
 class TGFDirectiveHandler:
     def __init__(self, preprocessor: 'TgfPreprocessor'):

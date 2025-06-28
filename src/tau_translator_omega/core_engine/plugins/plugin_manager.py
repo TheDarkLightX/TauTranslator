@@ -9,10 +9,10 @@ import inspect
 from datetime import datetime
 
 from .grammar_plugin_validator import GrammarPluginValidator
-from .semantic_construct_plugin_validator import SemanticConstructPluginValidator
+
 from .generic_plugin_validator import GenericPluginValidator
-from .plugin import Plugin, PluginEntryPoint, BasePluginValidator
-from .version_handler import VersionHandler
+from ..plugin import Plugin, PluginEntryPoint, BasePluginValidator
+from ..version_handler import VersionHandler
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ class PluginManager:
         """Initialize plugin validators for different plugin types."""
         self.plugin_validators: Dict[str, BasePluginValidator] = {
             "grammar_definition": GrammarPluginValidator(self.core_ilr_version_str, logger),
-            "semantic_construct": SemanticConstructPluginValidator(self.core_ilr_version_str, logger),
+            "semantic_construct": GenericPluginValidator(self.core_ilr_version_str, logger),
             "generic": GenericPluginValidator(self.core_ilr_version_str, logger)
         }
 

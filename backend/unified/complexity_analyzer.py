@@ -142,7 +142,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
 def analyze_parser_files():
     """Analyze all parser files."""
-    base_path = Path("~/TauTranslator/backend/unified")
+    base_path = Path(__file__).resolve().parent
     parser_files = [
         "tce_parser_v1_01.py",
         "tce_parser_v1_51.py", 

@@ -1,0 +1,11 @@
+stock_is_one[0]():=T
+stock_is_zero[0]():=F
+balance_is_zero[0]():=T
+balance_is_one[0]():=F
+action_purchase[0]():=T
+stock_is_one[1]():=(stock_is_one[0]()&(action_purchase[0]())')|(stock_is_zero[0]()&action_purchase[0]())
+stock_is_zero[1]():=stock_is_one[0]()&action_purchase[0]()
+balance_is_one[1]():=balance_is_zero[0]()&action_purchase[0]()
+balance_is_zero[1]():=(balance_is_zero[0]()&(action_purchase[0]())')|(balance_is_one[0]()&action_purchase[0]())
+valid_final_state():=stock_is_zero[1]()&balance_is_one[1]()
+solve valid_final_state()

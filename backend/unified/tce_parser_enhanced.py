@@ -17,7 +17,8 @@ from backend.unified.core.plugin_system import PluginManager, create_plugin_mana
 from backend.unified.core.gradient_descent_parser import GradientDescentParser, create_gradient_descent_parser
 from backend.unified.core.parser_combinators import TCEParserCombinator, create_tce_parser_combinator
 from backend.unified.core.semantic_lexicon import SemanticLexicon, get_semantic_lexicon
-from backend.unified.core.result_enhanced import Result, Success, Failure
+from returns.result import Result, Success, Failure
+from backend.unified.core.error_handling import AppError
 
 
 @dataclass
@@ -46,15 +47,15 @@ class ParsingStrategy:
 def create_parsing_strategies(enhanced_parser) -> List[ParsingStrategy]:
     """Create list of parsing strategies."""
     return [
-        ParsingStrategy("plugin_system", enhanced_parser._parse_with_plugins, priority=90),
-        ParsingStrategy("neural_network", enhanced_parser._parse_with_neural, priority=80),
+        ParsingStrategy("neural_network", enhanced_parser._parse_with_neural, priority=90),
+        ParsingStrategy("plugin_system", enhanced_parser._parse_with_plugins, priority=80),
         ParsingStrategy("parser_combinators", enhanced_parser._parse_with_combinators, priority=70),
         ParsingStrategy("semantic_v2", enhanced_parser._parse_with_semantic, priority=60),
         ParsingStrategy("fallback", enhanced_parser._parse_fallback, priority=10)
     ]
 
 
-def try_parsing_strategy(strategy: ParsingStrategy, text: str) -> Result[str]:
+def try_parsing_strategy(strategy: ParsingStrategy, text: str) -> Result[str, Any]:
     """Try single parsing strategy."""
     if not strategy.enabled:
         return create_strategy_disabled_error(strategy.name)
@@ -62,24 +63,48 @@ def try_parsing_strategy(strategy: ParsingStrategy, text: str) -> Result[str]:
     return strategy.parser_func(text)
 
 
-def create_strategy_disabled_error(strategy_name: str) -> Result[str]:
+def create_strategy_disabled_error(strategy_name: str) -> Result[str, ParseError]:
     """Create error for disabled strategy."""
     from backend.unified.core.error_handling import create_parse_error, ErrorType
-    return Failure("STRATEGY_DISABLED", f"Strategy '{strategy_name}' is disabled")
+    return Failure(create_parse_error(
+        error_type=ErrorType.STRATEGY_DISABLED,
+        message=f"Strategy '{strategy_name}' is disabled"
+    ))
 
 
 def execute_parsing_strategies(strategies: List[ParsingStrategy], text: str) -> Tuple[Optional[str], List[ParseError]]:
     """Execute parsing strategies in priority order."""
     errors = []
+    print(f"\n[EPS] Executing strategies for text: '{text}'")
     
     for strategy in sorted(strategies, key=lambda s: s.priority, reverse=True):
+        print(f"[EPS] Trying strategy: {strategy.name} (priority {strategy.priority})")
         result = try_parsing_strategy(strategy, text)
+        print(f"[EPS] Strategy {strategy.name} returned: type={type(result)}, value={result}")
         
         if isinstance(result, Success):
+            print(f"[EPS] Strategy {strategy.name} SUCCEEDED. Current errors before this success: {errors}. Returning value: {result.unwrap()}")
             return result.unwrap(), errors
-        else:
-            errors.append(result.failure())
+        else:  # result is a Failure
+            failure_payload = result.failure()
+            if isinstance(failure_payload, ParseError):
+                errors.append(failure_payload)
+            elif isinstance(failure_payload, AppError):
+                errors.append(create_parse_error(
+                    error_type=ErrorType.PLUGIN_ERROR,
+                    message=failure_payload.message,
+                    context=ErrorContext(strategy=strategy.name)
+                ))
+            else:
+                # Handle other unknown error types
+                errors.append(create_parse_error(
+                    error_type=ErrorType.UNKNOWN_ERROR,
+                    message=str(failure_payload),
+                    context=ErrorContext(strategy=strategy.name)
+                ))
+            print(f"[EPS] Strategy {strategy.name} FAILED. Appended error. Current errors: {errors}")
     
+    print(f"[EPS] All strategies tried. Returning None, errors: {errors}")
     return None, errors
 
 
@@ -101,7 +126,7 @@ def extract_parse_components(parsed_result: str) -> Dict:
 
 
 def create_enhanced_result(text: str, parsed_result: str, method: str, confidence: float, 
-                         validation: ValidationResult, suggestions: List[str] = None) -> EnhancedParseResult:
+                         validation: ValidationResult, suggestions: List[str] = None, errors: List[ParseError] = None) -> EnhancedParseResult:
     """Create enhanced parse result."""
     return EnhancedParseResult(
         parsed_text=parsed_result,
@@ -109,7 +134,8 @@ def create_enhanced_result(text: str, parsed_result: str, method: str, confidenc
         confidence=confidence,
         validation_result=validation,
         suggestions=suggestions or [],
-        metadata={'input_length': len(text), 'method': method}
+        metadata={'input_length': len(text), 'method': method},
+        errors=errors if errors is not None else []
     )
 
 
@@ -169,6 +195,7 @@ class EnhancedTCEParser:
     
     def parse(self, text: str) -> EnhancedParseResult:
         """Parse text with comprehensive error handling and validation."""
+        text = text.strip() # Ensure consistent handling of leading/trailing whitespace
         self.parse_stats['total_parses'] += 1
         
         # Attempt parsing with all strategies
@@ -221,7 +248,8 @@ class EnhancedTCEParser:
             method="multi_strategy",
             confidence=confidence,
             validation=validation,
-            suggestions=suggestions
+            suggestions=suggestions,
+            errors=errors
         )
     
     def _create_failed_result(self, text: str, errors: List[ParseError]) -> EnhancedParseResult:
@@ -282,16 +310,16 @@ class EnhancedTCEParser:
     
     # === STRATEGY IMPLEMENTATIONS ===
     
-    def _parse_with_plugins(self, text: str) -> Result[str]:
-        """Parse using plugin system."""
+    def _parse_with_plugins(self, text: str) -> Result[str, AppError]:
+        """Parse using plugin manager."""
         return self.plugin_manager.parse_with_plugins(text)
     
-    def _parse_with_neural(self, text: str) -> Result[str]:
-        """Parse using neural network."""
+    def _parse_with_neural(self, text: str) -> Result[str, AppError]:
+        """Parse using gradient descent neural network."""
         context = ParseContext(original_text=text, preprocessed_text=text)
         return self.neural_parser.process(text, context)
     
-    def _parse_with_combinators(self, text: str) -> Result[str]:
+    def _parse_with_combinators(self, text: str) -> Result[str, ParseError]:
         """Parse using parser combinators."""
         result = self.combinator_parser.parse(text)
         if isinstance(result, Success):
@@ -299,7 +327,7 @@ class EnhancedTCEParser:
         else:
             return Failure("COMBINATOR_PARSE_FAILED", f"Combinator parsing failed: {result.failure()}")
     
-    def _parse_with_semantic(self, text: str) -> Result[str]:
+    def _parse_with_semantic(self, text: str) -> Result[str, AppError]:
         """Parse using semantic parser."""
         try:
             result = self.semantic_parser.parse(text)
@@ -307,7 +335,7 @@ class EnhancedTCEParser:
         except Exception as e:
             return Failure("SEMANTIC_PARSE_FAILED", f"Semantic parsing failed: {e}")
     
-    def _parse_fallback(self, text: str) -> Result[str]:
+    def _parse_fallback(self, text: str) -> Result[str, AppError]:
         """Fallback parsing strategy."""
         # Simple fallback - just return the text
         return Success(f"fallback({text})")

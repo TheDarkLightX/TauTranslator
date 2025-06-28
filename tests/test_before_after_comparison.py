@@ -6,9 +6,6 @@ Shows the improvement in English parsing capabilities.
 Copyright: DarkLightX / Dana Edwards
 """
 
-import os
-import sys
-from pathlib import Path
 
 print("📊 BEFORE/AFTER COMPARISON - COMPLEX ENGLISH PARSING")
 print("=" * 70)
@@ -31,15 +28,10 @@ print("• Could not parse even basic English")
 print("• Breaking point: Level 1 (simplest sentences)")
 print()
 
-print("✅ AFTER (With Complex English Parser):")
+print(" AFTER (With Complex English Parser):")
 print("-" * 50)
 
-# Add paths
-project_root = Path(__file__).parent
-backend_path = project_root / "backend/unified"
-sys.path.insert(0, str(backend_path))
-
-from domain.complex_english_parser import parse_complex_english
+from backend.unified.domain.complex_english_parser import parse_complex_english
 
 success_count = 0
 for sentence in test_sentences:

@@ -10,6 +10,8 @@ import tempfile
 import time
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 def create_mutated_ast_nodes(original_content, mutations):
     """Create mutated versions of the AST nodes file."""
     mutated_files = []
@@ -30,7 +32,7 @@ def run_test_against_mutant(mutated_content, test_file):
     
     try:
         # Replace the original file temporarily
-        original_ast_file = "~/TauTranslator/src/tau_translator_omega/core_engine/ast/ast_nodes.py"
+        original_ast_file = PROJECT_ROOT / "src/tau_translator_omega/core_engine/ast/ast_nodes.py"
         
         # Backup original
         with open(original_ast_file, 'r') as f:
@@ -42,14 +44,14 @@ def run_test_against_mutant(mutated_content, test_file):
         
         # Run test
         env = os.environ.copy()
-        env['PYTHONPATH'] = '~/TauTranslator/src'
+        env['PYTHONPATH'] = str(PROJECT_ROOT / 'src')
         
         result = subprocess.run([
             sys.executable, '-m', 'pytest', 
             test_file, 
             '-x', '--tb=no', '--disable-warnings', '-q'
         ], 
-        cwd='~/TauTranslator',
+        cwd=str(PROJECT_ROOT),
         env=env,
         capture_output=True, 
         text=True)
@@ -70,7 +72,7 @@ def main():
     print("=" * 70)
     
     # Read original AST nodes file
-    ast_file = "~/TauTranslator/src/tau_translator_omega/core_engine/ast/ast_nodes.py"
+    ast_file = PROJECT_ROOT / "src/tau_translator_omega/core_engine/ast/ast_nodes.py"
     with open(ast_file, 'r') as f:
         original_content = f.read()
     

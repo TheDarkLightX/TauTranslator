@@ -17,13 +17,32 @@ from .translation_strategies import (
     PatternBasedTranslationStrategy, LMQLTranslationStrategy,
     TranslationStrategyFactory
 )
-from ..core_engine.grammar_driven_parser import (
+from ..core_engine.parsers.grammar_driven_parser import (
     GrammarDrivenParser, GrammarDrivenTranslationStrategy,
     TranslationMode
 )
-from ..core_engine.tgf_grammar_loader import get_grammar_loader
+from pathlib import Path
+from ..core_engine.grammar_processing import TGFGrammarService
+from ..infrastructure.grammar_io import GrammarRepository
 
 logger = logging.getLogger(__name__)
+
+
+def get_grammar_service() -> TGFGrammarService:
+    """Creates and returns a default TGFGrammarService instance."""
+    # This logic is borrowed from GrammarDrivenParser to ensure consistency
+    default_grammar_dir = Path("grammars")
+    default_config_file = Path("config/grammar-files.json")
+
+    if not default_config_file.parent.exists():
+        try:
+            default_config_file.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Created default config directory: {default_config_file.parent}")
+        except OSError as e:
+            logger.error(f"Could not create config directory {default_config_file.parent}: {e}")
+
+    repository = GrammarRepository(default_grammar_dir, default_config_file)
+    return TGFGrammarService(repository)
 
 
 class TranslationMethod(Enum):
@@ -46,7 +65,7 @@ class GrammarIntegratedTranslator:
     """
     
     def __init__(self):
-        self.grammar_loader = get_grammar_loader()
+        self.grammar_service = get_grammar_service()
         self.strategies = self._initialize_strategies()
         self.default_method = TranslationMethod.HYBRID
         
@@ -66,7 +85,7 @@ class GrammarIntegratedTranslator:
                 strategies[TranslationMethod.GRAMMAR_DRIVEN] = grammar_strategy
                 logger.info("Grammar-driven translation available")
         except Exception as e:
-            logger.warning(f"Grammar-driven translation not available: {e}")
+            logger.warning(f"Grammar-driven translation not available. Exception type: {type(e)}, Exception repr: {repr(e)}")
         
         # LMQL strategy (if available)
         try:

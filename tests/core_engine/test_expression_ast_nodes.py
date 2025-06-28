@@ -4,7 +4,7 @@ Tests for expression-related AST nodes.
 """
 
 import unittest
-from tau_translator_omega.core_engine.ast_nodes import (
+from tau_translator_omega.core_engine.ast.ast_nodes import (
     ASTNode, SourceLocation, IdentifierNode, LiteralNode, 
     BinaryExpressionNode, UnaryExpressionNode
 )

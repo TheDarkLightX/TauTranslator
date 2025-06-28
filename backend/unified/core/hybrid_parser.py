@@ -11,7 +11,7 @@ import logging
 
 from backend.unified.core.gradient_descent_parser import GradientDescentParser
 from backend.unified.core.plugin_system import LearningPlugin, PluginMetadata, PluginType, ParseContext
-from backend.unified.core.result_enhanced import Result, Success, Failure
+from .domain_types import Result, Success, Failure, AppError
 
 
 @dataclass

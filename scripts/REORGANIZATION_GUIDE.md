@@ -28,7 +28,7 @@ core_engine/
 Always start with a dry run to see what changes will be made:
 
 ```bash
-cd ~/TauTranslator
+cd /path/to/your/TauTranslator
 python scripts/reorganize_core_engine.py --dry-run
 ```
 

@@ -15,7 +15,7 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.ilr_pattern_handlers import (
+from tau_translator_omega.core_engine.ilr.ilr_pattern_handlers import (
     PatternHandler, SBFInputHandler, SBFOutputHandler, StreamRuleHandler,
     TemporalAlwaysHandler, ConditionalHandler, AssignmentHandler,
     BooleanOperationHandler, PatternHandlerRegistry

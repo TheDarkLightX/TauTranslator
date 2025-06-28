@@ -30,7 +30,7 @@ class TauPatternAnalyzer(PatternAnalyzer):
     Analyzes Tau Language text patterns without using IDNI parser.
     Uses regex and heuristics for pattern recognition.
     
-    Follows VibeArchitect principles:
+    
     - Single Responsibility: Only Tau pattern analysis
     - Immutable patterns dictionary
     - Clear error handling
@@ -145,7 +145,7 @@ class TCEPatternAnalyzer(PatternAnalyzer):
     """
     Analyzes TCE (Tau Controlled English) patterns.
     
-    Follows VibeArchitect principles:
+    
     - Single Responsibility: Only TCE pattern analysis
     - Clear pattern priority ordering
     - Comprehensive error handling

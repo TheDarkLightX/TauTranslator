@@ -17,13 +17,13 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.nlp_enhanced.requirements_analyzer import (
+from tau_translator_omega.core_engine.translators.nlp_enhanced.requirements_analyzer import (
     RequirementsAnalyzer, RequirementType, FormalConstraint
 )
-from tau_translator_omega.core_engine.nlp_enhanced.english_to_tau_translator import (
+from tau_translator_omega.core_engine.translators.nlp_enhanced.english_to_tau_translator import (
     EnglishToTauTranslator, TranslationResult, ConfidenceScore
 )
-from tau_translator_omega.core_engine.nlp_enhanced.amr_semantic_layer import (
+from tau_translator_omega.core_engine.translators.nlp_enhanced.amr_semantic_layer import (
     AMRSemanticAnalyzer
 )
 

@@ -80,6 +80,7 @@ class TestDeclarativeContext:
         assert len(context.temporal_properties) == 1
         assert context.temporal_properties[0].quantifier == "always"
 
+from lark import Tree, Token
 
 class TestDeclarativeTCETransformer:
     """Test DeclarativeTCETransformer."""
@@ -94,47 +95,54 @@ class TestDeclarativeTCETransformer:
         assert isinstance(self.transformer.context, DeclarativeContext)
     
     def test_fact_processing_is_property(self):
-        """Test processing 'X is Y' facts."""
-        # Simulate parse tree items
-        items = [
-            Mock(value="john"),  # entity
-            Mock(type="IS"),     # operator
-            Mock(value="tall")   # property
-        ]
-        
-        result = self.transformer.fact(items)
-        
-        assert result is not None
-        assert result['type'] == 'property'
-        assert result['tau'] == 'john_is_tall'
+            """Test processing 'X is a Y' facts with realistic tree structure."""
+            # Simulate the parse tree for "socrates is a person"
+            tree = Tree('is_a_fact', [
+                Tree('entity', [Token('WORD', 'socrates')]),
+                Tree('entity_class', [Token('WORD', 'person')])
+            ])
+    
+            result = self.transformer.fact([tree])
+    
+            assert result is not None
+            assert result['type'] == 'fact'
+            assert result['tau'] == 'is_person(socrates)'
+
+
+
     
     def test_fact_processing_has_property(self):
-        """Test processing 'X has Y' facts."""
-        items = [
-            Mock(value="car"),
-            Mock(type="HAS"),
-            Mock(value="wheels")
-        ]
-        
-        result = self.transformer.fact(items)
-        
-        assert result['type'] == 'property'
-        assert result['tau'] == 'has(car, wheels)'
+            """Test processing 'X has Y' facts with realistic tree structure."""
+            tree = Tree('has_fact', [
+                Tree('entity', [Token('WORD', 'car')]),
+                Tree('entity', [Token('WORD', 'wheels')])
+            ])
+    
+            result = self.transformer.fact([tree])
+    
+            assert result is not None
+            assert result['type'] == 'fact'
+            assert result['tau'] == 'has(car, wheels)'
+
+
+
     
     def test_fact_processing_comparison(self):
-        """Test processing comparison facts."""
-        items = [
-            Mock(value="x"),
-            Mock(type="GREATER_THAN", value=">"),
-            Mock(value="5")
-        ]
-        
-        # Need to mock the comparison mapping
-        with patch.object(self.transformer, '_map_comparison_op', return_value='>'):
-            result = self.transformer.fact(items)
-        
-        assert result['type'] == 'constraint'
-        assert 'x > 5' in result['tau']
+            """Test processing comparison facts with realistic tree structure."""
+            tree = Tree('comparison', [
+                Tree('term', [Tree('entity', [Token('WORD', 'x')])]),
+                Tree('relational_op', [Token('GREATER_THAN', 'is greater than')]),
+                Tree('term', [Token('NUMBER', '5')])
+            ])
+    
+            result = self.transformer.comparison(tree.children)
+    
+            assert result is not None
+            assert result['type'] == 'constraint'
+            assert result['tau'] == 'x > 5'
+
+
+
     
     def test_quantified_property_all(self):
         """Test processing 'all X are Y'."""
@@ -256,18 +264,25 @@ class TestDeclarativeTCETransformer:
         assert self.transformer.context.entities["john"].entity_class == "person"
     
     def test_comparison_operator_mapping(self):
-        """Test comparison operator mapping."""
-        test_cases = [
-            (Mock(value="equals"), "="),
-            (Mock(value="greater than"), ">"),
-            (Mock(value="less than"), "<"),
-            (Mock(value="at most"), "<="),
-            (Mock(value="at least"), ">=")
-        ]
-        
-        for token, expected in test_cases:
-            result = self.transformer._map_comparison_op(token)
-            assert result == expected
+            """Test the internal mapping of comparison operators."""
+            op_map = {
+                'is greater than': '>',
+                'greater than': '>',
+                'is less than': '<',
+                'less than': '<',
+                'equals': '==',
+                'is equal to': '=='
+            }
+    
+            for op_text, expected_symbol in op_map.items():
+                # Create a mock tree structure that the method expects
+                mock_token = Token('TEMP', op_text)
+                mock_tree = Tree('relational_op', [mock_token])
+                
+                # Directly test the helper method
+                result = self.transformer._map_comparison_op(mock_tree)
+                assert result == expected_symbol
+
 
 
 class TestDeclarativeTCEParser:
@@ -432,6 +447,42 @@ class TestDeclarativeIntegration:
             # Should transform to formal notation
             assert any(keyword in result.lower() for keyword in 
                       ['all', '∀', 'every', '->'])
+
+
+def test_cnl_parser_instantiation_and_basic_parsing():
+    """Tests that the CNLParser can be instantiated and can parse a simple TCE string."""
+    from tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
+    from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
+        ASTNode, TemporalQuantifierNode, ComparisonNode, VariableNode, BitVectorNode, BitVectorType
+    )
+
+    parser = CNLParser()
+    ast = parser.parse("always (x equals 5)")
+    assert ast is not None
+    assert isinstance(ast, ASTNode)
+    
+    # Deeper inspection of the AST
+    assert isinstance(ast, TemporalQuantifierNode)
+    assert ast.quantifier == 'always'
+    
+    # The inner expression should be a ComparisonNode
+    inner_expr = ast.expression
+    assert isinstance(inner_expr, ComparisonNode)
+    assert inner_expr.operator == 'equals'
+    
+    # Check the left and right hand sides of the comparison
+    assert isinstance(inner_expr.left, VariableNode)
+    assert inner_expr.left.name == 'x'
+    assert isinstance(inner_expr.right, BitVectorNode)
+    assert inner_expr.right.value == '5'
+    assert inner_expr.right.type == BitVectorType.INT
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

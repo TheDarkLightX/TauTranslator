@@ -1,0 +1,20 @@
+data[0]():=T
+data[1]():=F
+data[2]():=T
+data[3]():=F
+hash_input[0]():=data[0]()
+hash_input[1]():=data[1]()
+hash_input[2]():=data[2]()
+hash_input[3]():=data[3]()
+hash_input[4]():=nonce[0]()
+hash_input[5]():=nonce[1]()
+hash_input[6]():=nonce[2]()
+hash_input[7]():=nonce[3]()
+output[0]():=hash_input[0]()+hash_input[4]()
+output[1]():=hash_input[1]()&hash_input[5]()
+output[2]():=hash_input[2]()|hash_input[6]()
+output[3]():=(hash_input[3]()+hash_input[7]())'
+target[0]():=F
+target[1]():=F
+meets_target():=((output[0]())'&(target[0]())'|(output[0]()&target[0]()))&((output[1]())'&(target[1]())'|(output[1]()&target[1]()))
+solve meets_target()

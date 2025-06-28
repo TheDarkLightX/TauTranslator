@@ -2,8 +2,9 @@ import pytest
 from unittest.mock import Mock, patch, mock_open
 from pathlib import Path
 import json
-from tau_translator_omega.core_engine.plugin_manager import PluginManager
-from tau_translator_omega.core_engine.version_handler import VersionHandler
+from tau_translator_omega.core_engine.plugins.plugin_manager import PluginManager
+from tau_translator_omega.core_engine.plugins.version_handler import VersionHandler
+from tau_translator_omega.core_engine.plugins.plugin import Plugin, PluginEntryPoint
 import builtins
 import logging
 
@@ -194,7 +195,6 @@ class TestPluginManagerErrorHandling:
 
     def test_add_error_with_plugin(self, tmp_path):
         """Test adding error with plugin context"""
-        from tau_translator_omega.core_engine.plugin import Plugin, PluginEntryPoint
         
         manager = PluginManager(plugin_dirs=tmp_path)
         plugin = Plugin(
@@ -244,7 +244,6 @@ class TestPluginManagerGetters:
 
     def test_get_plugin_existing(self, tmp_path):
         """Test getting an existing plugin"""
-        from tau_translator_omega.core_engine.plugin import Plugin, PluginEntryPoint
         
         manager = PluginManager(plugin_dirs=tmp_path)
         plugin = Plugin(
@@ -276,7 +275,6 @@ class TestPluginManagerGetters:
 
     def test_get_all_plugins_multiple(self, tmp_path):
         """Test getting all plugins with multiple plugins"""
-        from tau_translator_omega.core_engine.plugin import Plugin, PluginEntryPoint
         
         manager = PluginManager(plugin_dirs=tmp_path)
         plugin1 = Plugin(

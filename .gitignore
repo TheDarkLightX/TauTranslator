@@ -145,3 +145,14 @@ mutants/
 
 # Submodules and external repos
 mcp-memory-service/acli
+.external_deps/
+
+# Serena & Windsurf
+.serena/
+
+# Deprecated and Trash
+depreciated/
+_trash/
+backups/
+reports/
+

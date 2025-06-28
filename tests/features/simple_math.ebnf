@@ -1,0 +1,19 @@
+?start: (statement ";")* expr
+
+statement: "let" CNAME "=" expr
+
+?expr: term (OP_PLUS_MINUS term)*
+?term: factor (OP_MUL_DIV factor)*
+?factor: atom | parenthesized_expr
+
+parenthesized_expr: "(" expr ")"
+
+?atom: NUMBER | CNAME
+
+OP_PLUS_MINUS: "+" | "-"
+OP_MUL_DIV: "*" | "/"
+
+%import common.CNAME
+%import common.NUMBER
+%import common.WS
+%ignore WS

@@ -51,7 +51,7 @@ class TestBinaryArithmeticConstructs:
             }
         ]
         
-        from src.tau_translator_omega.core_engine.binary_arithmetic_recognizer import BinaryArithmeticRecognizer
+        from tau_translator_omega.core_engine.binary_arithmetic_recognizer import BinaryArithmeticRecognizer
         recognizer = BinaryArithmeticRecognizer()
         
         for test in test_cases:
@@ -69,7 +69,7 @@ class TestBinaryArithmeticConstructs:
             ("(a & b) | (a & c) | (b & c)", "majority of a, b, and c", "carry logic")
         ]
         
-        from src.tau_translator_omega.core_engine.binary_translator import BinaryTranslator
+        from tau_translator_omega.core_engine.binary_translator import BinaryTranslator
         translator = BinaryTranslator()
         
         for tau_expr, expected_english, context in test_cases:
@@ -92,7 +92,7 @@ class TestStreamFileOperations:
             "file": "input1.in"
         }
         
-        from src.tau_translator_omega.core_engine.stream_recognizer import StreamRecognizer
+        from tau_translator_omega.core_engine.stream_recognizer import StreamRecognizer
         recognizer = StreamRecognizer()
         result = recognizer.recognize(tau_code)
         
@@ -110,7 +110,7 @@ class TestStreamFileOperations:
             "file": "/simple_test/outputs/consensus.out"
         }
         
-        from src.tau_translator_omega.core_engine.stream_recognizer import StreamRecognizer
+        from tau_translator_omega.core_engine.stream_recognizer import StreamRecognizer
         recognizer = StreamRecognizer()
         result = recognizer.recognize(tau_code)
         
@@ -123,7 +123,7 @@ class TestStreamFileOperations:
             ('sbf o2 = ofile("result.out")', 'Define output stream o2 that writes to file "result.out"'),
         ]
         
-        from src.tau_translator_omega.core_engine.stream_translator import StreamTranslator
+        from tau_translator_omega.core_engine.stream_translator import StreamTranslator
         translator = StreamTranslator()
         
         for tau, expected in test_cases:
@@ -142,7 +142,7 @@ class TestLogicGatePatterns:
     ])
     def test_recognize_logic_gates(self, tau, gate_type, description):
         """Test recognition of standard logic gate patterns."""
-        from src.tau_translator_omega.core_engine.logic_gate_recognizer import LogicGateRecognizer
+        from tau_translator_omega.core_engine.logic_gate_recognizer import LogicGateRecognizer
         recognizer = LogicGateRecognizer()
         
         result = recognizer.recognize(tau)
@@ -159,7 +159,7 @@ class TestLogicGatePatterns:
             "OR"
         ]
         
-        from src.tau_translator_omega.core_engine.logic_gate_translator import LogicGateTranslator
+        from tau_translator_omega.core_engine.logic_gate_translator import LogicGateTranslator
         translator = LogicGateTranslator()
         
         result = translator.tau_to_english(tau)
@@ -174,7 +174,7 @@ class TestDemocracyConsensus:
         """Test recognition of majority vote pattern (2 out of 3)."""
         tau = "r o1[t] = (i1[t] & i2[t]) | (i2[t] & i3[t]) | (i1[t] & i3[t])"
         
-        from src.tau_translator_omega.core_engine.consensus_recognizer import ConsensusRecognizer
+        from tau_translator_omega.core_engine.consensus_recognizer import ConsensusRecognizer
         recognizer = ConsensusRecognizer()
         
         result = recognizer.recognize(tau)
@@ -187,7 +187,7 @@ class TestDemocracyConsensus:
         """Test translation describes majority voting correctly."""
         tau = "r o1[t] = (i1[t] & i2[t]) | (i2[t] & i3[t]) | (i1[t] & i3[t])"
         
-        from src.tau_translator_omega.core_engine.consensus_translator import ConsensusTranslator
+        from tau_translator_omega.core_engine.consensus_translator import ConsensusTranslator
         translator = ConsensusTranslator()
         
         result = translator.tau_to_english(tau)
@@ -198,7 +198,7 @@ class TestDemocracyConsensus:
         """Test recognition of unanimous vote pattern."""
         tau = "r o2[t] = (i1[t] & i2[t] & i3[t])"
         
-        from src.tau_translator_omega.core_engine.consensus_recognizer import ConsensusRecognizer
+        from tau_translator_omega.core_engine.consensus_recognizer import ConsensusRecognizer
         recognizer = ConsensusRecognizer()
         
         result = recognizer.recognize(tau)
@@ -220,7 +220,7 @@ class TestTemporalDependencies:
             "description": "i4 at previous time step"
         }
         
-        from src.tau_translator_omega.core_engine.temporal_recognizer import TemporalRecognizer
+        from tau_translator_omega.core_engine.temporal_recognizer import TemporalRecognizer
         recognizer = TemporalRecognizer()
         
         result = recognizer.recognize_time_reference(tau)
@@ -230,7 +230,7 @@ class TestTemporalDependencies:
         """Test translation of rule with current and previous time."""
         tau = "r o3[t] = majority[t] & (consensus[t-1] | harmony[t])"
         
-        from src.tau_translator_omega.core_engine.temporal_translator import TemporalTranslator
+        from tau_translator_omega.core_engine.temporal_translator import TemporalTranslator
         translator = TemporalTranslator()
         
         result = translator.tau_to_english(tau)
@@ -252,7 +252,7 @@ class TestRoundTripTranslation:
     ])
     def test_tau_english_tau_preserves_semantics(self, original_tau):
         """Test that round-trip translation preserves semantic meaning."""
-        from src.tau_translator_omega.core_engine.roundtrip_translator import RoundtripTranslator
+        from tau_translator_omega.core_engine.roundtrip_translator import RoundtripTranslator
         translator = RoundtripTranslator()
         
         # First translation

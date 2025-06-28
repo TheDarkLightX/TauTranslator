@@ -3,7 +3,7 @@ TDD Tests for TCE to TAU Translation
 ====================================
 
 Test-Driven Development for core translation functionality.
-Following VibeArchitect principles: Write tests first, then implement.
+Write tests first, then implement, following TDD principles.
 """
 
 import pytest
@@ -13,8 +13,7 @@ import sys
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.tau_translator_omega.core_engine.parser import GrammarDrivenParser as Parser
-from src.tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer
+from tau_translator_omega.core_engine.translators.nlp_translator_refactored import TCEToTauTranslator
 
 
 class TestTCEToTauTranslation:

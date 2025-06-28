@@ -1,3 +1,6 @@
 jsonschema
 PyYAML
 semver
+pdoc3
+mkdocs
+mkdocs-material

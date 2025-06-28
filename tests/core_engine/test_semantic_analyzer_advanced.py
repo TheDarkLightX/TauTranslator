@@ -19,10 +19,10 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.semantic_analyzer import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import (
     SemanticAnalyzer, SemanticError, Symbol
 )
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     VariableDeclNode, VariableNode, ConstantNode, SentenceNode,
     AssignmentNode, ArithmeticBinaryOpNode, BooleanBinaryOpNode,
     ComparisonNode, PredicateCallNode, FunctionDefinitionNode,

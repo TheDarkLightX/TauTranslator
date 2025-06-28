@@ -12,10 +12,12 @@ from pathlib import Path
 import tempfile
 import json
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 def get_project_stats():
     """Get basic project statistics."""
-    src_files = list(Path("src").rglob("*.py"))
-    test_files = list(Path("tests").rglob("*.py"))
+    src_files = list((PROJECT_ROOT / "src").rglob("*.py"))
+    test_files = list((PROJECT_ROOT / "tests").rglob("*.py"))
     
     total_src_lines = 0
     for file in src_files:
@@ -41,7 +43,7 @@ def run_mutation_test_on_module(module_path, test_pattern):
     config_content = f"""[mutmut]
 paths_to_mutate = {module_path}
 backup = False
-runner = PYTHONPATH=~/TauTranslator/src python3 -m pytest {test_pattern} -x --tb=no --disable-warnings -q
+runner = f"PYTHONPATH={PROJECT_ROOT / 'src'} {sys.executable} -m pytest {test_pattern} -x --tb=no --disable-warnings -q"
 tests_dir = tests/
 """
     
@@ -56,12 +58,12 @@ tests_dir = tests/
         
         result = subprocess.run([
             sys.executable, '-m', 'mutmut', 'run'
-        ], capture_output=True, text=True, timeout=300)  # 5 minute timeout per module
+        ], capture_output=True, text=True, timeout=300, cwd=str(PROJECT_ROOT))  # 5 minute timeout per module
         
         # Get results
         results_output = subprocess.run([
             sys.executable, '-m', 'mutmut', 'results'
-        ], capture_output=True, text=True)
+        ], capture_output=True, text=True, cwd=str(PROJECT_ROOT))
         
         return {
             'success': result.returncode == 0,
@@ -161,8 +163,8 @@ def analyze_core_modules():
         basic_test = subprocess.run([
             sys.executable, '-m', 'pytest', module_info['tests'], 
             '--tb=no', '--disable-warnings', '-q'
-        ], capture_output=True, text=True, cwd='~/TauTranslator',
-        env={**os.environ, 'PYTHONPATH': '~/TauTranslator/src'})
+        ], capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+        env={**os.environ, 'PYTHONPATH': str(PROJECT_ROOT / 'src')})
         
         if basic_test.returncode != 0:
             print(f"  ❌ BASIC TESTS FAILING")
@@ -278,7 +280,6 @@ def generate_project_report(results, project_stats):
 
 def main():
     """Run comprehensive project-wide mutation testing analysis."""
-    os.chdir('~/TauTranslator')
     
     print("🔍 GATHERING PROJECT STATISTICS...")
     project_stats = get_project_stats()
@@ -296,10 +297,11 @@ def main():
         'readiness_score': readiness_score
     }
     
-    with open('mutation_testing_readiness_report.json', 'w') as f:
+    report_file = PROJECT_ROOT / 'mutation_testing_readiness_report.json'
+    with open(report_file, 'w') as f:
         json.dump(report_data, f, indent=2, default=str)
-    
-    print(f"\n📁 Report saved to: mutation_testing_readiness_report.json")
+
+    print(f"\n📁 Report saved to: {report_file}")
     
     return readiness_score
 

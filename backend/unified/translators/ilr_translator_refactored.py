@@ -40,27 +40,27 @@ class ILRTranslatorRefactored:
         # Match pattern
         pattern_result = PatternMatcher.match_pattern(normalized_text)
         if isinstance(pattern_result, Failure):
-            return TranslationResult.failure(pattern_result.failure())
+            return TranslationResult.failure(f"{pattern_result.error_code}: {pattern_result.message}")
         
         # Generate ILR
-        pattern_match = pattern_result.unwrap()
+        pattern_match = pattern_result.value
         ilr_result = self._generation_service.generate_ilr_from_pattern(
             pattern_match, normalized_text
         )
         
         if isinstance(ilr_result, Success):
-            return TranslationResult.success_ilr(ilr_result.unwrap())
+            return TranslationResult.success_ilr(ilr_result.value)
         else:
-            return TranslationResult.failure(ilr_result.failure())
+            return TranslationResult.failure(f"ILR generation failed: {ilr_result.error_code} - {ilr_result.message}")
     
     async def translate_to_tau_async(self, ilr_json: str) -> TranslationResult:
         """Translate ILR JSON to TAU code."""
         tau_result = self._tau_service.translate_ilr_to_tau(ilr_json)
         
         if isinstance(tau_result, Success):
-            return TranslationResult.success_tau(tau_result.unwrap())
+            return TranslationResult.success_tau(tau_result.value)
         else:
-            return TranslationResult.failure(tau_result.failure())
+            return TranslationResult.failure(f"TAU generation failed: {tau_result.error_code} - {tau_result.message}")
     
     async def translate_nl_to_tau_async(self, text: str) -> TranslationResult:
         """Direct translation from natural language to TAU."""

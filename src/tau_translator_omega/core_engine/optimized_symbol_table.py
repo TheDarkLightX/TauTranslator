@@ -13,7 +13,7 @@ from collections import defaultdict
 import weakref
 
 from .semantic_types import Symbol, SemanticError
-from .cnl_parser.ast_nodes import ASTNode
+from .parsers.cnl_parser.ast_nodes import ASTNode
 
 
 class OptimizedSymbolTable:

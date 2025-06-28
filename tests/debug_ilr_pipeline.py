@@ -16,7 +16,7 @@ from backend.unified.domain.nlp_types import NaturalLanguageText
 from backend.unified.domain.nlp_translation_service import NLPTranslationService
 from backend.unified.domain.ilr_to_tce_transformer import ILRToTCETransformer
 from backend.unified.tce_to_tau_wrapper import TCEToTauWrapper
-from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+from tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
 
 def debug_step_by_step():
     """Debug each step of the ILR pipeline."""

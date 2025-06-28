@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 import weakref
 
-from .cnl_parser.ast_nodes import (
+from ..parsers.cnl_parser.ast_nodes import (
     ASTNode, VariableNode, ConstantNode, NumberNode, StringNode,
     ArithmeticBinaryOpNode, BooleanBinaryOpNode, ComparisonNode,
     PredicateCallNode, VariableDeclNode, AssignmentNode,
@@ -24,14 +24,14 @@ from .semantic_types import (
     SemanticError, Symbol, SymbolTable, TypeInfo, ErrorCollector,
     create_type_info, check_type_compatibility
 )
-from .ast_visitor import TypeResolvingVisitor
+from ..ast.ast_visitor import TypeResolvingVisitor
 
 
 class ExpressionTypeResolver:
     """
     Resolves types for expressions during semantic analysis.
     
-    Follows VibeArchitect principles:
+    
     - Single Responsibility: Only type resolution
     - Clear type inference rules
     - Performance monitoring
@@ -180,7 +180,7 @@ class ValidationEngine:
     """
     Handles validation logic for semantic analysis.
     
-    Follows VibeArchitect principles:
+    
     - Single Responsibility: Only validation
     - Clear validation rules
     - Comprehensive error reporting
@@ -210,9 +210,8 @@ class ValidationEngine:
         Returns:
             True if redeclaration detected, False otherwise
         """
-        existing_symbol = self.symbol_table.get_symbols_in_scope()
-        for symbol in existing_symbol:
-            if symbol.name == node.name:
+        existing_symbols = self.symbol_table.scopes[self.symbol_table.current_scope]
+        if node.name in existing_symbols:
                 error = SemanticError(
                     f"Variable '{node.name}' already declared in this scope.",
                     line_number=getattr(node, 'line', None),
@@ -310,7 +309,7 @@ class SymbolDefinitionManager:
     """
     Manages symbol definition during semantic analysis.
     
-    Follows VibeArchitect principles:
+    
     - Single Responsibility: Only symbol management
     - Clear symbol creation rules
     - Comprehensive error handling
@@ -334,8 +333,7 @@ class SymbolDefinitionManager:
         symbol = Symbol(
             name=node.name,
             symbol_type='variable',
-            scope_level=self.symbol_table.current_scope_level,
-            ast_node=node,
+            scope_level=self.symbol_table.current_scope,
             var_type=resolved_type
         )
         
@@ -352,8 +350,7 @@ class SymbolDefinitionManager:
         symbol = Symbol(
             name=node.name,
             symbol_type='predicate',
-            scope_level=self.symbol_table.current_scope_level,
-            ast_node=node
+            scope_level=self.symbol_table.current_scope
         )
         symbol.attributes['arity'] = arity
         
@@ -370,8 +367,7 @@ class SymbolDefinitionManager:
         symbol = Symbol(
             name=node.name,
             symbol_type='function',
-            scope_level=self.symbol_table.current_scope_level,
-            ast_node=node
+            scope_level=self.symbol_table.current_scope
         )
         symbol.attributes['arity'] = arity
         
@@ -392,8 +388,7 @@ class SymbolDefinitionManager:
                 symbol = Symbol(
                     name=param.name,
                     symbol_type='variable',
-                    scope_level=self.symbol_table.current_scope_level,
-                    ast_node=param,
+                    scope_level=self.symbol_table.current_scope,
                     var_type='auto'
                 )
                 

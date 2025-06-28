@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
 from tau_translator_omega.core_engine.semantic_types import Symbol
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import VariableNode
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import VariableNode
 
 
 class TestSymbol(unittest.TestCase):

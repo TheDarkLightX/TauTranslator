@@ -1,0 +1,183 @@
+%import common.WS
+
+bitvector: int_literal
+         | uint_literal
+         | long_literal
+         | ulong_literal
+         | bits_literal
+
+int_literal: SIGNED_NUMBER
+uint_literal: UINT_LIT
+long_literal: LONG_LIT
+ulong_literal: ULONG_LIT
+bits_literal: BITS_LIT
+
+SIGNED_NUMBER: ["+"|"-"]? NUMBER
+
+
+UINT_LIT: NUMBER "u"
+LONG_LIT: SIGNED_NUMBER "l"
+ULONG_LIT: NUMBER "ul"
+BITS_LIT: /[01]+b/
+
+%ignore WS
+
+statement: spec
+%import common.SIGNED_NUMBER -> NUMBER
+%import common.ESCAPED_STRING -> STRING_LITERAL
+%import common.WS
+%import common.CNAME
+%import common.LCASE_LETTER
+%import common.UCASE_LETTER
+%import common.DIGIT0
+
+CNAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+// Design Principles:
+// 1. 1:1 Mapping to Formal Tau Language: Every rule has a direct, unambiguous equivalent in the Tau spec.
+// 2. Human-Readability: Uses English keywords and phrases to make formal logic accessible.
+// 3. NLP Target: Serves as the precise, structured output for a Natural Language-to-TCE translator.
+
+// --- Top-Level Specification Rules --- 
+// A spec is a combination of temporal claims about the system.
+
+variable: CNAME
+
+spec: (type_assertion | temporal_spec | local_spec) (LOGICAL_AND spec | LOGICAL_OR spec | BITWISE_AND spec | BITWISE_OR spec | BITWISE_XOR spec)*
+
+temporal_spec: ALWAYS local_spec -> always
+             | SOMETIMES local_spec -> sometimes
+             | EVENTUALLY local_spec -> eventually
+             | NEVER local_spec -> never
+             | NOT spec -> not_spec
+             | "(" spec ")"
+             | local_spec
+
+// --- Local Specification (Boolean Logic) ---
+// A local_spec is a timeless boolean formula about system state.
+
+local_spec: quantified_spec
+          | comparison_expr
+          | boolean_literal
+          | fact_spec
+          | logical_expr
+          | implication_expr
+          | ternary_expr
+          | "(" local_spec ")"
+
+logical_expr: local_spec LOGICAL_AND local_spec -> and_expr
+            | local_spec LOGICAL_OR local_spec -> or_expr
+            | local_spec LOGICAL_XOR local_spec -> xor_expr
+            | local_spec LOGICAL_IFF local_spec -> iff_expr
+            | local_spec IF local_spec -> left_implication
+            | NOT local_spec                    -> not_expr
+
+implication_expr: IF local_spec THEN local_spec -> implication_expr
+
+ternary_expr: IF local_spec THEN local_spec ELSE local_spec -> ternary_expr
+
+quantified_spec: FOR_ALL CNAME SUCH_THAT local_spec -> for_all
+               | THERE_EXISTS CNAME SUCH_THAT local_spec -> exists
+
+comparison_expr: term (LT | LTE | GT | GTE | EQ | NEQ | NLT | NLTE | NGT | NGTE) term [ (LOGICAL_AND | BITWISE_AND) rhs_comparison ]
+
+// Rule for the right-hand side of a chained comparison (e.g., "and less than 10")
+rhs_comparison: (LT | LTE | GT | GTE | EQ | NEQ | NLT | NLTE | NGT | NGTE | RHS_LT | RHS_LTE | RHS_GT | RHS_GTE | RHS_EQ | RHS_NEQ | RHS_NLT | RHS_NLTE | RHS_NGT | RHS_NGTE) term
+
+
+// --- Fact Specification ---
+fact_spec: term "is" ["a"] term -> is_a_fact
+         | term "is" "not" ["a"] term -> negated_is_a_fact
+         | term CNAME term+ -> relational_fact
+
+type_assertion: variable "is" "of" "type" CNAME -> type_assertion
+
+boolean_literal: "it is" TRUE -> true_literal
+               | "it is" FALSE -> false_literal
+
+// --- Term Rules (Boolean Functions) ---
+// A term represents a boolean function, built from variables, streams, and constants.
+
+term: CNAME -> variable
+    | SIGNED_NUMBER -> number_literal
+    | STRING_LITERAL -> string_literal
+    | bitvector
+    | stream_variable
+    | function_call
+    | constant
+    | term BITWISE_AND term -> bitwise_and
+    | term BITWISE_OR term  -> bitwise_or
+    | term BITWISE_XOR term -> bitwise_xor
+    | COMPLEMENT_OF term    -> complement
+    | "0" -> zero
+    | "1" -> one
+    | "(" term ")"
+
+stream_variable: stream_type NUMBER "[" time_expr "]"
+
+stream_type: "input" -> input_stream
+           | "output" -> output_stream
+
+time_expr: "t"
+         | "t" MINUS NUMBER
+
+function_call: CNAME "(" [term ("," term)*] ")"
+
+constant: "the spec" "{" spec "}" -> spec_constant
+        | "the function" "{" term "}" -> term_constant
+
+
+// --- Keywords & Terminals ---
+
+// Top-Level Spec Keywords
+ALWAYS: "always" | "for all time"
+SOMETIMES: "sometimes" | "at some point"
+EVENTUALLY: "eventually"
+NEVER: "never"
+LOGICAL_AND: "and also"
+LOGICAL_OR: "or else"
+LOGICAL_XOR: "xor"
+LOGICAL_IFF: "if and only if"
+TRUE: "true"
+FALSE: "false"
+NOT: "it is not the case that" | "not"
+
+// Local Spec Keywords
+IF: "if"
+THEN: "then"
+ELSE: "else"
+FOR_ALL: "for all" | "forall"
+THERE_EXISTS: "there exists"
+SUCH_THAT: "such that" | ","
+
+EQ: "is equal to" | "equals" | "=="
+NEQ: "is not equal to" | "is not"
+LT: "is less than" | "<"
+LTE: "is less than or equal to" | "<="
+GT: "is greater than" | ">"
+GTE: "is greater than or equal to" | ">="
+
+// --- RHS Comparison Operators (for intervals) ---
+RHS_LT: "less than"
+RHS_LTE: "less than or equal to"
+RHS_GT: "greater than"
+RHS_GTE: "greater than or equal to"
+RHS_EQ: "equal to"
+RHS_NEQ: "not equal to"
+RHS_NLT: "not less than"
+RHS_NLTE: "not less than or equal to"
+RHS_NGT: "not greater than"
+RHS_NGTE: "not greater than or equal to"
+
+NLT: "is not less than"
+NLTE: "is not less than or equal to"
+NGT: "is not greater than"
+NGTE: "is not greater than or equal to"
+
+// Term (Boolean Function) Keywords
+BITWISE_AND: "and" | "&"
+BITWISE_OR: "or" | "|"
+BITWISE_XOR: "xor" | "^"
+COMPLEMENT_OF: "complement of"
+MINUS: "-" | "minus"
+
+// --- Operator Precedence ---

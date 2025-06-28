@@ -19,7 +19,7 @@ from typing import List, Union, Optional, Any, Dict
 from dataclasses import dataclass
 
 # Import pattern cache for efficient regex compilation
-from ..pattern_cache import get_pattern, precompile_patterns
+from ...pattern_cache import get_pattern, precompile_patterns
 
 logger = logging.getLogger(__name__)
 
@@ -267,9 +267,10 @@ class PrattParser:
     Each token is processed exactly once, ensuring O(n) performance.
     """
 
-    def __init__(self, tokens: List[Token]):
+    def __init__(self, tokens: List[Token], op_precedence: Dict[str, int]):
         self.tokens = tokens
         self.position = 0
+        self.op_precedence = op_precedence
 
     def current_token(self) -> Optional[Token]:
         """Get current token without advancing."""
@@ -289,11 +290,11 @@ class PrattParser:
         token = self.current_token()
         if token:
             if token.type == 'COMPARISON':
-                return OPERATOR_PRECEDENCE.get(token.value, 0)
+                return self.op_precedence.get(token.value, 0)
             elif token.type == 'ARITHMETIC':
-                return OPERATOR_PRECEDENCE.get(token.value, 0)
+                return self.op_precedence.get(token.value, 0)
             elif token.type in ['AND', 'OR', 'XOR']:
-                return OPERATOR_PRECEDENCE.get(token.value, 0)
+                return self.op_precedence.get(token.value, 0)
         return 0
 
     def parse_expression(self, min_precedence: int = 0) -> ExprNode:
@@ -305,23 +306,32 @@ class PrattParser:
         """
         left = self.parse_primary()
 
-        while (self.current_token() and
-               self.peek_precedence() >= min_precedence):
+        while True:
+            token = self.current_token()
+            if not token:
+                break
+
+            precedence = self.peek_precedence()
+
+            # Loop as long as we have an operator with high enough precedence
+            if precedence <= min_precedence:
+                break
 
             op_token = self.consume_token()
             operator = op_token.value
-            precedence = self.peek_precedence()
 
-            # Right-associative operators would use precedence, left-associative use precedence + 1
+            # For left-associative operators, pass precedence + 1
+            # to bind tighter than the current operator.
             right = self.parse_expression(precedence + 1)
 
-            # Create appropriate binary operation node
             if op_token.type == 'COMPARISON':
                 left = ComparisonNode(left=left, operator=operator, right=right)
             elif op_token.type == 'ARITHMETIC':
                 left = ArithmeticBinaryOpNode(left=left, operator=operator, right=right)
             elif op_token.type in ['AND', 'OR', 'XOR']:
                 left = BooleanBinaryOpNode(left=left, operator=operator, right=right)
+            else:
+                raise RuntimeError(f"Unhandled operator: {op_token}")
 
         return left
 
@@ -365,6 +375,9 @@ class PrattParser:
         elif token.type == 'STRING':
             return ConstantNode(value=token.value[1:-1], value_type='STRING')
         elif token.type == 'IDENTIFIER':
+            # Uppercase identifiers are treated as variables
+            if token.value[0].isupper():
+                return VariableNode(name=token.value)
             return ConstantNode(value=token.value, value_type='IDENTIFIER')
         else:
             raise ValueError(f"Cannot parse atom: {token}")
@@ -414,6 +427,7 @@ class CNLParser:
     def __init__(self, debug: bool = False):
         self.debug = debug
         self.tokenizer = OptimizedTokenizer()
+        self.op_precedence = OPERATOR_PRECEDENCE
         self._parse_count = 0
         self._cache = {}  # Simple dict cache instead of LRU
 
@@ -481,8 +495,12 @@ class CNLParser:
             raise ValueError("Empty sentence")
 
         # Use Pratt parser for O(n) expression parsing
-        parser = PrattParser(content_tokens)
+        parser = PrattParser(content_tokens, self.op_precedence)
         expression = parser.parse_expression()
+
+        # Ensure all tokens were consumed
+        if parser.current_token():
+            raise ValueError(f"Unexpected token at end of sentence: {parser.current_token()}")
 
         # Wrap in fact and sentence nodes
         fact = FactNode(statement=expression)

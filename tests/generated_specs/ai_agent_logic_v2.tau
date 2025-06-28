@@ -1,0 +1,37 @@
+# Tau Specification for a Simple Logical AI Agent
+# version 4.0 (Canonical Identifiers)
+
+# --- Agent Action Definitions ---
+# The agent's actions are defined as Boolean functions over percept variables.
+# sl: sees_light (Boolean variable)
+# hs: hears_sound (Boolean variable)
+
+# Rule 1: The agent moves forward if it sees a light.
+move_forward(sl) := sl
+
+# Rule 2: The agent turns left if it hears a sound AND does not see a light.
+turn_left(hs, sl) := hs & sl'
+
+# Rule 3: The agent waits if it does not hear a sound AND does not see a light.
+wait(hs, sl) := hs' & sl'
+
+# --- Action Invariants (Verification) ---
+# We use the solver to prove that actions are mutually exclusive for any possible input.
+# A result of "UNSATISFIABLE" proves the invariant holds.
+
+# Prove that the agent cannot move_forward AND turn_left at the same time.
+solve move_forward(sl) = 1 && turn_left(hs, sl) = 1
+
+# Prove that the agent cannot move_forward AND wait at the same time.
+solve move_forward(sl) = 1 && wait(hs, sl) = 1
+
+# Prove that the agent cannot turn_left AND wait at the same time.
+solve turn_left(hs, sl) = 1 && wait(hs, sl) = 1
+
+# --- Scenario Verification ---
+
+# Scenario: The agent hears a sound (hs=1) but does not see a light (sl=0).
+# We want to prove that in this state, the agent MUST turn left.
+# We do this by asking the solver if it's possible for the agent *not* to turn left, given the percepts.
+# The following formula should be UNSATISFIABLE.
+solve turn_left(1, 0) = 0

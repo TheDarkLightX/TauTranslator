@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
 from ..core.domain_types import (
-    Result, Success, Failure, success, failure
+    Result, Success, Failure, AppError
 )
 from ..core.functional_utils import guard, guard_not_none
 
@@ -46,16 +46,16 @@ class TauToEnglishTranslator:
             TranslationPattern(r'(.+?) < (.+)', r'\1 is less than \2', 'Less than')
         ]
     
-    async def translate_async(self, tau_expression: str) -> Result[str]:
+    async def translate_async(self, tau_expression: str) -> Result[str, AppError]:
         """Translate TAU expression to English (≤10 lines)."""
         cleaned = self._preprocess(tau_expression)
         if not cleaned:
-            return failure("EMPTY_INPUT", "Empty TAU expression")
+            return Failure(AppError(code="EMPTY_INPUT", message="Empty TAU expression"))
         
         translated = await self._apply_patterns_async(cleaned)
         result = self._postprocess(translated)
         
-        return success(result)
+        return Success(result)
     
     def _preprocess(self, expression: str) -> str:
         """Clean and prepare input (≤10 lines)."""
@@ -94,7 +94,7 @@ class TauToEnglishService:
     def __init__(self):
         self._translator = TauToEnglishTranslator()
     
-    async def translate_expression_async(self, tau_expression: str) -> Result[str]:
+    async def translate_expression_async(self, tau_expression: str) -> Result[str, AppError]:
         """Main translation method (≤10 lines)."""
         validation_result = self._validate_input(tau_expression)
         if isinstance(validation_result, Failure):
@@ -102,14 +102,14 @@ class TauToEnglishService:
         
         return await self._translator.translate_async(tau_expression)
     
-    def _validate_input(self, expression: str) -> Result[str]:
+    def _validate_input(self, expression: str) -> Result[str, AppError]:
         """Validate input expression (≤10 lines)."""
         if not expression or not expression.strip():
-            return failure("EMPTY_INPUT", "TAU expression cannot be empty")
+            return Failure(AppError(code="EMPTY_INPUT", message="TAU expression cannot be empty"))
         
-        return success(expression)
+        return Success(expression)
     
-    async def translate_batch_async(self, expressions: List[str]) -> List[Result[str]]:
+    async def translate_batch_async(self, expressions: List[str]) -> List[Result[str, AppError]]:
         """Translate multiple expressions (≤10 lines)."""
         results = []
         

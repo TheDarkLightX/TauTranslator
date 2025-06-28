@@ -1,6 +1,6 @@
 import unittest
-from src.tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer, SemanticError
-from src.tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import SemanticAnalyzer, SemanticError
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     SentenceNode # Potentially VariableDeclNode, AssignmentNode etc. when tests are implemented
 )
 
@@ -41,7 +41,7 @@ class TestAnalyzerScopingRules(unittest.TestCase):
     def test_variable_defined_in_outer_scope_accessible_in_inner(self):
         # AST: let x: integer; { let y: string; x = 5; y = "hi"; }
         # Example hypothetical instantiation:
-        # from src.tau_translator_omega.core_engine.cnl_parser.ast_nodes import VariableDeclNode, AssignmentNode, VariableNode, ConstantNode, BlockNode # Assuming BlockNode exists
+        # from tau_translator_omega.core_engine.cnl_parser.ast_nodes import VariableDeclNode, AssignmentNode, VariableNode, ConstantNode, BlockNode # Assuming BlockNode exists
         # node = SentenceNode(content=[
         #     VariableDeclNode(name='x', var_type='integer', line=1, column=4),
         #     BlockNode(content=[

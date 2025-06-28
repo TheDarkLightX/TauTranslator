@@ -2,13 +2,9 @@
 Test script to verify visitor pattern implementation
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
-
 from src.tau_translator_omega.core_engine.semantic_types import SymbolTable, Symbol
-from src.tau_translator_omega.core_engine.semantic_analyzer_core import ExpressionTypeResolver
-from src.tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from src.tau_translator_omega.core_engine.semantic.semantic_analyzer_core import ExpressionTypeResolver
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     ConstantNode, NumberNode, StringNode, VariableNode,
     ArithmeticBinaryOpNode, ComparisonNode
 )

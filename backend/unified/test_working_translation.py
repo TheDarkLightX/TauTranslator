@@ -21,7 +21,7 @@ def test_tce_tau_translator():
     print("\n=== Testing TCE to Tau Translator ===")
     
     try:
-        from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
+        from tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
         
         translator = TCETauTranslator()
         
@@ -39,7 +39,7 @@ def test_tce_tau_translator():
             print(f"\nTCE: {tce_expr}")
             
             # First parse the TCE to get an AST
-            from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+            from tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
             parser = CNLParser()
             
             try:
@@ -191,7 +191,7 @@ def test_wrapper_classes():
         wrapper = TCEToTauWrapper()
         
         # Create a simple AST node for testing
-        from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+        from tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
         parser = CNLParser()
         
         test_expressions = [
@@ -279,8 +279,8 @@ def main():
         
         # Try to get Tau if possible
         try:
-            from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
-            from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
+            from tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+            from tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
             
             parser = CNLParser()
             translator = TCETauTranslator()

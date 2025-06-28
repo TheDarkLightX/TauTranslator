@@ -1,0 +1,18 @@
+ha_s(a,b):=a+b
+ha_c(a,b):=a&b
+voter_a_eligible():=T
+voter_b_eligible():=T
+prop1_votes_t0[0]():=F
+prop1_votes_t0[1]():=F
+prop2_votes_t0[0]():=F
+prop2_votes_t0[1]():=F
+vote1_for_prop1():=voter_a_eligible()
+vote2_for_prop1():=voter_b_eligible()
+prop1_votes_t1[0]():=ha_s(vote1_for_prop1(),vote2_for_prop1())
+prop1_votes_t1[1]():=ha_c(vote1_for_prop1(),vote2_for_prop1())
+prop2_votes_t1[0]():=prop2_votes_t0[0]()
+prop2_votes_t1[1]():=prop2_votes_t0[1]()
+prop1_final_count_is_2():=(prop1_votes_t1[0]()')&(prop1_votes_t1[1]())
+prop2_final_count_is_0():=(prop2_votes_t1[0]()')&(prop2_votes_t1[1]()')
+valid_tally():=prop1_final_count_is_2()&prop2_final_count_is_0()
+solve valid_tally()

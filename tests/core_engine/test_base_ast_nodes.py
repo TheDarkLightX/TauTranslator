@@ -4,7 +4,7 @@ Tests for the ASTNode base class and SourceLocation.
 """
 
 import unittest
-from tau_translator_omega.core_engine.ast_nodes import ASTNode, SourceLocation
+from tau_translator_omega.core_engine.ast.ast_nodes import ASTNode, SourceLocation
 
 
 class TestSourceLocation(unittest.TestCase):

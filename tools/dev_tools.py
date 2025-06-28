@@ -4,7 +4,7 @@ Advanced Development Tools for TauTranslator
 ===========================================
 
 Comprehensive toolkit for code analysis, profiling, and debugging.
-Following VibeArchitect principles for production-ready development.
+Following best practices for production-ready development.
 """
 
 import subprocess
@@ -83,7 +83,7 @@ class CodeAnalyzer:
                                 complexity = item.get('complexity', 0)
                                 total_complexity += complexity
                                 
-                                # VibeArchitect threshold
+                                # Complexity threshold
                                 if complexity > 10:  
                                     high_complexity.append({
                                         'file': file_path,

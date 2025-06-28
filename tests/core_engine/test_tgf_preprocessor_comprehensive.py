@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, mock_open
 from tau_translator_omega.core_engine.tgf_preprocessor import TGFPreprocessor
 from tau_translator_omega.core_engine.tgf_directive_handler import TGFDirectiveHandler
-from tau_translator_omega.core_engine.preprocessor_errors import CircularIncludeError, MacroExpansionError, ConditionalDirectiveError, IncludeFileNotFoundError
+from tau_translator_omega.core_engine.preprocessing.preprocessor_errors import CircularIncludeError, MacroExpansionError, ConditionalDirectiveError, IncludeFileNotFoundError
 
 
 class TestTGFPreprocessorComprehensive:

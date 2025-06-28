@@ -87,5 +87,7 @@ tests_dir = tests/
 
 
 if __name__ == "__main__":
-    os.chdir('~/TauTranslator')
+    from pathlib import Path
+    project_root = Path(__file__).resolve().parent.parent.parent
+    os.chdir(project_root)
     run_mutation_test()

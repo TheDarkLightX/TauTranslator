@@ -6,8 +6,8 @@ Following TDD principles - test first, implement after.
 
 import pytest
 from pathlib import Path
-from tau_translator_omega.core_engine.ebnf_parser.ebnf_parser import EBNFParser, create_ebnf_parser
-from tau_translator_omega.core_engine.ebnf_parser.ebnf_ast_nodes import (
+from tau_translator_omega.core_engine.parsers.ebnf_parser.ebnf_parser import EBNFParser, create_ebnf_parser
+from tau_translator_omega.core_engine.parsers.ebnf_parser.ebnf_ast_nodes import (
     GrammarNode, RuleNode, ChoiceNode, SequenceNode, OptionalNode,
     RepetitionNode, GroupNode, LiteralNode, RegexNode, NonTerminalNode
 )

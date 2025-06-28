@@ -10,10 +10,6 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add backend path to Python path
-backend_path = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(backend_path))
-
 
 @pytest.fixture
 def mock_nlp_service():

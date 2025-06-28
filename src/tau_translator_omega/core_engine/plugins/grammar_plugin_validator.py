@@ -11,7 +11,7 @@ from jsonschema import validate, ValidationError
 from typing import List, Dict, Any, Tuple, Union, Optional
 from pathlib import Path
 
-from .plugin import BasePluginValidator
+from ..plugin import BasePluginValidator
 
 # Determine the schema file path relative to this file's location
 # This assumes the 'schemas' directory is at the project root,
@@ -19,12 +19,7 @@ from .plugin import BasePluginValidator
 # Project Root -> schemas/plugin_manifest_grammar_v1.json
 # This file   -> src/tau_translator_omega/core_engine/grammar_plugin_validator.py
 # Path from this file to project root: ../../../
-SCHEMA_FILE_PATH = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 
-    "..", "..", "..", # up to project root (src/tau_translator_omega/ -> src/ -> ./ )
-    "schemas", 
-    "plugin_manifest_grammar_v1.json"
-))
+SCHEMA_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'docs', 'schemas', 'plugin_manifest_schema.json'))
 
 class GrammarPluginValidator(BasePluginValidator):
     """

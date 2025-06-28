@@ -1,0 +1,8 @@
+# A test to see if adding a fourth stream breaks the working AND gate.
+
+tau i1 = console
+tau i2 = console
+tau i3 = console # The extra stream
+tau o1 = console
+
+o1[t] = i1[t] && i2[t]

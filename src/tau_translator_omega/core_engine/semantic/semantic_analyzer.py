@@ -3,7 +3,7 @@
 Refactored Semantic Analyzer for TauTranslator
 =============================================
 
-Refactored from 675 lines to <300 lines following VibeArchitect principles.
+Refactored from 675 lines to <300 lines for improved maintainability.
 Uses Strategy pattern for analysis components and Factory pattern for creation.
 
 Key improvements:
@@ -18,7 +18,7 @@ Author: DarkLightX / Dana Edwards
 
 from typing import List, Optional, Tuple, Dict, Any
 
-from .cnl_parser.ast_nodes import (
+from ..parsers.cnl_parser.ast_nodes import (
     ASTNode, VariableNode, ConstantNode, NumberNode, StringNode,
     ArithmeticBinaryOpNode, BooleanBinaryOpNode, ComparisonNode,
     PredicateCallNode, VariableDeclNode, AssignmentNode,
@@ -38,7 +38,7 @@ class SemanticAnalyzer:
     """
     Refactored semantic analyzer using Strategy pattern for component separation.
     
-    Follows VibeArchitect principles:
+    
     - Strategy pattern for analysis components
     - Factory pattern for component creation
     - Single Responsibility: Coordination only
@@ -101,12 +101,12 @@ class SemanticAnalyzer:
             Tuple of (analyzed_node, list_of_errors)
         """
         self._analysis_count += 1
-        self.error_collector.clear()  # Reset errors for new analysis
+        self.error_collector.clear_errors()  # Reset errors for new analysis
         
         if node is not None:
             self._visit(node)
         
-        return node, self.error_collector.errors
+        return node, self.error_collector.get_errors()
     
     def get_analysis_stats(self) -> dict:
         """
@@ -311,8 +311,7 @@ class SemanticAnalyzer:
                     symbol = Symbol(
                         name=var.name,
                         symbol_type='variable',
-                        scope_level=self.symbol_table.current_scope_level,
-                        ast_node=var,
+                        scope_level=self.symbol_table.current_scope,
                         var_type='auto'
                     )
                     try:

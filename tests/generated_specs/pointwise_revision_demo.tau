@@ -1,0 +1,5 @@
+# Tau Specification: Pointwise Revision Minimal Example
+# This specification demonstrates the core functionality of pointwise revision,
+# where the special output stream 'u' is used to update the running
+# specification.
+run u[t] = i1[t]

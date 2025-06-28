@@ -4,7 +4,12 @@
 
 set -e
 
-cd ~/TauTranslator
+# Determine the project root directory dynamically
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
+
+# Change to the project root directory
+cd "$PROJECT_ROOT"
 source venv/bin/activate
 
 echo "🚀 Starting Jupyter Lab for TauTranslator Development"

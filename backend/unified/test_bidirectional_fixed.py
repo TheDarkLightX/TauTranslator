@@ -117,7 +117,7 @@ class FixedTCEToTauTranslator:
             tce = tce.strip() + '.'
         
         try:
-            from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+            from tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
             from tce_to_tau_wrapper import TCEToTauWrapper
             
             parser = CNLParser()
@@ -288,8 +288,8 @@ def test_working_examples():
         ("Number", "42.", "42")
     ]
     
-    from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
-    from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
+    from tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+    from tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
     
     parser = CNLParser()
     translator = TCETauTranslator()

@@ -11,7 +11,7 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from typing import List
 
-from src.tau_translator_omega.core_engine.nlp_enhanced.requirements_analyzer_refactored import (
+from src.tau_translator_omega.core_engine.translators.nlp_enhanced.requirements_analyzer_refactored import (
     # Domain types
     RequirementText, SentenceText, SectionTitle, SectionContent,
     EntityName, PredicateName, ConfidenceScore, LogicalFormula,
@@ -519,7 +519,7 @@ class TestSpacyNLPProcessor:
     def test_given_no_spacy_when_processing_then_uses_fallback(self):
         """Test fallback processing without SpaCy."""
         # Given: Processor without SpaCy
-        with patch('src.tau_translator_omega.core_engine.nlp_enhanced.requirements_analyzer_refactored.SpacyNLPProcessor._load_spacy_model') as mock_load:
+        with patch('src.tau_translator_omega.core_engine.translators.nlp_enhanced.requirements_analyzer_refactored.SpacyNLPProcessor._load_spacy_model') as mock_load:
             mock_load.return_value = None
             processor = SpacyNLPProcessor()
         
@@ -535,7 +535,7 @@ class TestSpacyNLPProcessor:
     def test_given_no_spacy_when_extracting_entities_then_uses_patterns(self):
         """Test entity extraction fallback."""
         # Given: Processor without SpaCy
-        with patch('src.tau_translator_omega.core_engine.nlp_enhanced.requirements_analyzer_refactored.SpacyNLPProcessor._load_spacy_model') as mock_load:
+        with patch('src.tau_translator_omega.core_engine.translators.nlp_enhanced.requirements_analyzer_refactored.SpacyNLPProcessor._load_spacy_model') as mock_load:
             mock_load.return_value = None
             processor = SpacyNLPProcessor()
         
@@ -551,7 +551,7 @@ class TestSpacyNLPProcessor:
     def test_given_no_spacy_when_extracting_predicates_then_uses_patterns(self):
         """Test predicate extraction fallback."""
         # Given: Processor without SpaCy
-        with patch('src.tau_translator_omega.core_engine.nlp_enhanced.requirements_analyzer_refactored.SpacyNLPProcessor._load_spacy_model') as mock_load:
+        with patch('src.tau_translator_omega.core_engine.translators.nlp_enhanced.requirements_analyzer_refactored.SpacyNLPProcessor._load_spacy_model') as mock_load:
             mock_load.return_value = None
             processor = SpacyNLPProcessor()
         

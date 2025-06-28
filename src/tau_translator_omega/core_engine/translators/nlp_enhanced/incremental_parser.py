@@ -27,8 +27,8 @@ import hashlib
 from collections import defaultdict
 import time
 
-from ..cnl_parser.ast_nodes import ASTNode
-from ..cnl_parser.cnl_parser import CNLParser, OptimizedTokenizer
+from ...parsers.cnl_parser.ast_nodes import ASTNode
+from ...parsers.cnl_parser.cnl_parser import CNLParser, OptimizedTokenizer
 
 
 class EditType(Enum):
@@ -390,7 +390,7 @@ class IncrementalTCEParser:
             return self.cnl_parser.parse(text, use_cache=True)
         except Exception as e:
             # For malformed expressions, create a simple mock AST node for testing
-            from ..cnl_parser.ast_nodes import VariableNode
+            from ...parsers.cnl_parser.ast_nodes import VariableNode
             return VariableNode(name=text.replace(" ", "_"))  # Mock parsing
     
     def get_performance_stats(self) -> Dict[str, Any]:

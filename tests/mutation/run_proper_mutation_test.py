@@ -15,7 +15,10 @@ def main():
     print("🧬 Running Mutation Testing on SimpleTCETranslator")
     print("=" * 60)
     
-    os.chdir('~/TauTranslator')
+    # Dynamically find the project root
+    from pathlib import Path
+    project_root = Path(__file__).parent.parent.parent
+    os.chdir(project_root)
     
     # First, let's extract SimpleTCETranslator to its own file
     # to properly test mutations on the implementation

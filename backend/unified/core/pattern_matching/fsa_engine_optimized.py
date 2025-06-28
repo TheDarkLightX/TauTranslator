@@ -15,6 +15,8 @@ from enum import Enum
 import threading
 from collections import defaultdict, deque
 
+from backend.unified.core.pattern_matching import MatchResult
+
 
 class StateType(Enum):
     """Types of FSA states."""
@@ -33,17 +35,7 @@ class PatternInfo:
     length: int
 
 
-@dataclass
-class MatchResult:
-    """Result of pattern matching operation."""
-    matched: bool
-    pattern_id: Optional[str] = None
-    start_pos: int = 0
-    end_pos: int = 0
-    matched_text: str = ""
-    replacement: Optional[str] = None
-    priority: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 
 class TrieNode:
@@ -184,16 +176,14 @@ class AhoCorasickFSA:
             if node.is_accepting or node.output_link:
                 patterns = self._get_all_patterns_at_node(node)
                 for pattern_info in patterns:
-                    match = MatchResult(
-                        matched=True,
+                    matches.append(MatchResult(
                         pattern_id=pattern_info.pattern_id,
                         start_pos=i - pattern_info.length + 1,
                         end_pos=i + 1,
                         matched_text=text[i - pattern_info.length + 1:i + 1],
                         replacement=pattern_info.replacement,
                         priority=pattern_info.priority
-                    )
-                    matches.append(match)
+                    ))
         
         return matches
     
@@ -223,7 +213,6 @@ class AhoCorasickFSA:
                     # Return highest priority match
                     pattern_info = patterns[0]
                     return MatchResult(
-                        matched=True,
                         pattern_id=pattern_info.pattern_id,
                         start_pos=i - pattern_info.length + 1,
                         end_pos=i + 1,

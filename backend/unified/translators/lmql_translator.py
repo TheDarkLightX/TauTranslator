@@ -28,7 +28,7 @@ class LMQLTranslationEngine(CachingEngine):
         
         # Try to import and initialize LMQL translator
         try:
-            from src.tau_translator_omega.lmql_engine.bidirectional_translator import BidirectionalTranslator
+            from tau_translator_omega.lmql_engine.bidirectional_translator import BidirectionalTranslator
             self.translator = BidirectionalTranslator()
             self.is_available = True
         except Exception as e:

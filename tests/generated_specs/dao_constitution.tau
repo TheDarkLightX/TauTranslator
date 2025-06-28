@@ -1,0 +1,136 @@
+# Tau Specification for a DAO Smart Constitution
+# version 0.1
+
+# --- Ontology ---
+# This section defines the core concepts of the constitution.
+
+# --- Core Types ---
+
+is_member(m).
+is_rule(r).
+is_proposal(p).
+
+# --- State Predicates ---
+
+# Rule `r` is an active part of the constitution at time `t`.
+rule_is_active(r, t).
+
+# A proposal `p` to amend the constitution exists at time `t`.
+proposal_exists(p, t).
+
+# Proposal `p` is an amendment to replace `old_rule` with `new_rule`.
+proposal_is_amendment(p, old_rule, new_rule).
+
+# --- Action Predicates ---
+
+# Member `m` proposes proposal `p` at time `t`.
+member_proposes(m, p, t).
+
+# --- Invariants ---
+
+# 1. An amendment proposal requires the old rule to be currently active.
+# (proposal_exists(p, t) & proposal_is_amendment(p, old_rule, new_rule)) -> rule_is_active(old_rule, t)
+always( (proposal_exists(p, t) & proposal_is_amendment(p, old_rule, new_rule))' | rule_is_active(old_rule, t) ).
+
+# 2. An amendment proposal requires the new rule *not* to be currently active.
+# (proposal_exists(p, t) & proposal_is_amendment(p, old_rule, new_rule)) -> rule_is_active(new_rule, t)'
+always( (proposal_exists(p, t) & proposal_is_amendment(p, old_rule, new_rule))' | rule_is_active(new_rule, t)' ).
+
+# 3. A rule cannot be amended to itself.
+always( proposal_is_amendment(p, r, r)' ).
+
+
+# --- Voting on Amendments ---
+# This section defines how members vote on proposals.
+
+# --- Voting Predicates ---
+
+# Member `m` votes 'yes' on proposal `p` at time `t`.
+member_votes_yes(m, p, t).
+
+# Member `m` votes 'no' on proposal `p` at time `t`.
+member_votes_no(m, p, t).
+
+# --- Voting Invariants ---
+
+# 1. A voter must be a member.
+# (member_votes_yes(m, p, t) -> is_member(m))
+always( member_votes_yes(m, p, t)' | is_member(m) ).
+# (member_votes_no(m, p, t) -> is_member(m))
+always( member_votes_no(m, p, t)' | is_member(m) ).
+
+# 2. The proposal being voted on must exist.
+# (member_votes_yes(m, p, t) -> proposal_exists(p, t))
+always( member_votes_yes(m, p, t)' | proposal_exists(p, t) ).
+# (member_votes_no(m, p, t) -> proposal_exists(p, t))
+always( member_votes_no(m, p, t)' | proposal_exists(p, t) ).
+
+# 3. A member cannot vote both yes and no on the same proposal.
+always( (member_votes_yes(m, p, t) & member_votes_no(m, p, t))' ).
+
+
+# --- Amendment Outcome and Enactment ---
+# This section defines when a proposal passes and how it changes the constitution.
+
+# --- Outcome Predicates ---
+
+# Proposal `p` is considered passed at time `t`.
+proposal_passes(p, t).
+
+# Proposal `p` is considered failed at time `t`.
+proposal_fails(p, t).
+
+# Abstract predicate representing that the required supermajority of 'yes' votes was met.
+# The logic for counting votes and comparing against a threshold is defined elsewhere.
+supermajority_reached(p, t).
+
+# --- Outcome Logic ---
+
+# 1. A proposal passes if a supermajority is reached.
+# (supermajority_reached(p, t) -> proposal_passes(p, t))
+always( supermajority_reached(p, t)' | proposal_passes(p, t) ).
+
+# 2. A proposal fails if a supermajority is not reached.
+# (supermajority_reached(p, t)' -> proposal_fails(p, t))
+always( supermajority_reached(p, t) | proposal_fails(p, t) ).
+
+# 3. Exclusivity: A proposal cannot both pass and fail.
+always( (proposal_passes(p, t) & proposal_fails(p, t))' ).
+
+# --- Enactment Logic ---
+
+# 4. If an amendment proposal passes, the old rule is deactivated and the new rule is activated at the next time step.
+# (proposal_passes(p, t) & proposal_is_amendment(p, old_rule, new_rule)) -> (rule_is_active(old_rule, t+1)' & rule_is_active(new_rule, t+1))
+always( (proposal_passes(p, t) & proposal_is_amendment(p, old_rule, new_rule))' | (rule_is_active(old_rule, t+1)' & rule_is_active(new_rule, t+1)) ).
+
+
+# --- Example Scenario & Verification ---
+
+# --- Scenario Facts ---
+
+# Entities
+is_member(m1).
+is_member(m2).
+is_member(m3).
+is_rule(rule_A).
+is_rule(rule_B).
+is_proposal(p1).
+
+# Initial state at t=0
+rule_is_active(rule_A, 0).
+rule_is_active(rule_B, 0)'.
+
+# A proposal to amend rule_A to rule_B exists at t=0.
+proposal_exists(p1, 0).
+proposal_is_amendment(p1, rule_A, rule_B).
+
+# The proposal achieves a supermajority at t=0.
+# In a full spec, this would be derived from vote counts.
+supermajority_reached(p1, 0).
+
+# --- Verification Query ---
+# Prove that, given the proposal passed, the constitution *must* be amended at t=1.
+# We test the negation: is it possible that the old rule is still active OR the new rule is not active?
+# The solver should find this UNSATISFIABLE, proving that the state change is a necessary consequence of the rules.
+
+solve rule_is_active(rule_A, 1) | rule_is_active(rule_B, 1)'.

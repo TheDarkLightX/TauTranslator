@@ -108,7 +108,7 @@ class PatternMatcher:
                     confidence=1.0
                 ))
         
-        return Failure(f"No pattern matched for text: {text}")
+        return Failure("PATTERN_NOT_MATCHED", f"No pattern matched for text: {text}")
     
     @classmethod
     def extract_pattern_components(cls, pattern_match: PatternMatch) -> Dict[str, str]:
@@ -206,7 +206,7 @@ class ExpressionTokenizer:
     ]
     
     @classmethod
-    def tokenize(cls, text: str) -> Result[List[Tuple[str, str]], str]:
+    def tokenize(cls, text: str) -> List[Dict[str, str]]:
         """Tokenize expression text."""
         tokens = []
         position = 0

@@ -1,6 +1,6 @@
 import unittest
-from src.tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer, SemanticError, SymbolTable, Symbol
-from src.tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import SemanticAnalyzer, SemanticError, SymbolTable, Symbol
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     SentenceNode, VariableDeclNode, VariableNode, AssignmentNode, ConstantNode,
     # Add other AST node types as needed for tests, e.g.:
     # IfNode, WhileNode, FunctionCallNode, PredicateCallNode, RuleNode, FactNode, etc.

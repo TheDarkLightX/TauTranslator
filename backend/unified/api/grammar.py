@@ -19,7 +19,8 @@ import logging
 
 from ..core.responses import create_success_response, create_error_response
 from ..core.config import settings
-from ..core.result_enhanced import Result, Success, Failure, success, failure
+from returns.result import Result, Success, Failure
+from ..core.error_handling import AppError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -78,7 +79,7 @@ class GrammarFileRepository:
     """Handles all grammar file I/O operations."""
     
     @staticmethod
-    async def scan_grammar_directory_async(directory: Path) -> Result[List[GrammarMetadata]]:
+    async def scan_grammar_directory_async(directory: Path) -> Result[List[GrammarMetadata], AppError]:
         """
         Note: This is a pure function (no side effects).
         Scan directory for grammar files."""
@@ -89,9 +90,9 @@ class GrammarFileRepository:
                     for file in directory.glob(ext):
                         metadata = GrammarFileRepository._create_metadata_from_file(file)
                         grammars.append(metadata)
-            return success(grammars)
+            return Success(grammars)
         except Exception as e:
-            return failure("SCAN_ERROR", f"Failed to scan directory: {str(e)}")
+            return Failure(AppError(code="SCAN_ERROR", message=f"Failed to scan directory: {str(e)}"))
     
     @staticmethod
     def _create_metadata_from_file(file_path: Path) -> GrammarMetadata:
@@ -108,56 +109,56 @@ class GrammarFileRepository:
         )
     
     @staticmethod
-    async def read_grammar_content_async(grammar_path: Path) -> Result[GrammarContent]:
+    async def read_grammar_content_async(grammar_path: Path) -> Result[GrammarContent, AppError]:
         """
         Note: This is a pure function (no side effects).
         Read grammar file content."""
         try:
             content = grammar_path.read_text(encoding='utf-8')
-            return success(GrammarContent(content))
+            return Success(GrammarContent(content))
         except Exception as e:
-            return failure("READ_ERROR", f"Failed to read file: {str(e)}")
+            return Failure(AppError(code="READ_ERROR", message=f"Failed to read file: {str(e)}"))
     
     @staticmethod
     async def write_grammar_to_temp_async(
         content: GrammarContent, 
         filename: str, 
         temp_dir: Path
-    ) -> Result[Path]:
+    ) -> Result[Path, AppError]:
         """Write grammar content to temporary file."""
         try:
             temp_dir.mkdir(parents=True, exist_ok=True)
             temp_file = temp_dir / filename
             temp_file.write_text(content, encoding='utf-8')
-            return success(temp_file)
+            return Success(temp_file)
         except Exception as e:
-            return failure("WRITE_ERROR", f"Failed to write temp file: {str(e)}")
+            return Failure(AppError(code="WRITE_ERROR", message=f"Failed to write temp file: {str(e)}"))
 
 class GrammarConfigRepository:
     """Handles grammar configuration persistence."""
     
     @staticmethod
-    async def load_active_grammar_config_async(config_path: Path) -> Result[Optional[GrammarName]]:
+    async def load_active_grammar_config_async(config_path: Path) -> Result[Optional[GrammarName], AppError]:
         """
         Note: This is a pure function (no side effects).
         Load active grammar from configuration."""
         try:
             if not config_path.exists():
-                return success(None)
+                return Success(None)
             
             import json
             with open(config_path) as f:
                 config = json.load(f)
-                active = config.get("active_grammar")
-                return success(GrammarName(active) if active else None)
+                active_grammar = config.get("active_grammar")
+                return Success(GrammarName(active_grammar) if active_grammar else None)
         except Exception as e:
-            return failure("CONFIG_LOAD_ERROR", f"Failed to load config: {str(e)}")
+            return Failure(AppError(code="CONFIG_LOAD_ERROR", message=f"Failed to load config: {str(e)}"))
     
     @staticmethod
     async def save_active_grammar_config_async(
         config_path: Path, 
         grammar_name: GrammarName
-    ) -> Result[None]:
+    ) -> Result[None, AppError]:
         """Save active grammar to configuration."""
         try:
             import json
@@ -173,9 +174,9 @@ class GrammarConfigRepository:
             with open(config_path, 'w') as f:
                 json.dump(config, f, indent=2)
             
-            return success(None)
+            return Success(None)
         except Exception as e:
-            return failure("CONFIG_SAVE_ERROR", f"Failed to save config: {str(e)}")
+            return Failure(AppError(code="CONFIG_SAVE_ERROR", message=f"Failed to save config: {str(e)}"))
 
 # =======================
 # Core Business Logic
@@ -209,7 +210,7 @@ class GrammarValidator:
     """Validates grammar files and formats."""
     
     @staticmethod
-    def validate_file_extension(filename: str) -> Result[GrammarFormat]:
+    def validate_file_extension(filename: str) -> Result[GrammarFormat, AppError]:
         """
         Note: This is a pure function (no side effects).
         Validate and extract grammar format from filename."""
@@ -217,25 +218,18 @@ class GrammarValidator:
         
         for ext, format in valid_extensions.items():
             if filename.endswith(ext):
-                return success(format)  # type: ignore
+                return Success(format)  # type: ignore
         
-        return failure(
-            "INVALID_FORMAT", 
-            "Invalid file format. Please upload a .lark, .ebnf, or .tgf file"
-        )
+        return Failure(AppError(code="INVALID_FORMAT", message=f"Invalid file format. Please upload a .lark, .ebnf, or .tgf file"))
     
     @staticmethod
-    def validate_grammar_path(path: Path) -> Result[Path]:
+    def validate_grammar_path(path: Path) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Validate grammar file path."""
-        if not path.exists():
-            return failure("FILE_NOT_FOUND", f"Grammar file not found: {path}")
-        
-        if not path.is_file():
-            return failure("NOT_A_FILE", f"Path is not a file: {path}")
-        
-        return success(path)
+        if not path.exists() or not path.is_file():
+            return Failure(AppError(code="NOT_FOUND", message=f"Grammar file not found at: {path}"))
+        return Success(None)
 
 class GrammarRuleExtractor:
     """Extracts rules from different grammar formats."""
@@ -325,23 +319,23 @@ class GrammarService:
         self._validator = validator
         self._rule_extractor = rule_extractor
     
-    async def list_grammars_with_active_async(self) -> Result[GrammarListResponse]:
+    async def list_grammars_with_active_async(self) -> Result[GrammarListResponse, AppError]:
         """
         Note: This is a pure function (no side effects).
         List all grammars with active status (Rule 2: orchestration)."""
         # Scan for available grammars
         scan_result = await self._file_repo.scan_grammar_directory_async(settings.grammar_dir)
-        if scan_result.is_failure():
-            return scan_result  # type: ignore
+        if isinstance(scan_result, Failure):
+            return scan_result
         
         # Load active grammar configuration
         config_path = settings.project_root / "config" / "grammar-files.json"
         active_result = await self._config_repo.load_active_grammar_config_async(config_path)
-        active_grammar = active_result.value if active_result.is_success() else None
+        active_grammar = active_result.unwrap() if isinstance(active_result, Success) else None
         
         # Create response
-        return success(GrammarListResponse(
-            grammars=scan_result.value,
+        return Success(GrammarListResponse(
+            grammars=scan_result.unwrap(),
             active_grammar=active_grammar,
             grammar_dir=str(settings.grammar_dir)
         ))
@@ -349,76 +343,76 @@ class GrammarService:
     async def get_grammar_details_with_cache_async(
         self, 
         grammar_name: GrammarName
-    ) -> Result[GrammarMetadata]:
+    ) -> Result[GrammarMetadata, AppError]:
         """Get grammar details, using cache if available."""
         # Check cache first
         cache_key = CacheKey(f"grammar:{grammar_name}")
         cached = self._cache.get_cached_grammar(cache_key)
         if cached:
-            return success(cached)
+            return Success(cached)
         
         # Load from filesystem
         result = await self._load_grammar_from_filesystem_async(grammar_name)
         
         # Cache on success
-        if result.is_success():
-            self._cache.cache_grammar(cache_key, result.value)
+        if isinstance(result, Success):
+            self._cache.cache_grammar(cache_key, result.unwrap())
         
         return result
     
     async def _load_grammar_from_filesystem_async(
         self, 
         grammar_name: GrammarName
-    ) -> Result[GrammarMetadata]:
+    ) -> Result[GrammarMetadata, AppError]:
         """Load grammar details from filesystem."""
         # Find grammar file
-        grammar_path = await self._find_grammar_file_async(grammar_name)
-        if grammar_path.is_failure():
-            return grammar_path  # type: ignore
+        grammar_path_result = await self._find_grammar_file_async(grammar_name)
+        if isinstance(grammar_path_result, Failure):
+            return grammar_path_result
         
-        path = grammar_path.value
+        path = grammar_path_result.unwrap()
         
         # Read content
         content_result = await self._file_repo.read_grammar_content_async(path)
-        if content_result.is_failure():
-            return content_result  # type: ignore
+        if isinstance(content_result, Failure):
+            return content_result
         
         # Extract rules
         format = GrammarFormat(path.suffix[1:])  # type: ignore
         rules = self._rule_extractor.extract_rules_from_content(
-            content_result.value, 
+            content_result.unwrap(), 
             format
         )
         
         # Build complete metadata
-        return success(GrammarMetadata(
+        return Success(GrammarMetadata(
             name=grammar_name,
             filename=path.name,
             path=GrammarPath(str(path)),
             format=format,
             size=path.stat().st_size,
             rules=rules,
-            content=content_result.value
+            content=content_result.unwrap()
         ))
     
-    async def _find_grammar_file_async(self, grammar_name: GrammarName) -> Result[Path]:
+    async def _find_grammar_file_async(self, grammar_name: GrammarName) -> Result[Path, AppError]:
         """
         Note: This is a pure function (no side effects).
         Find grammar file by name."""
         for ext in ['.tgf', '.ebnf', '.lark']:
             path = settings.grammar_dir / f"{grammar_name}{ext}"
             if path.exists():
-                return success(path)
+                return Success(path)
         
-        return failure("NOT_FOUND", f"Grammar '{grammar_name}' not found")
+        return Failure(AppError(code="NOT_FOUND", message=f"Grammar '{grammar_name}' not found"))
     
-    async def activate_grammar_async(self, grammar_name: GrammarName) -> Result[None]:
+    async def activate_grammar_async(self, grammar_name: GrammarName) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Activate a grammar by updating configuration."""
         # Verify grammar exists
         exists_result = await self._verify_grammar_exists_async(grammar_name)
-        if exists_result.is_failure():
+        if isinstance(exists_result, Failure):
             return exists_result
         
         # Save to configuration
@@ -428,7 +422,7 @@ class GrammarService:
             grammar_name
         )
     
-    async def _verify_grammar_exists_async(self, grammar_name: GrammarName) -> Result[None]:
+    async def _verify_grammar_exists_async(self, grammar_name: GrammarName) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Verify that a grammar exists."""
@@ -436,14 +430,14 @@ class GrammarService:
             settings.grammar_dir
         )
         
-        if grammars_result.is_failure():
-            return grammars_result  # type: ignore
+        if isinstance(grammars_result, Failure):
+            return grammars_result
         
-        grammar_names = [g.name for g in grammars_result.value]
+        grammar_names = [g.name for g in grammars_result.unwrap()]
         if grammar_name not in grammar_names:
-            return failure("NOT_FOUND", f"Grammar '{grammar_name}' not found")
+            return Failure(AppError(code="NOT_FOUND", message=f"Grammar '{grammar_name}' not found"))
         
-        return success(None)
+        return Success(None)
     
     def clear_grammar_cache(self) -> None:
         """
@@ -469,11 +463,10 @@ async def list_available_grammars_async():
         Note: This is a pure function (no side effects).
         List available grammar files with active status."""
     result = await _service.list_grammars_with_active_async()
-    
-    if result.is_success():
-        return create_success_response(result.value.__dict__)
+    if isinstance(result, Success):
+        return create_success_response(result.unwrap().__dict__)
     else:
-        return create_error_response(result.message)  # type: ignore
+        return create_error_response(result.failure().message)
 
 @router.get("/{grammar_name}")
 async def get_grammar_details_async(grammar_name: str):
@@ -483,9 +476,8 @@ async def get_grammar_details_async(grammar_name: str):
     result = await _service.get_grammar_details_with_cache_async(
         GrammarName(grammar_name)
     )
-    
-    if result.is_success():
-        metadata = result.value
+    if isinstance(result, Success):
+        metadata = result.unwrap()
         return create_success_response({
             "name": metadata.name,
             "filename": metadata.filename,
@@ -495,9 +487,10 @@ async def get_grammar_details_async(grammar_name: str):
             "rules": metadata.rules
         })
     else:
-        if result.error_code == "NOT_FOUND":  # type: ignore
-            raise HTTPException(status_code=404, detail=result.message)  # type: ignore
-        return create_error_response(result.message)  # type: ignore
+        error = result.failure()
+        if error.code == "NOT_FOUND":
+            raise HTTPException(status_code=404, detail=error.message)
+        return create_error_response(error.message)
 
 @router.post("/load-from-path")
 async def load_grammar_from_server_path_async(request: Request, grammar_path: str):
@@ -514,19 +507,21 @@ async def load_grammar_from_server_path_async(request: Request, grammar_path: st
     # Validate path
     path = Path(grammar_path)
     validation_result = _validator.validate_grammar_path(path)
-    if validation_result.is_failure():
+    if isinstance(validation_result, Failure):
+        error = validation_result.failure()
         raise HTTPException(
-            status_code=404 if validation_result.error_code == "FILE_NOT_FOUND" else 400,  # type: ignore
-            detail=validation_result.message  # type: ignore
+            status_code=404 if error.code == "NOT_FOUND" else 400,
+            detail=error.message
         )
     
     # Validate format
     format_result = _validator.validate_file_extension(path.name)
-    if format_result.is_failure():
-        raise HTTPException(status_code=400, detail=format_result.message)  # type: ignore
+    if isinstance(format_result, Failure):
+        raise HTTPException(status_code=400, detail=format_result.failure().message)
     
     # Load grammar through engine
-    success = request.app.state.grammar_engine.load_tau_grammar(grammar_path)
+    grammar_engine = request.app.state.grammar_engine
+    success = grammar_engine.load_tau_grammar(grammar_path)
     
     if success:
         return create_success_response({
@@ -547,15 +542,15 @@ async def reload_all_grammars_async():
     # Re-scan directory
     result = await _service.list_grammars_with_active_async()
     
-    if result.is_success():
-        response = result.value
+    if isinstance(result, Success):
+        response = result.unwrap()
         return create_success_response({
             "message": "Grammar files reloaded successfully",
             "grammars_found": len(response.grammars),
             "grammars": [g.__dict__ for g in response.grammars]
         })
     else:
-        return create_error_response(result.message)  # type: ignore
+        return create_error_response(result.failure().message)
 
 @router.post("/{grammar_name}/activate")
 async def activate_grammar_as_current_async(grammar_name: str):
@@ -563,16 +558,16 @@ async def activate_grammar_as_current_async(grammar_name: str):
         Note: This is a pure function (no side effects).
         Set a grammar as the active grammar."""
     result = await _service.activate_grammar_async(GrammarName(grammar_name))
-    
-    if result.is_success():
+    if isinstance(result, Success):
         return create_success_response({
             "message": f"Grammar '{grammar_name}' activated successfully",
             "active_grammar": grammar_name
         })
     else:
-        if result.error_code == "NOT_FOUND":  # type: ignore
-            raise HTTPException(status_code=404, detail=result.message)  # type: ignore
-        return create_error_response(result.message)  # type: ignore
+        error = result.failure()
+        if error.code == "NOT_FOUND":
+            raise HTTPException(status_code=404, detail=error.message)
+        return create_error_response(error.message)
 
 @router.post("/load-tau-grammar")
 async def load_tau_grammar_from_upload_async(
@@ -582,8 +577,8 @@ async def load_tau_grammar_from_upload_async(
     """Load a user-provided Tau grammar file for translation."""
     # Validate file format
     format_result = _validator.validate_file_extension(file.filename)
-    if format_result.is_failure():
-        raise HTTPException(status_code=400, detail=format_result.message)  # type: ignore
+    if isinstance(format_result, Failure):
+        raise HTTPException(status_code=400, detail=format_result.failure().message)
     
     # Validate engine availability
     if not hasattr(request.app.state, 'grammar_engine'):
@@ -607,24 +602,24 @@ async def load_tau_grammar_from_upload_async(
         temp_dir
     )
     
-    if temp_result.is_failure():
-        return create_error_response(temp_result.message)  # type: ignore
+    if isinstance(temp_result, Failure):
+        return create_error_response(temp_result.failure().message)
     
     # Load through engine
     grammar_engine = request.app.state.grammar_engine
-    success = grammar_engine.load_tau_grammar(str(temp_result.value))
+    success = grammar_engine.load_tau_grammar(str(temp_result.unwrap()))
     
     if success:
         # Extract rules for response
         rules = _rule_extractor.extract_rules_from_content(
             grammar_text, 
-            format_result.value
+            format_result.unwrap()
         )
         
         return create_success_response({
             "message": "Tau grammar loaded successfully",
             "filename": file.filename,
-            "format": format_result.value,
+            "format": format_result.unwrap(),
             "rules_found": len(rules),
             "rules": rules[:20],  # First 20 rules
             "can_translate_to_tce": True

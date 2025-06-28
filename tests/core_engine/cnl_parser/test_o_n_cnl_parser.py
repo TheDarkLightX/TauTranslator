@@ -10,10 +10,10 @@ This test suite validates the optimized O(n) CNL parser with:
 
 import pytest
 import time
-from tau_translator_omega.core_engine.cnl_parser.cnl_parser import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.cnl_parser import (
     create_cnl_parser, CNLParser, OptimizedTokenizer, PrattParser, Token
 )
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     SentenceNode, FactNode, ConstantNode, PredicateCallNode,
     ComparisonNode, ArithmeticBinaryOpNode, BooleanBinaryOpNode
 )

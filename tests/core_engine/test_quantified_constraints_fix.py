@@ -12,8 +12,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.nlp_enhanced.english_to_tau_translator import EnglishToTauTranslator
-from tau_translator_omega.core_engine.nlp_enhanced.requirements_analyzer import RequirementsAnalyzer
+from tau_translator_omega.core_engine.translators.nlp_enhanced.english_to_tau_translator import EnglishToTauTranslator
+from tau_translator_omega.core_engine.translators.nlp_enhanced.requirements_analyzer import RequirementsAnalyzer
 
 
 class TestQuantifiedConstraintsFix(unittest.TestCase):

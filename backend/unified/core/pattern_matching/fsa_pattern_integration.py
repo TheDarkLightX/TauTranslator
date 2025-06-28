@@ -8,8 +8,10 @@ Author: DarkLightX / Dana Edwards
 """
 
 import logging
+import threading
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+import asyncio
 
 from ..pattern_loader import (
     PatternLoader,
@@ -21,9 +23,9 @@ from ..pattern_loader import (
 from .fsa_engine import (
     OptimizedPatternMatcher,
     FSAPatternCompiler,
-    MatchResult,
     get_pattern_matcher
 )
+from . import MatchResult
 
 
 @dataclass
@@ -74,14 +76,14 @@ class FSAPatternAdapter:
         return False
 
 
-class FSAEnabledPatternLoader:
+class FSAEnabledPatternManager:
     """
     Pattern manager that uses FSA for applicable patterns and falls back
     to traditional methods for complex patterns.
     """
     
-    def __init__(self):
-        self.pattern_loader = get_pattern_loader()
+    def __init__(self, pattern_loader: Optional[PatternLoader] = None):
+        self.pattern_loader = pattern_loader or get_pattern_loader()
         self.fsa_matcher = get_pattern_matcher()
         self.adapter = FSAPatternAdapter()
         self.fsa_patterns: Dict[str, PatternRule] = {}
@@ -99,8 +101,11 @@ class FSAEnabledPatternLoader:
         self.fsa_patterns.clear()
         self.regex_patterns.clear()
         
-        # Get all enabled patterns
-        patterns = self.pattern_loader.get_patterns(direction=direction, enabled_only=True)
+        # Get all enabled patterns for the given direction, or all patterns if no direction
+        if direction:
+            patterns = self.pattern_loader.get_patterns_by_direction(direction)
+        else:
+            patterns = self.pattern_loader.get_all_patterns()
         
         fsa_patterns = []
         for pattern in patterns:
@@ -134,12 +139,14 @@ class FSAEnabledPatternLoader:
             if pattern.matches(text):
                 self.regex_matches += 1
                 # Convert to MatchResult
+                # NOTE: Simplified match result creation. Lacks precise start/end positions.
                 return MatchResult(
-                    matched=True,
                     pattern_id=pattern.id,
+                    start_pos=0, # Placeholder
+                    end_pos=len(text), # Placeholder
+                    matched_text=text,  # This is simplified
                     replacement=pattern.target_pattern,
-                    priority=pattern.priority,
-                    matched_text=text  # This is simplified
+                    priority=pattern.priority
                 )
         
         return None
@@ -158,12 +165,14 @@ class FSAEnabledPatternLoader:
         for pattern in self.regex_patterns.values():
             if pattern.matches(text):
                 self.regex_matches += 1
+                # NOTE: Simplified match result creation. Lacks precise start/end positions.
                 matches.append(MatchResult(
-                    matched=True,
                     pattern_id=pattern.id,
+                    start_pos=0, # Placeholder
+                    end_pos=len(text), # Placeholder
+                    matched_text=text,
                     replacement=pattern.target_pattern,
-                    priority=pattern.priority,
-                    matched_text=text
+                    priority=pattern.priority
                 ))
         
         # Sort by priority
@@ -195,18 +204,32 @@ class FSAEnabledPatternLoader:
             }
         }
     
-    def reload_patterns(self) -> None:
-        """Reload patterns from files and resync."""
-        reloaded = self.pattern_loader.reload_pattern_sets()
-        if reloaded > 0:
-            self.sync_patterns()
-            self.logger.info(f"Resynced patterns after reloading {reloaded} pattern sets")
+    async def reload_patterns_async(self) -> None:
+        """Reload patterns from all sources and resync."""
+        self.logger.info("Reloading all pattern sources...")
+        # This requires knowledge of the sources, which PatternLoader abstracts away.
+        # We assume a method on the repository to get all known source paths.
+        # This is a conceptual implementation.
+        if hasattr(self.pattern_loader._pattern_repo, 'get_known_sources'):
+            source_paths = self.pattern_loader._pattern_repo.get_known_sources()
+            for path in source_paths:
+                await self.pattern_loader.load_patterns_from_source_async(path)
+            await asyncio.to_thread(self.sync_patterns)
+            self.logger.info(f"Resynced patterns after reloading {len(source_paths)} sources.")
+        else:
+            self.logger.warning("Pattern repository does not support getting known sources for reload.")
 
 
 # Global FSA-enabled pattern manager
-_global_fsa_pattern_manager = FSAEnabledPatternLoader()
+_global_fsa_pattern_manager: Optional[FSAEnabledPatternManager] = None
+_global_fsa_lock = threading.Lock()
 
 
-def get_fsa_pattern_manager() -> FSAEnabledPatternLoader:
+def get_fsa_pattern_manager() -> FSAEnabledPatternManager:
     """Get the global FSA-enabled pattern manager."""
+    global _global_fsa_pattern_manager
+    if _global_fsa_pattern_manager is None:
+        with _global_fsa_lock:
+            if _global_fsa_pattern_manager is None:
+                _global_fsa_pattern_manager = FSAEnabledPatternManager()
     return _global_fsa_pattern_manager

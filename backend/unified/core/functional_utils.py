@@ -5,24 +5,24 @@ Functional utilities to reduce code complexity and enable cleaner patterns.
 from typing import Callable, TypeVar, Any, Optional, List
 from functools import reduce, wraps
 import asyncio
-from .result_enhanced import Result, Success, Failure
+from .domain_types import Result, Success, Failure, AppError
 
 T = TypeVar('T')
 U = TypeVar('U')
 
 
 # Guard clause helpers
-def guard(condition: bool, error_code: str, message: str) -> Result[None]:
+def guard(condition: bool, error_code: str, message: str) -> Result[None, AppError]:
     """Create a guard clause that returns Result."""
     if not condition:
-        return Failure(error_code, message)
+        return Failure(AppError(code=error_code, message=message))
     return Success(None)
 
 
-def guard_not_none(value: Optional[T], error_code: str, message: str) -> Result[T]:
+def guard_not_none(value: Optional[T], error_code: str, message: str) -> Result[T, AppError]:
     """Guard against None values."""
     if value is None:
-        return Failure(error_code, message)
+        return Failure(AppError(code=error_code, message=message))
     return Success(value)
 
 
@@ -51,18 +51,20 @@ class ValidationPipeline:
     """Composable validation pipeline."""
     
     def __init__(self):
-        self.validators: List[Callable[[Any], Result[Any]]] = []
+        self.validators: List[Callable[[Any], Result[Any, AppError]]] = []
     
-    def add(self, validator: Callable[[Any], Result[Any]]) -> 'ValidationPipeline':
+    def add(self, validator: Callable[[Any], Result[Any, AppError]]) -> 'ValidationPipeline':
         """Add a validator to the pipeline."""
         self.validators.append(validator)
         return self
     
-    def validate(self, value: Any) -> Result[Any]:
+    def validate(self, value: Any) -> Result[Any, AppError]:
         """Run all validators in sequence."""
-        result = Success(value)
+        result: Result[Any, AppError] = Success(value)
         for validator in self.validators:
-            result = result.flat_map(validator)
+            if isinstance(result, Failure):
+                return result
+            result = validator(result.unwrap())
         return result
 
 
@@ -71,21 +73,21 @@ class Validators:
     """Common validation functions returning Results."""
     
     @staticmethod
-    def not_empty(value: str, field_name: str = "value") -> Result[str]:
+    def not_empty(value: str, field_name: str = "value") -> Result[str, AppError]:
         """Validate string is not empty."""
         if not value or not value.strip():
-            return Failure("EMPTY_VALUE", f"{field_name} cannot be empty")
+            return Failure(AppError(code="EMPTY_VALUE", message=f"{field_name} cannot be empty"))
         return Success(value)
     
     @staticmethod
     def length_between(min_len: int, max_len: int, field_name: str = "value"):
         """Create a length validator."""
-        def validator(value: str) -> Result[str]:
+        def validator(value: str) -> Result[str, AppError]:
             length = len(value)
             if length < min_len:
-                return Failure("TOO_SHORT", f"{field_name} must be at least {min_len} characters")
+                return Failure(AppError(code="TOO_SHORT", message=f"{field_name} must be at least {min_len} characters"))
             if length > max_len:
-                return Failure("TOO_LONG", f"{field_name} must be at most {max_len} characters")
+                return Failure(AppError(code="TOO_LONG", message=f"{field_name} must be at most {max_len} characters"))
             return Success(value)
         return validator
     
@@ -95,20 +97,20 @@ class Validators:
         import re
         compiled = re.compile(pattern)
         
-        def validator(value: str) -> Result[str]:
+        def validator(value: str) -> Result[str, AppError]:
             if not compiled.match(value):
-                return Failure(error_code, error_message)
+                return Failure(AppError(code=error_code, message=error_message))
             return Success(value)
         return validator
 
 
 # Retry utility
 async def retry_async(
-    operation: Callable[[], Result[T]],
+    operation: Callable[[], Result[T, AppError]],
     max_attempts: int = 3,
     delay_seconds: float = 1.0,
     backoff_factor: float = 2.0
-) -> Result[T]:
+) -> Result[T, AppError]:
     """Retry an operation with exponential backoff."""
     last_failure = None
     delay = delay_seconds
@@ -125,9 +127,11 @@ async def retry_async(
             delay *= backoff_factor
     
     return Failure(
-        "MAX_RETRIES_EXCEEDED",
-        f"Operation failed after {max_attempts} attempts",
-        {"last_error": last_failure}
+        AppError(
+            code="MAX_RETRIES_EXCEEDED",
+            message=f"Operation failed after {max_attempts} attempts",
+            details={"last_error": str(last_failure)}
+        )
     )
 
 

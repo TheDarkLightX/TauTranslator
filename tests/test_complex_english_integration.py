@@ -8,19 +8,11 @@ Tests the complete pipeline from English → TAU with the new complex parser.
 Copyright: DarkLightX / Dana Edwards
 """
 
-import os
 import sys
 import asyncio
-from pathlib import Path
-
-# Add project paths
-project_root = Path(__file__).parent
-backend_path = project_root / "backend/unified"
-sys.path.insert(0, str(backend_path))
-
-from domain.enhanced_nlp_service import create_enhanced_nlp_service
-from domain.complex_english_parser import parse_complex_english
-from core.domain_types import SourceText
+from backend.unified.domain.enhanced_nlp_service import create_enhanced_nlp_service
+from backend.unified.domain.complex_english_parser import parse_complex_english
+from backend.unified.core.domain_types import SourceText
 
 def test_complex_english_capabilities():
     """Test what complex English actually works end-to-end."""
@@ -100,7 +92,7 @@ def test_complex_english_capabilities():
         print(f"✅ Result: {result}")
         
         # Also show intermediate steps
-        from domain.complex_english_parser import ComplexEnglishParser
+        from backend.unified.domain.complex_english_parser import ComplexEnglishParser
         parser = ComplexEnglishParser()
         logical_form = parser.parse(key_sentence)
         

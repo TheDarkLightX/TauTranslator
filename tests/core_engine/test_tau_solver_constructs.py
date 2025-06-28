@@ -10,8 +10,8 @@ Author: DarkLightX / Dana Edwards
 """
 
 import pytest
-from src.tau_translator_omega.core_engine.parser import TauParser
-from src.tau_translator_omega.core_engine.ast_nodes import *
+from tau_translator_omega.core_engine.parsers.grammar_driven_parser import GrammarDrivenParser as TauParser
+from tau_translator_omega.core_engine.ast.ast_nodes import *
 
 
 class TestTauSolverConstructs:
@@ -85,7 +85,7 @@ class TestTauToEnglishTranslation:
     
     def setup_method(self):
         """Initialize translator for each test."""
-        from src.tau_translator_omega.core_engine.tau_to_english_translator import TauToEnglishTranslator
+        from tau_translator_omega.core_engine.tau_to_english_translator import TauToEnglishTranslator
         self.translator = TauToEnglishTranslator()
     
     def test_translate_simple_solve(self):
@@ -124,7 +124,7 @@ class TestEnglishToTauTranslation:
     
     def setup_method(self):
         """Initialize translator for each test."""
-        from src.tau_translator_omega.core_engine.english_to_tau_translator import EnglishToTauTranslator
+        from tau_translator_omega.core_engine.english_to_tau_translator import EnglishToTauTranslator
         self.translator = EnglishToTauTranslator()
     
     def test_translate_find_value_to_solve(self):
@@ -161,7 +161,7 @@ class TestBidirectionalTranslation:
     
     def setup_method(self):
         """Initialize bidirectional translator."""
-        from src.tau_translator_omega.core_engine.bidirectional_translator import BidirectionalTranslator
+        from tau_translator_omega.core_engine.bidirectional_translator import BidirectionalTranslator
         self.translator = BidirectionalTranslator()
     
     @pytest.mark.parametrize("tau_code", [

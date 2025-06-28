@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 import json
 
-from .manager import (
+from src.tau_translator_omega.core_engine.plugins.plugin_manager_refactored import (
     PluginId, ErrorCode, ErrorMessage, ManifestPath, PluginDirectory,
     PluginError, ValidationResult, PluginValidator, PluginRegistry,
     ManifestFileRepository, VersionCompatibilityChecker, PluginInstantiator,

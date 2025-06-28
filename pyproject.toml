@@ -1,4 +1,62 @@
+[project]
+name = "tau-translator"
+version = "0.1.0"
+license = "MIT"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+description = "Translate natural language English into Tau formal language"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [ {name = "TauTranslator Team"} ]
+
+# Core runtime requirements
+# NOTE: extras are declared further below
+dependencies = [
+  "lark>=1.1",
+  "loguru>=0.7",
+  "rich>=13.0",
+  "pytest>=7.0",
+  "pytest-bdd>=6.0",
+  "returns>=0.20"
+]
+
+[project.optional-dependencies]
+llm = ["lmql>=0.6", "aiohttp>=3.8", "huggingface-hub>=0.20"]
+cache = ["redis>=4.5"]
+api = ["fastapi>=0.100", "uvicorn[standard]>=0.20"]
+dev = [
+  "black>=24.3",
+  "ruff>=0.4",
+  "isort>=5.12",
+  "mypy>=1.8",
+  "mutmut>=2.5",
+  "hypothesis>=6.100",
+]
+docs = ["mkdocs>=1.5", "mkdocs-material>=9.5"]
+
+# ---------------------------------------------------------------------------
+# Packaging configuration (setuptools backend, src-layout + backend package)
+# ---------------------------------------------------------------------------
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src", "backend"]
+include = ["tau_translator_omega*", "backend*"]
+
+# ---------------------------------------------------------------------------
+# Tooling configuration
+# ---------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+select = ["E", "F", "I", "B"]
+line-length = 100
+
 [tool.mutmut]
 paths_to_mutate = ["src/tau_translator_omega/core_engine/ast/ast_nodes.py"]
 backup = false
-runner = "PYTHONPATH=src python -m pytest tests/core_engine/ast_tests/test_boolean_literal_node_mutation_hardened.py::TestBooleanLiteralNodeMutationHardened -x --tb=no --disable-warnings -q"
+runner = "PYTHONPATH=src python -m pytest -q"

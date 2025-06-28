@@ -7,13 +7,11 @@ import re
 import time
 from typing import List, Pattern, Dict, Any, Optional
 from dataclasses import dataclass
-from ..core.result_enhanced import Result, Success, Failure, success, failure
-
-from ..core.domain_types import (
-    SourceText, TargetText, TranslationStatus, EngineType,
-    Result, Success, Failure, success, failure
+from backend.unified.core.domain_types import (
+    SourceText, TargetText, TranslationStatus, EngineType, AppError,
+    Result, Success, Failure
 )
-from ..core.functional_utils import (
+from backend.unified.core.functional_utils import (
     AsyncSyncBridge, ValidationPipeline, Validators, guard, guard_not_none
 )
 from .base import TranslationEngine, TranslationDirection, TranslationResult
@@ -46,7 +44,7 @@ class TextValidator:
     """Validates text for translation."""
     
     @staticmethod
-    def validate(text: SourceText) -> Result[SourceText]:
+    def validate(text: SourceText) -> Result[SourceText, AppError]:
         """
         Note: This is a pure function (no side effects).
         Validate text meets all requirements."""
@@ -67,17 +65,17 @@ class PatternRepository:
     def __init__(self):
         self._patterns = self._initialize_patterns()
     
-    def get_pattern_set(self, direction: TranslationDirection) -> Result[PatternSet]:
+    def get_pattern_set(self, direction: TranslationDirection) -> Result[PatternSet, AppError]:
         """
         Note: This is a pure function (no side effects).
         Get pattern set for a direction."""
         pattern_set = self._patterns.get(direction)
         if pattern_set is None:
-            return failure(
-                "UNSUPPORTED_DIRECTION",
-                f"Direction {direction.value} not supported"
-            )
-        return success(pattern_set)
+            return Failure(AppError(
+                code="UNSUPPORTED_DIRECTION",
+                message=f"Direction {direction.value} not supported"
+            ))
+        return Success(pattern_set)
     
     def get_supported_directions(self) -> List[TranslationDirection]:
         """
@@ -152,17 +150,19 @@ class PatternApplicator:
     """Applies pattern rules to text."""
     
     @staticmethod
-    def apply_patterns(text: str, pattern_set: PatternSet) -> Result[str]:
+    def apply_patterns(text: str, pattern_set: PatternSet) -> Result[str, AppError]:
         """
         Note: This is a pure function (no side effects).
         Apply all patterns in sequence."""
-        result = text
         try:
             for rule in pattern_set.rules:
-                result = rule.pattern.sub(rule.replacement, result)
-            return success(result)
+                text = rule.pattern.sub(rule.replacement, text)
+            return Success(text)
         except Exception as e:
-            return failure("PATTERN_ERROR", f"Pattern application failed: {str(e)}")
+            return Failure(AppError(
+                code="PATTERN_APPLICATION_FAILED",
+                message=f"Failed to apply patterns: {e}"
+            ))
 
 
 class TextCleaner:
@@ -275,7 +275,7 @@ class PatternTranslationEngine(TranslationEngine):
         text: SourceText,
         direction: TranslationDirection,
         **kwargs: Dict[str, Any]
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Translate text using patterns."""
         start_time = time.time()
         
@@ -293,14 +293,28 @@ class PatternTranslationEngine(TranslationEngine):
         self,
         text: SourceText,
         direction: TranslationDirection
-    ) -> Result[TargetText]:
+    ) -> Result[TargetText, AppError]:
         """Validate input and perform translation."""
-        # Chain operations using Result monad
-        return (self._validator.validate(text)
-                .flat_map(lambda _: self._repository.get_pattern_set(direction))
-                .flat_map(lambda patterns: self._applicator.apply_patterns(text, patterns))
-                .map(lambda result: self._cleaner.clean(result, direction))
-                .map(TargetText))
+        validation_result = self._validator.validate(text)
+        if isinstance(validation_result, Failure):
+            return validation_result
+
+        pattern_set_result = self._repository.get_pattern_set(direction)
+        if isinstance(pattern_set_result, Failure):
+            return pattern_set_result
+
+        validated_text = validation_result.unwrap()
+        pattern_set = pattern_set_result.unwrap()
+
+        # Handle the Result from apply_patterns
+        applied_text_result = self._applicator.apply_patterns(validated_text, pattern_set)
+        if isinstance(applied_text_result, Failure):
+            return applied_text_result
+
+        applied_text = applied_text_result.unwrap()
+        cleaned_text = self._cleaner.clean(applied_text, direction)
+        target_text = TargetText(cleaned_text)
+        return Success(target_text)
     
     def _create_success_result(
         self,
@@ -337,13 +351,14 @@ class PatternTranslationEngine(TranslationEngine):
         Get pattern count for a direction."""
         result = self._repository.get_pattern_set(direction)
         if isinstance(result, Success):
-            return len(result.value.rules)
+            return len(result.unwrap().rules)
         return 0
     
     def _create_error_result(self, text: str, direction: TranslationDirection, error: Failure) -> TranslationResult:
         """
         Note: This is a pure function (no side effects).
         Create error translation result."""
+        app_error = error.failure()
         return TranslationResult(
             success=False,
             original_text=text,
@@ -352,6 +367,6 @@ class PatternTranslationEngine(TranslationEngine):
             confidence=0.0,
             translation_method=self.name,
             processing_time=0.0,
-            error_message=f"{error.error_code}: {error.message}",
+            error_message=f"{app_error.code}: {app_error.message}",
             metadata={}
         )

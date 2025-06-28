@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import sys
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 def verify_structure(base_path: str):
     """Verify the new directory structure exists and contains files."""
     core_engine_path = Path(base_path) / "src" / "tau_translator_omega" / "core_engine"
@@ -80,7 +82,7 @@ def verify_structure(base_path: str):
     return all_good and not root_files
 
 def main():
-    base_path = "~/TauTranslator"
+    base_path = str(PROJECT_ROOT)
     if len(sys.argv) > 1:
         base_path = sys.argv[1]
     

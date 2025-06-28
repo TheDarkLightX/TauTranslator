@@ -22,6 +22,17 @@ from ..infrastructure.parser_io import FileLoader, CacheManager, LoggingService
 from ..infrastructure.lark_adapter import LarkParserAdapter
 
 
+# Helper types
+from dataclasses import dataclass
+
+@dataclass
+class ParseAttemptResult:
+    """Result of a parse attempt."""
+    tree: Optional[ParseTree]
+    errors: List[ParseError]
+    recovery_attempts: int
+
+
 class ParsingService:
     """
     Main service orchestrating the parsing workflow.
@@ -436,15 +447,3 @@ class MetricsCollector:
             "average_parse_time_ms": avg_parse_time
         }
 
-
-# Helper types
-from dataclasses import dataclass
-from typing import List
-
-
-@dataclass
-class ParseAttemptResult:
-    """Result of a parse attempt."""
-    tree: Optional[ParseTree]
-    errors: List[ParseError]
-    recovery_attempts: int

@@ -1,0 +1,26 @@
+leaf[0]():=F
+leaf[1]():=T
+leaf[2]():=F
+leaf[3]():=T
+proof1[0]():=F
+proof1[1]():=T
+proof1[2]():=T
+proof1[3]():=F
+proof2[0]():=F
+proof2[1]():=T
+proof2[2]():=T
+proof2[3]():=T
+root[0]():=F
+root[1]():=T
+root[2]():=F
+root[3]():=F
+computed1[0]():=leaf[0]() + proof1[0]()
+computed1[1]():=leaf[1]() + proof1[1]()
+computed1[2]():=leaf[2]() + proof1[2]()
+computed1[3]():=leaf[3]() + proof1[3]()
+computed2[0]():=computed1[0]() + proof2[0]()
+computed2[1]():=computed1[1]() + proof2[1]()
+computed2[2]():=computed1[2]() + proof2[2]()
+computed2[3]():=computed1[3]() + proof2[3]()
+is_valid_proof():=((computed2[0]())'&(root[0]())'|(computed2[0]()&root[0]()))&((computed2[1]())'&(root[1]())'|(computed2[1]()&root[1]()))&((computed2[2]())'&(root[2]())'|(computed2[2]()&root[2]()))&((computed2[3]())'&(root[3]())'|(computed2[3]()&root[3]()))
+solve is_valid_proof()

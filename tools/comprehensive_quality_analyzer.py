@@ -18,6 +18,9 @@ import json
 from collections import defaultdict
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 @dataclass
 class MethodMetrics:
     """Metrics for a single method."""
@@ -283,7 +286,7 @@ def generate_report(modules: List[ModuleMetrics]) -> None:
     print("-" * 80)
     
     for i, module in enumerate(modules[:10], 1):
-        rel_path = module.path.replace('~/TauTranslator/', '')
+        rel_path = str(Path(module.path).relative_to(PROJECT_ROOT))
         print(f"\n{i}. {rel_path}")
         print(f"   Refactoring Score: {module.refactoring_score:.2f}")
         print(f"   Total Methods: {len(module.methods)}")
@@ -330,7 +333,7 @@ def generate_report(modules: List[ModuleMetrics]) -> None:
     output_data = []
     for module in modules[:10]:
         output_data.append({
-            'path': module.path.replace('~/TauTranslator/', ''),
+            'path': str(Path(module.path).relative_to(PROJECT_ROOT)),
             'refactoring_score': module.refactoring_score,
             'total_methods': len(module.methods),
             'methods_over_10_lines': len(module.methods_over_10_lines),
@@ -356,8 +359,8 @@ def generate_report(modules: List[ModuleMetrics]) -> None:
 def main():
     """Main entry point."""
     directories = [
-        '~/TauTranslator/backend/unified',
-        '~/TauTranslator/src/tau_translator_omega'
+        str(PROJECT_ROOT / 'backend' / 'unified'),
+        str(PROJECT_ROOT / 'src' / 'tau_translator_omega')
     ]
     
     print("Analyzing TauTranslator codebase...")

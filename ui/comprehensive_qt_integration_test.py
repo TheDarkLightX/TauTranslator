@@ -313,7 +313,7 @@ class QtIntegrationTester:
         try:
             # Import Qt modules
             from PyQt5.QtWidgets import QApplication
-            from src.tau_translator_omega.desktop_gui.main_window import MainWindow, run_test_translations
+            from tau_translator_omega.desktop_gui.main_window import MainWindow, run_test_translations
             
             print("✅ Qt modules imported successfully")
             

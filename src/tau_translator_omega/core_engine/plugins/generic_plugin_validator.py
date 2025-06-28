@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Any, Tuple, List, Optional
 
-from .plugin import BasePluginValidator # Assuming BasePluginValidator is in plugin.py
+from ..plugin import BasePluginValidator # Assuming BasePluginValidator is in plugin.py
 
 
 class GenericPluginValidator(BasePluginValidator):

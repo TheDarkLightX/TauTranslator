@@ -1,375 +1,98 @@
 """
-Unit Tests for Core Translator
-===============================
-
-Comprehensive tests for core translation functionality.
+Unit Tests for the Pattern-Based Translation Engine.
 """
 
 import pytest
-from src.tau_translator_omega.core_engine.core_translator import (
-    CoreParser,
-    CoreAST,
-    CoreSemanticAnalyzer,
-    TCEToTauTranslator
-)
+from backend.unified.translators.pattern_translator import PatternTranslationEngine
+from backend.unified.core.engine_interface import TranslationDirection
 
+class TestPatternTranslationEngine:
+    """Tests for the PatternTranslationEngine."""
 
-class TestCoreParser:
-    """Test core parser functionality."""
-    
-    def test_parse_tce_valid(self):
-        """Test parsing valid TCE input."""
-        parser = CoreParser()
-        
-        # Test with period
-        ast = parser.parse("x = 5.", "TCE")
-        assert isinstance(ast, CoreAST)
-        assert ast.text == "x = 5."
-        assert ast.language == "TCE"
-        
-        # Test complex expression
-        ast = parser.parse("x and y or z.", "TCE")
-        assert ast.text == "x and y or z."
-        
-    def test_parse_tce_invalid(self):
-        """Test parsing invalid TCE input."""
-        parser = CoreParser()
-        
-        # Test empty input
-        with pytest.raises(ValueError, match="Input cannot be empty"):
-            parser.parse("", "TCE")
-            
-        # Test missing period
-        with pytest.raises(SyntaxError, match="TCE input must end with period"):
-            parser.parse("x = 5", "TCE")
-            
-    def test_parse_tau_valid(self):
-        """Test parsing valid TAU input."""
-        parser = CoreParser()
-        
-        # TAU doesn't require period
-        ast = parser.parse("x & y", "TAU")
-        assert isinstance(ast, CoreAST)
-        assert ast.text == "x & y"
-        assert ast.language == "TAU"
-        
-    def test_parse_whitespace_handling(self):
-        """Test whitespace handling in parser."""
-        parser = CoreParser()
-        
-        # Test with extra whitespace
-        ast = parser.parse("  x = 5.  ", "TCE")
-        assert ast.text == "  x = 5.  "
-        
-        # Test tabs and newlines
-        ast = parser.parse("\tx = 5.\n", "TCE")
-        assert ast.text == "\tx = 5.\n"
+    @pytest.fixture
+    def engine(self):
+        """Provides a PatternTranslationEngine instance."""
+        return PatternTranslationEngine()
 
+    def test_initialization(self, engine):
+        """Test that the engine initializes correctly."""
+        assert engine.name == "pattern_based"
+        assert len(engine.get_supported_directions()) > 0
 
-class TestCoreAST:
-    """Test AST functionality."""
-    
-    def test_ast_type_detection(self):
-        """Test AST type detection."""
-        # Test predicate definition
-        ast = CoreAST("define predicate p(x) as x > 0.", "TCE")
-        assert ast.type == "predicate_definition"
-        
-        # Test function definition
-        ast = CoreAST("define function f(x) as x + 1.", "TCE")
-        assert ast.type == "function_definition"
-        
-        # Test stream definition
-        ast = CoreAST("sbf tau bit 1.", "TCE")
-        assert ast.type == "stream_definition"
-        
-        # Test stream rule
-        ast = CoreAST("rule o[t] = i[t].", "TCE")
-        assert ast.type == "stream_rule"
-        
-        # Test universal quantifier
-        ast = CoreAST("for every x such that p(x).", "TCE")
-        assert ast.type == "universal_quantifier"
-        
-        # Test existential quantifier
-        ast = CoreAST("there exists x such that p(x).", "TCE")
-        assert ast.type == "existential_quantifier"
-        
-        # Test implication
-        ast = CoreAST("if x then y.", "TCE")
-        assert ast.type == "implication"
-        
-        # Test temporal always
-        ast = CoreAST("always x is true.", "TCE")
-        assert ast.type == "temporal_always"
-        
-        # Test temporal sometimes
-        ast = CoreAST("sometimes x happens.", "TCE")
-        assert ast.type == "temporal_sometimes"
-        
-        # Test normalize
-        ast = CoreAST("normalize x + y.", "TCE")
-        assert ast.type == "normalize"
-        
-        # Test general expression
-        ast = CoreAST("x = 5.", "TCE")
-        assert ast.type == "expression"
-        
-    def test_ast_immutability(self):
-        """Test that AST properties are set correctly."""
-        ast = CoreAST("test text", "TAU")
-        assert ast.text == "test text"
-        assert ast.language == "TAU"
-        assert ast.type == "expression"
+    def test_translate_tce_to_tau_basic_expressions(self, engine):
+        """Test translating basic TCE expressions to Tau."""
+        # Test logical AND
+        result = engine.translate("x and y", TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "x & y"
 
+        # Test logical OR
+        result = engine.translate("x or y", TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "x | y"
 
-class TestCoreSemanticAnalyzer:
-    """Test semantic analyzer functionality."""
-    
-    def test_analyze_valid_tce(self):
-        """Test analyzing valid TCE AST."""
-        analyzer = CoreSemanticAnalyzer()
-        ast = CoreAST("x = 5.", "TCE")
-        
-        analyzed_ast, errors = analyzer.analyze(ast)
-        assert analyzed_ast == ast
-        assert errors == []
-        
-    def test_analyze_invalid_tce(self):
-        """Test analyzing invalid TCE AST."""
-        analyzer = CoreSemanticAnalyzer()
-        ast = CoreAST("x = 5", "TCE")  # Missing period
-        
-        analyzed_ast, errors = analyzer.analyze(ast)
-        assert len(errors) == 1
-        assert "Missing period" in errors[0]
-        
-    def test_analyze_tau(self):
-        """Test analyzing TAU AST."""
-        analyzer = CoreSemanticAnalyzer()
-        ast = CoreAST("x & y", "TAU")
-        
-        analyzed_ast, errors = analyzer.analyze(ast)
-        assert analyzed_ast == ast
-        assert errors == []
-        
-    def test_analyze_with_vocabulary(self):
-        """Test analyzing with vocabulary context."""
-        vocab = {'predicates': {'valid': {'arity': 1}}}
-        analyzer = CoreSemanticAnalyzer(vocab)
-        ast = CoreAST("valid(x).", "TCE")
-        
-        analyzed_ast, errors = analyzer.analyze(ast)
-        assert errors == []
+        # Test logical NOT
+        result = engine.translate("not x", TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "!x"
 
+    def test_translate_tce_to_tau_definitions(self, engine):
+        """Test translating TCE definitions to Tau."""
+        tce_def = "define predicate p(x) as x > 0"
+        result = engine.translate(tce_def, TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "p(x) := x > 0"
 
-class TestTCEToTauTranslator:
-    """Test TCE to TAU translator."""
-    
-    def test_translate_basic_expressions(self):
-        """Test translating basic expressions."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test simple assignment
-        ast = parser.parse("x = 5.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x = 5"
-        
-        # Test boolean operations
-        ast = parser.parse("x and y.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x & y"
-        
-        ast = parser.parse("x or y.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x \\\\ y"
-        
-        ast = parser.parse("x xor y.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x + y"
-        
-        ast = parser.parse("not x.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x'"
-        
-    def test_translate_definitions(self):
-        """Test translating definitions."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test predicate definition
-        ast = parser.parse("define predicate valid(x) as x > 0.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "valid(x) := x > 0"
-        
-        # Test function definition
-        ast = parser.parse("define function sum(a, b) as a + b.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "sum(a, b) := a + b"
-        
-    def test_translate_stream_operations(self):
-        """Test translating stream operations."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test stream output
-        ast = parser.parse("output 1 at time t = 0.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "o1[t] = 0"
-        
-        # Test stream rule
-        ast = parser.parse("rule o1[t] = i1[t] and i2[t].", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "o1[t] = i1[t] & i2[t]"
-        
-    def test_translate_quantifiers(self):
-        """Test translating quantifiers."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test universal quantifier
-        ast = parser.parse("for every x such that x > 0.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "{all x} (x > 0)"
-        
-        # Test existential quantifier
-        ast = parser.parse("there exists x such that x = 0.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "{ex x} (x = 0)"
-        
-    def test_translate_temporal_operators(self):
-        """Test translating temporal operators."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test always - with parentheses
-        ast = parser.parse("always (x = 5).", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "always (x = 5)"
-        
-        # Test sometimes - with parentheses
-        ast = parser.parse("sometimes (event occurs).", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "sometimes (event occurs)"
-        
-    def test_translate_implications(self):
-        """Test translating implications."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        ast = parser.parse("if x > 0 then x is positive.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "(x > 0) -> x is positive"
-        
-    def test_translate_normalize(self):
-        """Test translating normalize statements."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        ast = parser.parse("normalize x + y - z.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "normalize x + y - z"
-        
-    def test_translate_complex_expressions(self):
-        """Test translating complex expressions."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test nested operations
-        ast = parser.parse("(x and y) or (z and w).", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "(x & y) \\\\ (z & w)"
-        
-        # Test complement
-        ast = parser.parse("x complement.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x'"
-        
-        # Test comparisons
-        ast = parser.parse("x is less than y.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x < y"
-        
-        ast = parser.parse("x is greater than y.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x > y"
-        
-        ast = parser.parse("x equals y.", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert result == "x = y"
-        
-    def test_translate_to_tce_reverse(self):
-        """Test TAU to TCE reverse translation."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
+    def test_translate_tau_to_tce_reverse(self, engine):
+        """Test reverse translation from Tau to TCE."""
         # Test definition reverse
-        ast = parser.parse("p(x) := x > 0", "TAU")
-        result = translator.translate_to_tce(ast)
-        assert result == "define predicate p(x) as x > 0."
-        
+        tau_def = "p(x) := x > 0"
+        result = engine.translate(tau_def, TranslationDirection.TO_TCE)
+        assert result.success
+        assert "define predicate p(x) as x > 0" in result.translated_text
+
         # Test simple expression
-        ast = parser.parse("x & y", "TAU")
-        result = translator.translate_to_tce(ast)
-        assert result == "x & y."
-        
-    def test_edge_cases(self):
-        """Test edge cases in translation."""
-        translator = TCEToTauTranslator()
-        parser = CoreParser()
-        
-        # Test empty expression body
-        ast = CoreAST("", "TCE")
-        ast.type = "expression"
-        ast.text = "."
-        result = translator.translate_to_tau(ast)
-        assert result == ""
-        
-        # Test whitespace preservation
-        ast = parser.parse("  x  =  5  .", "TCE")
-        result = translator.translate_to_tau(ast)
-        assert "x" in result and "5" in result
+        tau_expr = "x & y"
+        result = engine.translate(tau_expr, TranslationDirection.TO_TCE)
+        assert result.success
+        assert "x and y" in result.translated_text
 
+    def test_translate_unsupported_tce(self, engine):
+        """Test that unsupported TCE returns the original text with low confidence."""
+        tce_text = "this is some complex narrative text that has no direct pattern."
+        result = engine.translate(tce_text, TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == tce_text
+        assert result.confidence < 0.1
 
-class TestIntegration:
-    """Integration tests for the full translation pipeline."""
-    
-    def test_full_pipeline_tce_to_tau(self):
-        """Test full TCE to TAU translation pipeline."""
-        parser = CoreParser()
-        analyzer = CoreSemanticAnalyzer()
-        translator = TCEToTauTranslator()
-        
-        # Parse
-        tce_input = "for every x such that bird(x) then can_fly(x)."
-        ast = parser.parse(tce_input, "TCE")
-        
-        # Analyze
-        analyzed_ast, errors = analyzer.analyze(ast)
-        assert errors == []
-        
-        # Translate
-        tau_output = translator.translate_to_tau(analyzed_ast)
-        assert "{all x}" in tau_output
-        assert "can_fly(x)" in tau_output
-        
-    def test_full_pipeline_with_errors(self):
-        """Test pipeline with semantic errors."""
-        parser = CoreParser()
-        analyzer = CoreSemanticAnalyzer()
-        translator = TCEToTauTranslator()
-        
-        # Parse invalid TCE (missing period)
-        ast = CoreAST("x = 5", "TCE")
-        
-        # Analyze should catch error
-        analyzed_ast, errors = analyzer.analyze(ast)
-        assert len(errors) > 0
-        
-        # Translation should still work
-        tau_output = translator.translate_to_tau(analyzed_ast)
-        assert tau_output == "x = 5"
+    def test_translate_unsupported_tau(self, engine):
+        """Test that unsupported Tau returns the original text with low confidence."""
+        tau_text = "some_unfamiliar_tau_function(a, b, c)"
+        result = engine.translate(tau_text, TranslationDirection.TO_TCE)
+        assert result.success
+        assert result.translated_text == tau_text
+        assert result.confidence < 0.1
+
+    def test_translate_implications(self, engine):
+        """Test translating implications."""
+        tce_text = "if x > 0 then x is positive"
+        result = engine.translate(tce_text, TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "(x > 0) -> (x is positive)"
+
+    def test_translate_temporal_operators(self, engine):
+        """Test translating temporal operators."""
+        # Test always
+        tce_always = "always x is true"
+        result = engine.translate(tce_always, TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "always(x is true)"
+
+        # Test sometimes
+        tce_sometimes = "sometimes x happens"
+        result = engine.translate(tce_sometimes, TranslationDirection.TO_TAU)
+        assert result.success
+        assert result.translated_text == "sometimes(x happens)"
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple, Literal, NewType
 from enum import Enum
 
@@ -43,7 +43,7 @@ class SystemMetrics:
     memory_percent: MemoryPercent
     disk_percent: DiskPercent
     load_average: Optional[Tuple[float, float, float]] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -105,7 +105,7 @@ class MonitoringCommand:
     """Command for monitoring operations."""
     action: MonitoringAction
     engine_name: Optional[EngineName] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 @dataclass(frozen=True)
 class HealthQuery:
@@ -166,7 +166,7 @@ class ReadinessStatus:
 class LivenessStatus:
     """Kubernetes-style liveness status."""
     alive: bool
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""

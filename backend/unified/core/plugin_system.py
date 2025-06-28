@@ -13,7 +13,7 @@ import logging
 import json
 from pathlib import Path
 
-from backend.unified.core.result_enhanced import Result, Success, Failure
+from .domain_types import Result, Success, Failure, AppError
 from backend.unified.core.error_handling import ParseError, ErrorContext
 from backend.unified.core.semantic_validator import ValidationResult
 
@@ -69,7 +69,7 @@ class ParsingPlugin(ABC):
         pass
     
     @abstractmethod
-    def process(self, text: str, context: ParseContext) -> Result[str]:
+    def process(self, text: str, context: ParseContext) -> Result[str, AppError]:
         """Process text and return result or error."""
         pass
     
@@ -130,7 +130,7 @@ class BusinessDomainPlugin(DomainSpecificPlugin):
         """Check if text contains business terms."""
         return has_business_indicators(text)
     
-    def process(self, text: str, context: ParseContext) -> Result[str]:
+    def process(self, text: str, context: ParseContext) -> Result[str, AppError]:
         """Process business domain text."""
         return process_business_text(text, self.get_domain_patterns())
     
@@ -180,7 +180,7 @@ class SimpleLearningPlugin(LearningPlugin):
         """Simple learning can handle any text."""
         return True
     
-    def process(self, text: str, context: ParseContext) -> Result[str]:
+    def process(self, text: str, context: ParseContext) -> Result[str, AppError]:
         """Process text with learned adaptations."""
         return apply_learned_adaptations(text, self.corrections_cache)
     
@@ -223,7 +223,7 @@ class ValidationPlugin(ParsingPlugin):
         """Validation can handle any parsed text."""
         return True
     
-    def process(self, text: str, context: ParseContext) -> Result[str]:
+    def process(self, text: str, context: ParseContext) -> Result[str, AppError]:
         """Validate text for logical consistency."""
         return validate_enhanced_semantics(text, context)
 
@@ -236,7 +236,7 @@ def has_business_indicators(text: str) -> bool:
     return any(term in text.lower() for term in business_terms)
 
 
-def process_business_text(text: str, patterns: Dict[str, str]) -> Result[str]:
+def process_business_text(text: str, patterns: Dict[str, str]) -> Result[str, AppError]:
     """Process text using business domain patterns."""
     import re
     
@@ -248,7 +248,7 @@ def process_business_text(text: str, patterns: Dict[str, str]) -> Result[str]:
     return Success(text)  # No transformation needed
 
 
-def apply_learned_adaptations(text: str, corrections_cache: Dict) -> Result[str]:
+def apply_learned_adaptations(text: str, corrections_cache: Dict) -> Result[str, AppError]:
     """Apply learned adaptations to text."""
     adapted_text = text
     
@@ -322,7 +322,7 @@ def save_simple_model(model_path: Path, corrections_cache: Dict, pattern_frequen
         pass  # Fail silently if can't save
 
 
-def validate_enhanced_semantics(text: str, context: ParseContext) -> Result[str]:
+def validate_enhanced_semantics(text: str, context: ParseContext) -> Result[str, AppError]:
     """Validate text with enhanced semantic checks."""
     # Simple validation - could be enhanced
     if len(text.split()) > 50:
@@ -333,7 +333,7 @@ def validate_enhanced_semantics(text: str, context: ParseContext) -> Result[str]
             0,
             text
         )
-        return Failure(error)
+        return Failure(error_code=error.error_type.value, message=error.message)
     
     return Success(text)
 
@@ -359,7 +359,7 @@ class PluginManager:
         """Unregister a plugin."""
         unregister_plugin_from_manager(self, plugin_name)
     
-    def parse_with_plugins(self, text: str) -> Result[str]:
+    def parse_with_plugins(self, text: str) -> Result[str, AppError]:
         """Parse text using appropriate plugins."""
         return execute_plugin_pipeline(self, text)
     
@@ -402,7 +402,7 @@ def update_plugin_order(manager: PluginManager):
     )
 
 
-def execute_plugin_pipeline(manager: PluginManager, text: str) -> Result[str]:
+def execute_plugin_pipeline(manager: PluginManager, text: str) -> Result[str, AppError]:
     """Execute plugin pipeline in priority order."""
     context = ParseContext(original_text=text, preprocessed_text=text)
     
@@ -416,7 +416,7 @@ def execute_plugin_pipeline(manager: PluginManager, text: str) -> Result[str]:
             result = plugin.process(text, context)
             
             if isinstance(result, Success):
-                context.plugin_results[plugin_name] = result.unwrap()
+                context.plugin_results[plugin_name] = result.value
                 context.confidence_scores[plugin_name] = plugin.get_confidence(text, context)
                 
                 # Use first successful result
@@ -430,7 +430,7 @@ def execute_plugin_pipeline(manager: PluginManager, text: str) -> Result[str]:
         0,
         text
     )
-    return Failure(error)
+    return Failure(error_code=error.error_type.value, message=error.message)
 
 
 def collect_plugin_suggestions(manager: PluginManager, text: str) -> List[str]:

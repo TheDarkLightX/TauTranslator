@@ -180,6 +180,25 @@
       "description": "Details specific to grammar definition plugins. Required if plugin_type is 'grammar_definition'.",
       "type": "object",
       "properties": {
+        "formalism": {
+          "description": "The grammar formalism used.",
+          "type": "string",
+          "enum": ["lark", "antlr"]
+        },
+        "grammar_file": {
+          "description": "Path to the main grammar file, relative to the plugin root.",
+          "type": "string",
+          "minLength": 1
+        },
+        "transformer_class": {
+          "description": "Optional: Fully qualified name of the Python class to use for transforming the parse tree.",
+          "type": "string",
+          "pattern": "^([a-zA-Z_][a-zA-Z0-9_]*\\.)*[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "ilr_construct_mappings_schema": {
+            "description": "Optional: Path to a schema defining mappings between grammar constructs and ILR constructs.",
+            "type": "string"
+        },
         "ilr_version": {
           "type": "string",
           "description": "The ILR version this grammar definition is compatible with.",
@@ -200,7 +219,14 @@
           "required": ["type"]
         }
       },
-      "required": ["ilr_version", "grammar_construct_schema_path", "definition_provider_details"]
+      "required": [
+        "formalism",
+        "grammar_file",
+        "ilr_version",
+        "grammar_construct_schema_path",
+        "definition_provider_details"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

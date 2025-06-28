@@ -12,12 +12,15 @@ import logging
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
+from returns.result import Result, Success, Failure
 
 from lark import Lark, Tree, Token, Transformer, Visitor
 from lark.exceptions import LarkError, UnexpectedInput
 
-from .tgf_grammar_loader import TGFGrammarLoader, LoadedGrammar, get_grammar_loader
-from .ast.ast_nodes import ASTNode, IdentifierNode, BooleanLiteralNode, NumberLiteralNode
+from pathlib import Path
+from ...infrastructure.grammar_io import GrammarRepository
+from ..grammar_processing import TGFGrammarService, LoadedGrammar
+from ..ast.ast_nodes import ASTNode, IdentifierNode, LiteralNode
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +144,9 @@ class GrammarDrivenTransformer(Transformer):
         return str(tree.pretty())  # Placeholder
 
 
+from ...lmql_engine.translation_strategies import TranslationStrategy
+
+
 class GrammarDrivenParser:
     """
     Parser that uses dynamically loaded grammars for translation.
@@ -149,81 +155,170 @@ class GrammarDrivenParser:
     by loading different grammar files.
     """
     
-    def __init__(self, grammar_loader: Optional[TGFGrammarLoader] = None):
-        self.grammar_loader = grammar_loader or get_grammar_loader()
-        self.parser: Optional[Lark] = None
+    def __init__(self, grammar_service: Optional[TGFGrammarService] = None):
+        self.lark_parser: Optional[Lark] = None
         self.current_grammar: Optional[LoadedGrammar] = None
-        self._initialize_parser()
-    
+        self.initialization_error_reason: Optional[str] = "Parser not yet initialized."
+
+        if grammar_service:
+            self.grammar_service = grammar_service
+        else:
+            # The parser is in core_engine/parsers, grammars are in core_engine/parsers/grammars
+            grammar_dir = Path(__file__).parent / "grammars"
+            
+            # Config file is at the project root's /config directory
+            project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+            config_file = project_root / "config" / "grammar-files.json"
+
+            self.grammar_service = TGFGrammarService(
+                GrammarRepository(grammar_dir, config_file)
+            )
+
+        # Attempt to load all grammars from the repository via the service
+        load_all_result = self.grammar_service.load_and_parse_all_grammars()
+
+        if isinstance(load_all_result, Failure):
+            err_msg = f"TGFGrammarService failed to load and parse all grammars: {load_all_result.failure()}"
+            logger.error(err_msg)
+            self.initialization_error_reason = err_msg
+            # Potentially, the service might still have an active grammar if one was set before this failure,
+            # or if it defaults to one despite failing to load others. So, we continue to check.
+
+        # Check for an active grammar directly from the attribute
+        grammar_to_set = self.grammar_service.active_grammar
+        if grammar_to_set is not None:
+            if self.set_grammar(grammar_to_set):
+                logger.info(f"GrammarDrivenParser initialized successfully with active grammar: {grammar_to_set.filename}")
+                # If load_all_result failed earlier but we successfully set an active grammar, 
+                # the parser might still be usable with this specific grammar.
+                # We keep the initialization_error_reason from load_all_result if it exists, as a warning.
+                if isinstance(load_all_result, Failure) and not self.initialization_error_reason:
+                    self.initialization_error_reason = f"Warning: Active grammar '{grammar_to_set.filename}' set, but failed to load all other grammars: {load_all_result.failure()}"
+                elif isinstance(load_all_result, Success): # Clear any prior generic init error if all loaded fine and active is set
+                    self.initialization_error_reason = None 
+            else:
+                # set_grammar already logs and sets its own initialization_error_reason
+                logger.warning(f"GrammarDrivenParser: Failed to set active grammar '{grammar_to_set.filename}' after loading. Reason: {self.initialization_error_reason}")
+        else: # No active grammar found in the service
+            self.current_grammar = None
+            no_active_reason = "TGFGrammarService has no active grammar set."
+            if isinstance(load_all_result, Failure):
+                self.initialization_error_reason = f"Failed to load any grammars ({load_all_result.failure()}) and {no_active_reason}"
+            else:
+                self.initialization_error_reason = no_active_reason
+            logger.warning(f"GrammarDrivenParser initialized without an active grammar. Reason: {self.initialization_error_reason}")
+
     def _initialize_parser(self):
         """Initialize parser with active grammar"""
-        grammar = self.grammar_loader.get_active_grammar()
-        if grammar:
-            self.set_grammar(grammar)
-    
-    def set_grammar(self, grammar: LoadedGrammar) -> bool:
-        """Set the grammar to use for parsing"""
+        logger.info("CASCADE_DEBUG: Entering _initialize_parser")
+        if not self.current_grammar:
+            logger.error("Cannot initialize parser without an active grammar.")
+            return
+
         try:
             # Get grammar in Lark format
-            lark_grammar = self.grammar_loader.get_grammar_for_parser()
-            if not lark_grammar:
-                logger.error(f"Could not convert grammar {grammar.filename} to parser format")
-                return False
-            
+            grammar_data_tuple = self.grammar_service.get_grammar_for_parser()
+            if not grammar_data_tuple:
+                logger.error(f"Could not get grammar data for {self.current_grammar.filename} from grammar service.")
+                return
+
+            lark_grammar_str, diagnostic_str = grammar_data_tuple
+
+            # Use print for high visibility, bypassing potential logger issues
+            print(f"CASCADE_DIAGNOSTIC_INFO_FROM_PARSER:\n{diagnostic_str}")
+            print(f"CASCADE_LARK_GRAMMAR_STRING_TO_LARK:\n{lark_grammar_str}")
+        
             # Create parser
-            self.parser = Lark(
-                lark_grammar,
-                start='program',  # Default start rule
-                parser='lalr',    # Use LALR for better performance
-                debug=True
+            logger.info(f"CASCADE_DEBUG: Initializing Lark with start='s' (hardcoded) using grammar:\n{lark_grammar_str}")
+            self.lark_parser = Lark(
+                lark_grammar_str,
+                start='start',  # Use 'start' for .lark grammars like minimal_logic_gates.lark
+                parser='lalr',    # Revert to LALR parser
+                debug=True,
+                keep_all_tokens=True
             )
             
-            self.current_grammar = grammar
-            logger.info(f"Initialized parser with grammar: {grammar.filename}")
+        except LarkError as e:
+            # Ensure we print the grammar that caused the failure
+            if 'lark_grammar_str' in locals() and 'diagnostic_str' in locals():
+                print(f"CASCADE_DIAGNOSTIC_INFO_ON_LARK_ERROR:\n{diagnostic_str}")
+                print(f"CASCADE_LARK_GRAMMAR_STRING_ON_LARK_ERROR:\n{lark_grammar_str}")
+        
+            err_msg = f"Failed to initialize Lark parser with {self.current_grammar.filename}: {e}"
+            logger.error(err_msg)
+            self.lark_parser = None
+            self.initialization_error_reason = err_msg
+        except Exception as e: # Catch-all
+            err_msg = f"Unexpected error initializing Lark parser with {self.current_grammar.filename}: {e}"
+            print(f"Unexpected error initializing Lark parser with {self.current_grammar.filename}: {e}")
+            logger.error(err_msg)
+            self.lark_parser = None
+            self.initialization_error_reason = err_msg
+            raise # Re-raising the exception
+
+    def set_grammar(self, grammar: LoadedGrammar) -> bool:
+        """Set the grammar to use for parsing"""
+        self.current_grammar = grammar
+        self.initialization_error_reason = None # Clear previous error before attempting to init parser
+        self._initialize_parser() 
+        
+        if self.lark_parser:
+            logger.info(f"Successfully set and initialized grammar: {grammar.filename}")
+            self.initialization_error_reason = None # Explicitly clear on success
             return True
-            
-        except Exception as e:
-            logger.error(f"Error initializing parser with grammar {grammar.filename}: {e}")
+        else:
+            # _initialize_parser should have set initialization_error_reason if it failed.
+            # If it's still None here, it means _initialize_parser didn't run or had an issue not setting it.
+            if not self.initialization_error_reason:
+                 self.initialization_error_reason = f"Lark parser failed to initialize for {grammar.filename} for an unknown reason after setting it."
+            logger.error(f"Failed to set grammar '{grammar.filename}' due to Lark parser initialization failure. Reason: {self.initialization_error_reason}")
             return False
-    
+
     def parse(self, text: str, mode: TranslationMode = TranslationMode.TAU_TO_NATURAL) -> ParseResult:
         """Parse text using current grammar"""
-        if not self.parser or not self.current_grammar:
+        if not self.lark_parser:
+            logger.warning("GrammarDrivenParser.parse called but lark_parser is not initialized.")
             return ParseResult(
                 success=False,
-                error="No grammar loaded"
+                error=self.initialization_error_reason or "Parser not initialized. Load or switch to a valid grammar."
             )
-        
+
         try:
             # Parse the input
-            tree = self.parser.parse(text)
+            project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+            tree = self.lark_parser.parse(text)
             
-            # Transform based on mode
-            transformer = GrammarDrivenTransformer(self.current_grammar, mode)
-            result = transformer.transform_tree(tree)
+            # The GrammarDrivenTransformer is more for the translation step, 
+            # not raw parsing. The raw AST is usually desired from a 'parse' method.
+            # If transformation is needed here, it should be optional or a different method.
             
             return ParseResult(
                 success=True,
-                ast=tree
+                ast=tree # Return the raw AST from Lark
             )
             
         except UnexpectedInput as e:
             # Provide helpful error message
-            error_msg = f"Parse error at line {e.line}, column {e.column}: {e}"
+            context = e.get_context(text) if hasattr(e, 'get_context') else "(context unavailable)"
+            error_msg = f"Parse error at line {e.line}, column {e.column}: {context}"
             if hasattr(e, 'allowed') and e.allowed:
-                error_msg += f"\nExpected one of: {', '.join(e.allowed)}"
+                 # Sort for consistent error messages and handle non-string elements if any
+                 allowed_terminals = sorted([str(t) for t in e.allowed])
+                 error_msg += f"\nExpected one of: {', '.join(allowed_terminals)}"
             
+            logger.debug(f"GrammarDrivenParser UnexpectedInput: {error_msg}")
             return ParseResult(
                 success=False,
-                error=error_msg
+                error=error_msg,
+                ast=None # Explicitly None on error
             )
-            
-        except LarkError as e:
+        except LarkError as e: # Catch other Lark errors (e.g., UnexpectedToken, VisitError)
+            logger.error(f"GrammarDrivenParser LarkError: {e}")
             return ParseResult(
                 success=False,
-                error=f"Grammar error: {str(e)}"
+                error=f"Lark parsing error: {e}",
+                ast=None
             )
-            
         except Exception as e:
             logger.exception("Unexpected error during parsing")
             return ParseResult(
@@ -254,15 +349,21 @@ class GrammarDrivenParser:
     
     def get_available_grammars(self) -> List[str]:
         """Get list of available grammar files"""
-        return list(self.grammar_loader.loaded_grammars.keys())
+        return list(self.grammar_service.loaded_grammars.keys())
     
     def switch_grammar(self, filename: str) -> bool:
         """Switch to a different grammar"""
-        if self.grammar_loader.set_active_grammar(filename):
-            grammar = self.grammar_loader.get_active_grammar()
+        result = self.grammar_service.set_active_grammar(filename)
+        if result.is_success():
+            grammar = self.grammar_service.active_grammar
             if grammar:
                 return self.set_grammar(grammar)
-        return False
+            else:
+                logger.error(f"Successfully set active grammar to '{filename}' but failed to retrieve it.")
+                return False
+        else:
+            logger.error(f"Failed to switch grammar to '{filename}': {result.failure()}")
+            return False
     
     def validate_grammar(self, grammar_content: str) -> Tuple[bool, Optional[str]]:
         """Validate a grammar without loading it"""
@@ -292,7 +393,7 @@ class GrammarDrivenParser:
         }
 
 
-class GrammarDrivenTranslationStrategy:
+class GrammarDrivenTranslationStrategy(TranslationStrategy):
     """
     Translation strategy that uses grammar-driven parsing.
     
@@ -301,6 +402,7 @@ class GrammarDrivenTranslationStrategy:
     """
     
     def __init__(self):
+        super().__init__()
         self.parser = GrammarDrivenParser()
     
     def translate(self, source_text: str, source_lang: str = "tau", 
@@ -317,8 +419,15 @@ class GrammarDrivenTranslationStrategy:
         }
     
     def is_available(self) -> bool:
-        """Check if grammar-driven translation is available"""
-        return self.parser.current_grammar is not None
+        """Check if grammar-driven translation is available."""
+        # Availability depends on the parser having an initialized Lark parser.
+        return self.parser.lark_parser is not None
+
+    def get_availability_reason(self) -> str:
+        """Returns a string explaining why the strategy is not available, if applicable."""
+        if self.is_available():
+            return "Grammar-driven strategy is available."
+        return self.parser.initialization_error_reason or "Parser not initialized or failed to initialize."
 
 
 # Example usage and testing

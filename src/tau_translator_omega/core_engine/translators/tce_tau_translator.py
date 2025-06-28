@@ -26,7 +26,7 @@ from dataclasses import dataclass
 import logging
 
 # Import AST nodes
-from .cnl_parser.ast_nodes import (
+from ..parsers.cnl_parser.ast_nodes import (
     ASTNode, VariableNode, ConstantNode, NumberNode, StringNode,
     ArithmeticBinaryOpNode, BooleanBinaryOpNode, BooleanUnaryOpNode,
     ComparisonNode, PredicateCallNode, StreamReferenceNode,

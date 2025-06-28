@@ -17,15 +17,15 @@ from typing import List, Optional
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import SemanticAnalyzer
 from tau_translator_omega.core_engine.semantic_types import (
     SemanticError, Symbol, SymbolTable, TypeInfo, ErrorCollector,
     create_type_info, check_type_compatibility
 )
-from tau_translator_omega.core_engine.semantic_analyzer_core import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer_core import (
     ExpressionTypeResolver, ValidationEngine, SymbolDefinitionManager
 )
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     VariableDeclNode, VariableNode, ConstantNode, SentenceNode,
     AssignmentNode, ArithmeticBinaryOpNode, BooleanBinaryOpNode,
     ComparisonNode, PredicateCallNode, FunctionDefinitionNode,

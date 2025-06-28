@@ -6,8 +6,8 @@ starting with the simplest possible cases and building up complexity.
 """
 
 import pytest
-from tau_translator_omega.core_engine.cnl_parser.parser import CNLParser
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.cnl_parser import CNLParser
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     SentenceNode, FactNode, ConstantNode, PredicateCallNode, ASTNode
 )
 
@@ -165,7 +165,7 @@ class TestCNLParserTransformerMethods:
 
     def test_transformer_boolean_literals(self):
         """Test that transformer handles boolean literals correctly."""
-        from tau_translator_omega.core_engine.cnl_parser.parser import TceTransformer
+        from tau_translator_omega.core_engine.parsers.cnl_parser.parser import TceTransformer
         from lark import Token
         
         transformer = TceTransformer()
@@ -186,7 +186,7 @@ class TestCNLParserTransformerMethods:
 
     def test_transformer_number_handling(self):
         """Test that transformer handles numbers correctly."""
-        from tau_translator_omega.core_engine.cnl_parser.parser import TceTransformer
+        from tau_translator_omega.core_engine.parsers.cnl_parser.parser import TceTransformer
         from lark import Token
         
         transformer = TceTransformer()
@@ -207,7 +207,7 @@ class TestCNLParserTransformerMethods:
 
     def test_transformer_string_handling(self):
         """Test that transformer handles strings correctly."""
-        from tau_translator_omega.core_engine.cnl_parser.parser import TceTransformer
+        from tau_translator_omega.core_engine.parsers.cnl_parser.parser import TceTransformer
         from lark import Token
         
         transformer = TceTransformer()

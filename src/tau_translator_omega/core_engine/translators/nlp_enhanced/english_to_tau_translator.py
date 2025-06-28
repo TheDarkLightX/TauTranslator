@@ -84,116 +84,13 @@ from collections import defaultdict
 
 from .requirements_analyzer import RequirementsAnalyzer, RequirementItem, RequirementType
 from .amr_semantic_layer import AMRSemanticAnalyzer, AMRGraph
-
-
-@dataclass
-class ConfidenceScore:
-    """Detailed confidence scoring for translations"""
-    overall: float
-    syntax: float
-    semantics: float
-    logical_structure: float
-    mathematical: float
-    issues: List[str]
-
-
-@dataclass
-class SemanticAnalysis:
-    """Semantic analysis results"""
-    predicates: List[str]
-    entities: List[str]
-    quantifiers: List[str]
-    logical_operators: List[str]
-    temporal_expressions: List[str]
-
-
-@dataclass
-class TranslationResult:
-    """Result of English to Tau translation"""
-    source_text: str
-    tau_specification: str
-    confidence: ConfidenceScore
-    semantic_analysis: SemanticAnalysis
-    amr_graph: Optional[AMRGraph] = None
-    translation_notes: List[str] = None
-
-
-@dataclass
-class DocumentTranslationResult:
-    """Result of translating an entire document"""
-    source_document: str
-    tau_specification: str
-    individual_translations: List[TranslationResult]
-    overall_confidence: float
-    traceability_map: Dict[str, str]
-
-
-class TauLanguageGenerator:
-    """Generates Tau Language constructs from semantic analysis"""
-    
-    def __init__(self):
-        """Initialize Tau language generator"""
-        # Tau language templates
-        self.quantifier_templates = {
-            'all': 'forall',
-            'every': 'forall', 
-            'each': 'forall',
-            'any': 'exists',
-            'some': 'exists'
-        }
-        
-        self.operator_templates = {
-            'and': 'and',
-            'or': 'or',
-            'not': 'not',
-            'implies': 'implies',
-            'if': 'implies',
-            'then': 'implies',
-            'equals': '=',
-            'greater than': '>',
-            'less than': '<',
-            'greater than or equal': '>=',
-            'less than or equal': '<='
-        }
-        
-        self.predicate_templates = {
-            'prime': 'prime',
-            'even': 'even',
-            'odd': 'odd',
-            'positive': 'positive',
-            'negative': 'negative',
-            'authenticate': 'authenticated',
-            'authorize': 'authorized',
-            'validate': 'valid',
-            'access': 'can_access'
-        }
-    
-    def generate_quantified_statement(self, quantifier: str, variable: str, condition: str) -> str:
-        """Generate a quantified Tau statement"""
-        tau_quantifier = self.quantifier_templates.get(quantifier.lower(), quantifier)
-        return f"{tau_quantifier} {variable}: {condition}"
-    
-    def generate_predicate_call(self, predicate: str, args: List[str]) -> str:
-        """Generate a Tau predicate call"""
-        tau_predicate = self.predicate_templates.get(predicate.lower(), predicate)
-        if args:
-            return f"{tau_predicate}({', '.join(args)})"
-        else:
-            return tau_predicate
-    
-    def generate_comparison(self, left: str, operator: str, right: str) -> str:
-        """Generate a Tau comparison expression"""
-        tau_operator = self.operator_templates.get(operator.lower(), operator)
-        return f"{left} {tau_operator} {right}"
-    
-    def generate_logical_expression(self, left: str, operator: str, right: str) -> str:
-        """Generate a Tau logical expression"""
-        tau_operator = self.operator_templates.get(operator.lower(), operator)
-        return f"({left} {tau_operator} {right})"
-    
-    def generate_conditional(self, condition: str, consequence: str) -> str:
-        """Generate a Tau conditional statement"""
-        return f"{condition} implies {consequence}"
+from .translation_models import (
+    ConfidenceScore,
+    SemanticAnalysis,
+    TranslationResult,
+    DocumentTranslationResult,
+)
+from .tau_language_generator import TauLanguageGenerator
 
 
 class EnglishToTauTranslator:

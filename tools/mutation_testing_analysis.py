@@ -8,7 +8,7 @@ This tool demonstrates mutation testing principles by:
 2. Identifying weak test assertions 
 3. Suggesting improvements for test suite quality
 
-Following VibeArchitect's >80% mutation coverage target.
+Following an 80% mutation coverage target.
 """
 
 import ast
@@ -18,7 +18,7 @@ from typing import List, Dict, Set
 import subprocess
 
 class MutationAnalyzer:
-    """Manual mutation testing analyzer following VibeArchitect principles."""
+    """Manual mutation testing analyzer."""
     
     def __init__(self, source_file: Path, test_dir: Path):
         self.source_file = source_file
@@ -63,7 +63,7 @@ class MutationAnalyzer:
         return mutations
     
     def analyze_test_quality(self) -> Dict[str, any]:
-        """Analyze test quality following VibeArchitect standards."""
+        """Analyze test quality against established standards."""
         
         test_files = list(self.test_dir.glob("test_*.py"))
         
@@ -108,7 +108,7 @@ class MutationAnalyzer:
         return analysis
     
     def suggest_improvements(self) -> List[str]:
-        """Suggest test improvements based on VibeArchitect principles."""
+        """Suggest test improvements based on analysis results."""
         
         suggestions = []
         
@@ -119,7 +119,7 @@ class MutationAnalyzer:
         suggestions.append("🎯 **MUTATION TESTING ANALYSIS RESULTS**")
         suggestions.append("")
         
-        # File size violations first (VibeArchitect prime directive)
+        # File size violations first (high priority)
         if self.source_file.stat().st_size > 0:
             with open(self.source_file, 'r') as f:
                 line_count = len(f.readlines())
@@ -143,7 +143,7 @@ class MutationAnalyzer:
         quality_score = test_analysis['test_quality_score']
         suggestions.append(f"📊 **Test Quality Score: {quality_score:.2f}/1.0**")
         
-        if quality_score < 0.8:  # VibeArchitect minimum
+        if quality_score < 0.8:  # Minimum quality threshold
             suggestions.append("🚨 **QUALITY VIOLATION**: Test quality below 80% threshold")
         
         suggestions.append(f"   - Total tests: {test_analysis['total_tests']}")
@@ -160,9 +160,9 @@ class MutationAnalyzer:
             if len(test_analysis['weak_assertions']) > 5:
                 suggestions.append(f"     ... and {len(test_analysis['weak_assertions']) - 5} more")
         
-        # VibeArchitect specific recommendations
+        # Specific recommendations
         suggestions.append("")
-        suggestions.append("📋 **VibeArchitect Compliance Recommendations:**")
+        suggestions.append("📋 **Compliance and Quality Recommendations:**")
         suggestions.append("   1. Add property-based tests using hypothesis")
         suggestions.append("   2. Implement boundary value analysis for all inputs")
         suggestions.append("   3. Add negative test cases for error paths")

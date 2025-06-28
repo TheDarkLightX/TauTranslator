@@ -75,7 +75,7 @@ class BinaryArithmeticRecognizer(PatternRecognizer):
             
             # Full adder with carry
             'full_adder_sum': r'([a-zA-Z_][a-zA-Z0-9_]*)\[([^]]+)\]\s*:=\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\+\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\+\s*([a-zA-Z0-9_]+)\[([^]]+)\]',
-            'full_adder_carry': r'carry_out\[([^]]+)\]\s*:=\s*\(\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*&\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\)\s*\|\s*\(\s*carry_in\[([^]]+)\]\s*&\s*\(\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\+\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\)\s*\)',
+            'full_adder_carry': r'carry_out\[([^]]+)\]\s*:=\s*\(\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*&\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\)\s*\|\s*\(\s*carry_in\[([^]]+)\]\s*&\s*\(\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\+\s*([a-zA-Z0-9_]+)\[([^]]+)\]\s*\)\s*',
             
             # Accumulator pattern
             'accumulator': r'([a-zA-Z_][a-zA-Z0-9_]*)\[([^]]+)\]\s*:=\s*([a-zA-Z_][a-zA-Z0-9_]*)\[([^]]+)\]\s*\+\s*([a-zA-Z0-9_]+)\[([^]]+)\]',

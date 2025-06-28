@@ -16,15 +16,14 @@ from .fsa_engine import (
     FSATransition,
     StateType,
     TransitionType,
-    MatchResult,
-    
     # Pattern compilation
     FSAPatternCompiler,
-    
     # Optimized matcher
     OptimizedPatternMatcher,
     get_pattern_matcher,
 )
+
+from .types import MatchResult
 
 # Optimized Aho-Corasick implementation
 from .fsa_engine_optimized import (

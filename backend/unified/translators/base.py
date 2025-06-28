@@ -12,11 +12,14 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
+from backend.unified.core.domain_types import AppError, SourceText
+from returns.result import Result
+
 
 class TranslationDirection(Enum):
     """Direction of translation."""
     TO_TAU = "to_tau"
-    TO_TCE = "to_tce" 
+    TO_TCE = "to_tce"
     TO_ENGLISH = "to_english"
     BIDIRECTIONAL = "bidirectional"
     NL_TO_TAU = "nl_to_tau"  # Natural Language to Tau
@@ -37,7 +40,7 @@ class TranslationResult:
     metadata: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
     processing_time: float = 0.0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -55,34 +58,39 @@ class TranslationResult:
 
 class TranslationEngine(ABC):
     """Abstract base class for all translation engines."""
-    
+
     def __init__(self, name: str, description: str = ""):
         self.name = name
         self.description = description
         self.is_available = True
         self.last_error: Optional[str] = None
-    
+
     @abstractmethod
-    def can_translate(self, text: str, direction: TranslationDirection) -> bool:
+    def can_translate(self, text: SourceText, direction: TranslationDirection) -> bool:
         """Check if this engine can handle the given translation."""
         pass
-    
+
     @abstractmethod
-    def translate(self, text: str, direction: TranslationDirection, **kwargs) -> TranslationResult:
+    def translate(self, text: SourceText, direction: TranslationDirection, **kwargs) -> Result[TranslationResult, AppError]:
         """Perform the translation."""
         pass
-    
+
+    @abstractmethod
+    async def translate_async(self, text: SourceText, direction: TranslationDirection, **kwargs) -> Result[TranslationResult, AppError]:
+        """Perform the translation asynchronously."""
+        pass
+
     @abstractmethod
     def get_supported_directions(self) -> List[TranslationDirection]:
         """Get list of supported translation directions."""
         pass
-    
-    def validate_input(self, text: str) -> bool:
+
+    def validate_input(self, text: SourceText) -> bool:
         """Validate input text. Override for custom validation."""
         if not text or not text.strip():
             return False
         return True
-    
+
     def get_status(self) -> Dict[str, Any]:
         """Get engine status information."""
         return {
@@ -92,7 +100,7 @@ class TranslationEngine(ABC):
             'supported_directions': [d.value for d in self.get_supported_directions()],
             'last_error': self.last_error
         }
-    
+
     def _create_result(
         self,
         success: bool,
@@ -106,7 +114,7 @@ class TranslationEngine(ABC):
     ) -> TranslationResult:
         """Helper to create a TranslationResult."""
         processing_time = time.time() - start_time if start_time else 0.0
-        
+
         return TranslationResult(
             success=success,
             translated_text=translated_text,
@@ -122,16 +130,16 @@ class TranslationEngine(ABC):
 
 class ConfigurableEngine(TranslationEngine):
     """Base class for engines that can be configured."""
-    
+
     def __init__(self, name: str, description: str = "", config: Optional[Dict[str, Any]] = None):
         super().__init__(name, description)
         self.config = config or {}
-    
+
     def update_config(self, config: Dict[str, Any]):
         """Update engine configuration."""
         self.config.update(config)
         self._apply_config()
-    
+
     def _apply_config(self):
         """Apply configuration changes. Override in subclasses."""
         pass
@@ -139,19 +147,19 @@ class ConfigurableEngine(TranslationEngine):
 
 class CachingEngine(TranslationEngine):
     """Base class for engines with caching capabilities."""
-    
+
     def __init__(self, name: str, description: str = "", cache_size: int = 100):
         super().__init__(name, description)
         self.cache: Dict[str, TranslationResult] = {}
         self.cache_size = cache_size
         self.cache_hits = 0
         self.cache_misses = 0
-    
-    def _get_cache_key(self, text: str, direction: TranslationDirection, **kwargs) -> str:
+
+    def _get_cache_key(self, text: SourceText, direction: TranslationDirection, **kwargs) -> str:
         """Generate cache key for translation."""
         # Simple cache key - can be overridden for more complex scenarios
         return f"{self.name}:{direction.value}:{hash(text)}"
-    
+
     def _get_from_cache(self, cache_key: str) -> Optional[TranslationResult]:
         """Get result from cache."""
         if cache_key in self.cache:
@@ -159,21 +167,21 @@ class CachingEngine(TranslationEngine):
             return self.cache[cache_key]
         self.cache_misses += 1
         return None
-    
+
     def _store_in_cache(self, cache_key: str, result: TranslationResult):
         """Store result in cache with LRU eviction."""
         if len(self.cache) >= self.cache_size:
             # Simple LRU: remove oldest entry
             oldest_key = next(iter(self.cache))
             del self.cache[oldest_key]
-        
+
         self.cache[cache_key] = result
-    
+
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         total_requests = self.cache_hits + self.cache_misses
         hit_rate = (self.cache_hits / total_requests * 100) if total_requests > 0 else 0
-        
+
         return {
             'cache_size': len(self.cache),
             'max_cache_size': self.cache_size,
@@ -181,7 +189,7 @@ class CachingEngine(TranslationEngine):
             'cache_misses': self.cache_misses,
             'hit_rate': hit_rate
         }
-    
+
     def clear_cache(self):
         """Clear the cache."""
         self.cache.clear()

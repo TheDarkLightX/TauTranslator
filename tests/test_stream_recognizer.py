@@ -8,7 +8,7 @@ Author: DarkLightX / Dana Edwards
 """
 
 import pytest
-from src.tau_translator_omega.lmql_engine.recognizers import (
+from tau_translator_omega.lmql_engine.recognizers import (
     StreamRecognizer, RecognitionResult, RecognizerFactory
 )
 

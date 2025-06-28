@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 import re
 
-from ..cnl_parser.ast_nodes import ASTNode, PredicateCallNode, VariableNode, QuantifierBlockNode
+from ...parsers.cnl_parser.ast_nodes import ASTNode, PredicateCallNode, VariableNode, QuantifierBlockNode
 
 
 class AMRRelation(Enum):

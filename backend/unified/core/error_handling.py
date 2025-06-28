@@ -11,13 +11,13 @@ from enum import Enum
 import re
 import logging
 
-from backend.unified.core.result_enhanced import Result, Success, Failure
 from backend.unified.core.semantic_validator import ValidationError, ValidationResult
 
 
 class ErrorType(Enum):
     """Types of parsing errors."""
     SYNTAX_ERROR = "syntax_error"
+    SYNTAX_WARNING = "syntax_warning"
     SEMANTIC_ERROR = "semantic_error"
     VALIDATION_ERROR = "validation_error"
     PATTERN_MISMATCH = "pattern_mismatch"
@@ -48,6 +48,12 @@ class ErrorContext:
     parsed_so_far: Dict = field(default_factory=dict)
     attempted_patterns: List[str] = field(default_factory=list)
     validation_errors: List[ValidationError] = field(default_factory=list)
+
+
+@dataclass
+class AppError:
+    """Represents a generic application error."""
+    message: str
 
 
 # === PURE ERROR HANDLING FUNCTIONS (CC=1 each) ===

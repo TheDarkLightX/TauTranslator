@@ -119,7 +119,7 @@ def test_full_pipeline():
     """Test the full English -> TCE -> Tau pipeline."""
     print("\n=== Testing Full Pipeline ===")
     try:
-        from backend.unified.translators.manager import TranslationManager
+        from backend.unified.translators.orchestrator import TranslationManager
         
         manager = TranslationManager()
         
@@ -161,7 +161,7 @@ def test_bidirectional():
     """Test bidirectional translation (English <-> TCE <-> Tau)."""
     print("\n=== Testing Bidirectional Translation ===")
     try:
-        from backend.unified.translators.manager import TranslationManager
+        from backend.unified.translators.orchestrator import TranslationManager
         
         manager = TranslationManager()
         

@@ -11,13 +11,15 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 
-from src.tau_translator_omega.core_engine.grammar_driven_parser import (
+from tau_translator_omega.core_engine.parsers.grammar_driven_parser import (
     GrammarDrivenParser, TranslationMode, ParseResult,
     GrammarDrivenTranslationStrategy, GrammarDrivenTransformer
 )
-from src.tau_translator_omega.core_engine.tgf_grammar_loader import (
-    TGFGrammarLoader, LoadedGrammar
+from tau_translator_omega.core_engine.grammar_processing import (
+    TGFGrammarService, LoadedGrammar
 )
+from tau_translator_omega.core_engine.result_enhanced import Success, Failure
+from tau_translator_omega.infrastructure.grammar_io import GrammarRepository
 
 
 class TestGrammarDrivenParser:
@@ -54,32 +56,34 @@ class TestGrammarDrivenParser:
     @pytest.fixture
     def mock_grammar_loader(self, mock_grammar):
         """Create a mock grammar loader."""
-        loader = Mock(spec=TGFGrammarLoader)
-        loader.get_active_grammar.return_value = mock_grammar
+        loader = Mock(spec=TGFGrammarService)
+        # Mock methods called by GrammarDrivenParser
+        loader.load_and_parse_all_grammars.return_value = Success(None)
+        loader.set_active_grammar.return_value = Success(None)
+
+        # Set attributes accessed by GrammarDrivenParser
+        loader.active_grammar = mock_grammar
         loader.loaded_grammars = {'test.tgf': mock_grammar}
-        loader.get_grammar_for_parser.return_value = """
-            program: solve_command
-            solve_command: "solve" constraint
-            constraint: expression
-            expression: VARIABLE
-            VARIABLE: /[a-zA-Z_][a-zA-Z0-9_]*/
-            %import common.WS
-            %ignore WS
-        """
+        # TGFGrammarService.get_grammar_for_parser is not directly called by GrammarDrivenParser.
+        # The parser uses TGFGrammarConverter.to_lark_grammar(self.current_grammar), which is what get_grammar_for_parser calls.
+        # We mock the end result here.
+        loader.get_grammar_for_parser.return_value = 'program: "a"\n'
         return loader
     
     def test_parser_initialization(self, mock_grammar_loader):
         """Test parser initialization with grammar."""
         parser = GrammarDrivenParser(mock_grammar_loader)
         
-        assert parser.grammar_loader == mock_grammar_loader
+        assert parser.grammar_service == mock_grammar_loader
         assert parser.current_grammar is not None
         assert parser.parser is not None
     
     def test_parser_without_grammar(self):
         """Test parser behavior when no grammar is loaded."""
-        mock_loader = Mock(spec=TGFGrammarLoader)
-        mock_loader.get_active_grammar.return_value = None
+        mock_loader = Mock(spec=TGFGrammarService)
+        mock_loader.load_and_parse_all_grammars.return_value = Success(None) # Simulate successful load
+        mock_loader.active_grammar = None  # No active grammar
+        mock_loader.loaded_grammars = {}   # No loaded grammars
         
         parser = GrammarDrivenParser(mock_loader)
         result = parser.parse("solve x > 5")
@@ -126,11 +130,16 @@ class TestGrammarDrivenParser:
         """Test switching between grammars."""
         parser = GrammarDrivenParser(mock_grammar_loader)
         
-        mock_grammar_loader.set_active_grammar.return_value = True
-        mock_grammar_loader.get_active_grammar.return_value = mock_grammar_loader.loaded_grammars['test.tgf']
+        mock_grammar_loader.set_active_grammar.return_value = Success(None) # Ensure it returns a Result object
+        # The active_grammar attribute on the mock_grammar_loader is already set by the fixture.
+        # TGFGrammarService.active_grammar will be updated by the service's set_active_grammar method.
         
-        success = parser.switch_grammar('test.tgf')
-        assert success
+        # The service method returns a Result object
+        mock_grammar_loader.set_active_grammar.return_value = Success(None)
+        
+        # The parser's switch_grammar returns a boolean
+        switched = parser.switch_grammar("test.tgf")
+        assert switched is True
         mock_grammar_loader.set_active_grammar.assert_called_with('test.tgf')
     
     def test_validate_grammar(self, mock_grammar_loader):
@@ -237,13 +246,13 @@ class TestGrammarDrivenTransformer:
 class TestGrammarDrivenTranslationStrategy:
     """Test the grammar-driven translation strategy."""
     
-    @patch('src.tau_translator_omega.core_engine.grammar_driven_parser.GrammarDrivenParser')
+    @patch('src.tau_translator_omega.core_engine.parsers.grammar_driven_parser.GrammarDrivenParser')
     def test_strategy_initialization(self, mock_parser_class):
         """Test strategy initialization."""
         strategy = GrammarDrivenTranslationStrategy()
         assert strategy.parser is not None
     
-    @patch('src.tau_translator_omega.core_engine.grammar_driven_parser.GrammarDrivenParser')
+    @patch('src.tau_translator_omega.core_engine.parsers.grammar_driven_parser.GrammarDrivenParser')
     def test_strategy_translate(self, mock_parser_class):
         """Test translation through strategy."""
         mock_parser = Mock()
@@ -259,7 +268,7 @@ class TestGrammarDrivenTranslationStrategy:
         assert result['method'] == 'grammar-driven'
         assert result['grammar'] is not None
     
-    @patch('src.tau_translator_omega.core_engine.grammar_driven_parser.GrammarDrivenParser')
+    @patch('src.tau_translator_omega.core_engine.parsers.grammar_driven_parser.GrammarDrivenParser')
     def test_strategy_availability(self, mock_parser_class):
         """Test checking strategy availability."""
         mock_parser = Mock()
@@ -290,14 +299,27 @@ class TestIntegration:
             pytest.skip("tau.tgf not found")
         
         # Load real grammar
-        loader = TGFGrammarLoader()
-        grammar = loader.load_grammar_file("tau.tgf")
+        repo = FileSystemGrammarRepository(grammar_dir=grammar_dir)
+        loader = TGFGrammarService(grammar_repository=repo)
         
+        load_result = loader.load_grammar_from_file(tau_grammar.name)
+        
+        if load_result.is_failure():
+            pytest.fail(f"Failed to load grammar {tau_grammar.name}: {load_result.error_value()}")
+            return
+
+        grammar = load_result.value
+        
+        parser = GrammarDrivenParser(loader)
+        # Ensure an active grammar is set if parser relies on it during init, or set it explicitly.
+        # TGFGrammarService.set_active_grammar might be needed if not loading by name or if auto-activation isn't happening.
+        # For now, assuming GrammarDrivenParser will handle it or set_grammar is sufficient.
         if grammar:
-            parser = GrammarDrivenParser(loader)
-            parser.set_grammar(grammar)
+             loader.set_active_grammar(grammar.filename) # Ensure the loaded grammar is active for the service
+
+        parser.set_grammar(grammar) # This should pass the LoadedGrammar object
             
-            # Try parsing a simple expression
-            result = parser.parse("solve x = 5")
-            # We don't assert success as it depends on the actual grammar
-            assert isinstance(result, ParseResult)
+        # Try parsing a simple expression
+        result = parser.parse("solve x = 5")
+        # We don't assert success as it depends on the actual grammar
+        assert isinstance(result, ParseResult)

@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from backend.unified.domain.nl_to_tce_translator import NaturalLanguageToTCETranslator
-from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
 from backend.unified.tce_to_tau_wrapper import TCEToTauWrapper
 
 logging.basicConfig(level=logging.INFO)

@@ -43,7 +43,7 @@ class TestTauConstructRecognition:
         )
         
         # This should be implemented
-        from src.tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
+        from tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
         recognizer = TauConstructRecognizer()
         result = recognizer.recognize(tau_code)
         
@@ -59,7 +59,7 @@ class TestTauConstructRecognition:
             "type": "sbf"
         }
         
-        from src.tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
+        from tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
         recognizer = TauConstructRecognizer()
         result = recognizer.recognize_type_annotation(tau_code)
         
@@ -75,7 +75,7 @@ class TestTauConstructRecognition:
             "constraint": "x = 0"
         }
         
-        from src.tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
+        from tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
         recognizer = TauConstructRecognizer()
         result = recognizer.recognize_quantifier_constraint(tau_code)
         
@@ -91,7 +91,7 @@ class TestTauConstructRecognition:
             "is_output": True  # o prefix indicates output
         }
         
-        from src.tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
+        from tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
         recognizer = TauConstructRecognizer()
         result = recognizer.recognize_stream(tau_code)
         
@@ -107,7 +107,7 @@ class TestTauConstructRecognition:
             "expression": "input[t] & input2[t]"
         }
         
-        from src.tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
+        from tau_translator_omega.core_engine.tau_construct_recognizer import TauConstructRecognizer
         recognizer = TauConstructRecognizer()
         result = recognizer.recognize_rule(tau_code)
         
@@ -148,7 +148,7 @@ class TestTauToEnglishPatterns:
     ])
     def test_tau_to_english_patterns(self, tau, english):
         """Test specific Tau to English pattern translations."""
-        from src.tau_translator_omega.core_engine.pattern_based_translator import PatternBasedTranslator
+        from tau_translator_omega.core_engine.pattern_based_translator import PatternBasedTranslator
         translator = PatternBasedTranslator()
         
         result = translator.tau_to_english(tau)
@@ -180,7 +180,7 @@ class TestEnglishToTauPatterns:
     ])
     def test_english_to_tau_patterns(self, english, tau):
         """Test specific English to Tau pattern translations."""
-        from src.tau_translator_omega.core_engine.pattern_based_translator import PatternBasedTranslator
+        from tau_translator_omega.core_engine.pattern_based_translator import PatternBasedTranslator
         translator = PatternBasedTranslator()
         
         result = translator.english_to_tau(english)
@@ -201,7 +201,7 @@ class TestComplexTauTranslation:
             "(there exists b where b equals zero implies x is not equal to zero)"
         )
         
-        from src.tau_translator_omega.core_engine.complex_tau_translator import ComplexTauTranslator
+        from tau_translator_omega.core_engine.complex_tau_translator import ComplexTauTranslator
         translator = ComplexTauTranslator()
         
         result = translator.translate(tau)
@@ -215,7 +215,7 @@ class TestComplexTauTranslation:
         tau = "solve a x + b y = 0"
         expected = "Find values for x and y such that a times x plus b times y equals zero"
         
-        from src.tau_translator_omega.core_engine.complex_tau_translator import ComplexTauTranslator
+        from tau_translator_omega.core_engine.complex_tau_translator import ComplexTauTranslator
         translator = ComplexTauTranslator()
         
         result = translator.translate(tau)
@@ -236,7 +236,7 @@ class TestRoundTripTranslation:
     ])
     def test_tau_english_tau_roundtrip(self, original_tau):
         """Test Tau -> English -> Tau preserves meaning."""
-        from src.tau_translator_omega.core_engine.roundtrip_translator import RoundtripTranslator
+        from tau_translator_omega.core_engine.roundtrip_translator import RoundtripTranslator
         translator = RoundtripTranslator()
         
         # First translation

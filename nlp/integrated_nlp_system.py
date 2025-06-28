@@ -22,14 +22,14 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import core components
-from src.tau_translator_omega.lmql_engine.bidirectional_translator import (
+from tau_translator_omega.lmql_engine.bidirectional_translator import (
     LMQLBidirectionalTranslator, TranslationResult
 )
-from src.tau_translator_omega.core_engine.nlp_enhanced.amr_semantic_layer import AMRSemanticAnalyzer
-from src.tau_translator_omega.core_engine.nlp_enhanced.incremental_parser import IncrementalTCEParser
-from src.tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer
-from src.tau_translator_omega.core_engine.tgf_grammar_loader import TGFGrammarLoader
-from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+from tau_translator_omega.core_engine.nlp_enhanced.amr_semantic_layer import AMRSemanticAnalyzer
+from tau_translator_omega.core_engine.nlp_enhanced.incremental_parser import IncrementalTCEParser
+from tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer
+from tau_translator_omega.core_engine.tgf_grammar_loader import TGFGrammarLoader
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
 from nlp.dictionary_manager import DictionaryManager
 from nlp.nlp_vocabulary import TauVocabulary, AutoCompleteEngine, EnhancedEnglishGenerator
 

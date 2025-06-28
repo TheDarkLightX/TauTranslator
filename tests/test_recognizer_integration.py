@@ -8,7 +8,7 @@ Author: DarkLightX / Dana Edwards
 """
 
 import pytest
-from src.tau_translator_omega.lmql_engine.translation_strategies import (
+from tau_translator_omega.lmql_engine.translation_strategies import (
     PatternBasedTranslationStrategy, TranslationDirection, TranslationStrategyFactory
 )
 
@@ -119,8 +119,8 @@ class TestRecognizerIntegration:
     
     def test_strategy_factory_with_recognizers(self):
         """Test that factory-created strategies have recognizers."""
-        strategy = TranslationStrategyFactory.create_pattern_strategy(
-            TranslationDirection.TAU_TO_TCE
+        strategy = TranslationStrategyFactory.create_strategy(
+            'pattern', TranslationDirection.TAU_TO_TCE
         )
         
         # Check that recognizers are initialized

@@ -8,7 +8,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from ..core.result_enhanced import Result, Success, Failure
 
@@ -38,7 +38,7 @@ class HealthService:
         return ServiceHealth(
             status=HealthStatus.HEALTHY,
             uptime_seconds=uptime,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             version=VersionString("2.0.0")
         )
     
@@ -129,7 +129,7 @@ class HealthService:
         
         return await self._monitoring_infra.get_health_metrics_async(float(query.time_window_hours))
     
-    async def get_health_history_async(self, query: HealthQuery) -> Result[List[Dict[str, Any]], str]:
+    async def get_health_history_async(self, query: HealthQuery) -> Result[List[Dict[str, Any]]]:
         """Get health check history for time window."""
         if not query.validate():
             return Failure("Invalid query parameters")
@@ -158,18 +158,18 @@ class HealthService:
     async def _collect_system_metrics_safely(self) -> Optional[SystemMetrics]:
         """Safely collect system metrics with error handling."""
         result = await self._system_collector.collect_system_metrics_async()
-        return result.unwrap() if isinstance(result, Success) else None
+        return result.value if isinstance(result, Success) else None
     
     async def _collect_engine_availability_safely(self) -> Optional[EngineAvailability]:
         """Safely collect engine availability with error handling."""
         result = await self._engine_collector.collect_engine_availability_async()
-        return result.unwrap() if isinstance(result, Success) else None
+        return result.value if isinstance(result, Success) else None
     
     async def _get_monitoring_status_safely(self) -> bool:
         """Safely get monitoring status."""
         result = await self._monitoring_infra.get_monitoring_status_async()
         if isinstance(result, Success):
-            status = result.unwrap()
+            status = result.value
             return status.get("monitoring_active", False)
         return False
     
@@ -191,5 +191,5 @@ class PingService:
         """Simple ping response."""
         return {
             "ping": "pong",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }

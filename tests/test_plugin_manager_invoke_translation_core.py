@@ -2,8 +2,8 @@ import pytest
 import json
 from pathlib import Path
 from unittest.mock import Mock, MagicMock
-from tau_translator_omega.core_engine.plugin_manager import PluginManager
-from tau_translator_omega.core_engine.plugin import Plugin, PluginEntryPoint
+from tau_translator_omega.core_engine.plugins.plugin_manager import PluginManager
+from tau_translator_omega.core_engine.plugins.plugin import Plugin, PluginEntryPoint
 
 
 class TestPluginManagerInvokeTranslation:

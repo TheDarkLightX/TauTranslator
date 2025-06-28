@@ -1,0 +1,8 @@
+clk[0]():=F
+clk[1]():=T
+d[0]():=F
+d[1]():=T
+rising_edge[n]():=clk[n]()&(clk[n-1]())'
+q[0]():=F
+q[n]():=(rising_edge[n]()&d[n]())|((rising_edge[n]())'&q[n-1]())
+solve q[1]()=T

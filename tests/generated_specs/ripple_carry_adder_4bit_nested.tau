@@ -1,0 +1,43 @@
+# A 4-bit ripple-carry adder using nested functional definitions.
+# This demonstrates the canonical, functional way to model complex, interconnected systems in Tau.
+
+# --- Component Definitions (using :=) ---
+# First, we define the behavior of a single full adder as two reusable functions.
+full_adder_sum(a, b, cin) := (a + b) + cin
+full_adder_cout(a, b, cin) := (a & b) | (cin & (a + b))
+
+# --- Stream Declarations ---
+# We only declare primary inputs and outputs. Internal state is handled by nesting.
+tau i1 = console # A0
+tau i2 = console # A1
+tau i3 = console # A2
+tau i4 = console # A3
+
+tau i5 = console # B0
+tau i6 = console # B1
+tau i7 = console # B2
+tau i8 = console # B3
+
+tau i9 = console # Initial Carry In
+
+tau o1 = console # Sum0
+tau o2 = console # Sum1
+tau o3 = console # Sum2
+tau o4 = console # Sum3
+tau o5 = console # Final Carry Out
+
+# --- Logic Application (using =) ---
+# We build the circuit by nesting the function calls. There are no intermediate streams.
+
+# Adder 0 (LSB)
+o1[t] = full_adder_sum(i1[t], i5[t], i9[t])
+
+# Adder 1
+o2[t] = full_adder_sum(i2[t], i6[t], full_adder_cout(i1[t], i5[t], i9[t]))
+
+# Adder 2
+o3[t] = full_adder_sum(i3[t], i7[t], full_adder_cout(i2[t], i6[t], full_adder_cout(i1[t], i5[t], i9[t])))
+
+# Adder 3 (MSB)
+o4[t] = full_adder_sum(i4[t], i8[t], full_adder_cout(i3[t], i7[t], full_adder_cout(i2[t], i6[t], full_adder_cout(i1[t], i5[t], i9[t]))))
+o5[t] = full_adder_cout(i4[t], i8[t], full_adder_cout(i3[t], i7[t], full_adder_cout(i2[t], i6[t], full_adder_cout(i1[t], i5[t], i9[t]))))

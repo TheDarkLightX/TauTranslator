@@ -1,0 +1,101 @@
+// Canonical Tau Language Grammar
+// This grammar is based on the official Tau language documentation.
+// It is intended to provide a 1:1 mapping between Tau Controlled English and the formal Tau language.
+
+%import common.WS
+%ignore WS
+%import common.CNAME -> IDENTIFIER
+%import common.SIGNED_NUMBER -> NUMBER
+
+// Terminals distinguishing constants and variables
+CONSTANT: /[A-Z][A-Z0-9_]*/
+VAR_NAME: /[a-z][a-z0-9_]*/
+
+start: statement*
+
+statement: spec | function_def | predicate_def
+
+spec: local_spec
+    | ALWAYS local_spec
+    | SOMETIMES local_spec
+    | "(" spec AND spec ")"
+    | "(" spec OR spec ")"
+    | NOT spec
+
+local_spec: "(" local_spec AND local_spec ")"
+          | NOT local_spec
+          | "(" local_spec XOR local_spec ")"
+          | "(" local_spec OR local_spec ")"
+          | "(" local_spec IMPLIES local_spec ")"
+          | "(" local_spec IFF local_spec ")"
+          | "(" local_spec TERNARY_IF local_spec TERNARY_ELSE local_spec ")"
+          | term EQUALS term
+          | term NOT_EQUALS term
+          | term LESS_THAN term
+          | term NOT_LESS_THAN term
+          | term AT_MOST term
+          | term NOT_AT_MOST term
+          | term GREATER_THAN term
+          | term NOT_GREATER_THAN term
+          | term AT_LEAST term
+          | term NOT_AT_LEAST term
+          | ALL IDENTIFIER local_spec
+          | EXISTS IDENTIFIER local_spec
+          | predicate
+          | TRUE
+          | FALSE
+
+term: "(" term AND term ")"
+    | term NOT
+    | "(" term PLUS term ")"
+    | "(" term OR term ")"
+    | function
+    | constant
+    | uninterpreted_constant
+    | variable
+    | stream_variable
+    | "0" -> zero
+    | "1" -> one
+
+
+// Keywords
+ALWAYS: "always"
+SOMETIMES: "sometimes"
+AND: "&&" | "and"
+OR: "||" | "or"
+NOT: "!" | "not"
+XOR: "^"
+IMPLIES: "->"
+IFF: "<->"
+TERNARY_IF: "?"
+TERNARY_ELSE: ":"
+EQUALS: "="
+NOT_EQUALS: "!="
+LESS_THAN: "<"
+NOT_LESS_THAN: "!<"
+AT_MOST: "<="
+NOT_AT_MOST: "!<="
+GREATER_THAN: ">"
+NOT_GREATER_THAN: "!>"
+AT_LEAST: ">="
+NOT_AT_LEAST: "!>="
+ALL: "all"
+EXISTS: "ex"
+TRUE: "T"
+FALSE: "F"
+PLUS: "+"
+
+function_def: function ":=" term
+predicate_def: predicate ":=" spec
+
+function: name "[" index ("," index)* "]" "(" [ variable ("," variable)* ] ")"
+predicate: name "[" index ("," index)* "]" "(" [ variable ("," variable)* ] ")"
+
+index: NUMBER | variable | variable "-" NUMBER
+
+constant: CONSTANT
+uninterpreted_constant: "<" [name] ":" name ">"
+variable: VAR_NAME
+stream_variable: ("i"|"o") NUMBER "[" "t" (("-"|"+") NUMBER)? "]"
+
+name: IDENTIFIER

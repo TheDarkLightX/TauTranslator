@@ -1,4 +1,7 @@
-# Unified TauTranslator Backend Requirements
+# Backend-specific requirements
+# Installs the project-wide root list and can add backend-only extras below.
+-r ../../requirements.txt
+
 
 # Core FastAPI framework
 fastapi>=0.104.0

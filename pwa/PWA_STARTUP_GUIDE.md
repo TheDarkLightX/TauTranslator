@@ -14,7 +14,7 @@ The PWA is already running. You can access it at: http://localhost:3001
 
 To start it manually in the future:
 ```bash
-cd ~/TauTranslator/pwa
+cd /path/to/your/TauTranslator/pwa
 npm run dev
 ```
 
@@ -46,7 +46,7 @@ The PWA includes a BackendStatusChecker component that will show:
 
 To start all required backend services:
 ```bash
-cd ~/TauTranslator
+cd /path/to/your/TauTranslator
 python3 scripts/start_all_backends.py
 ```
 

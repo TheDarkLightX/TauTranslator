@@ -17,8 +17,8 @@ from backend.unified.domain.nlp_types import NaturalLanguageText
 from backend.unified.domain.nlp_translation_service import NLPTranslationService
 
 # Import the TCE to Tau translator
-from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
-from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+from src.tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.cnl_parser import CNLParser
 
 
 def translate_english_to_tau(english_text: str) -> str:

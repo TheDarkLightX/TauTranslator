@@ -7,7 +7,7 @@ from typing import Any, List
 from dataclasses import dataclass
 import copy
 
-from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator, TranslationResult
+from tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator, TranslationResult
 
 
 class TCEToTauWrapper:

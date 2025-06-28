@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 logger = logging.getLogger(__name__)
 
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
 
 class TCEParserAdapter:
     """Infrastructure adapter for TCE parsing operations."""
@@ -24,7 +25,7 @@ class TCEParserAdapter:
         """Parse TCE text to AST via external parser (I/O operation)."""
         try:
             # Import the external parser (file I/O)
-            from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+            
             
             # Create parser instance (may load grammar files)
             parser = self._create_parser_instance()
@@ -46,7 +47,7 @@ class TCEParserAdapter:
     
     def _create_parser_instance(self):
         """Create parser instance (may involve file I/O for grammar loading)."""
-        from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+        
         return CNLParser()
     
     def _invoke_parser_on_text(self, parser, text: str):

@@ -12,12 +12,16 @@ import time
 from typing import List, Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from returns.result import Result, Success, Failure
+from ..core.domain_types import AppError
+
 from .base import TranslationEngine, TranslationResult, TranslationDirection
 from ..core.responses import TranslationError, TranslationResponse
 from ..core.statistics import TranslationStatisticsService
 from ..core.health_monitor import TranslationHealthMonitor, CircuitBreakerConfig
 from ..core.engine_interface import ITranslationEngine, TranslationContext
 from ..core.dependency_injection import ServiceContainer
+from .grammar_translator import GrammarTranslationEngine # Added for facade
 
 
 logger = logging.getLogger(__name__)
@@ -126,38 +130,49 @@ class TranslationOrchestrator:
         engine_name: Optional[str] = None,
         use_fallback: bool = True,
         **kwargs
-    ) -> TranslationResult:
+    ) -> Result[TranslationResult, AppError]:
         """Translate text using the best available engine."""
         start_time = time.time()
-        
-        # Create context if not provided
+
         if context is None:
             context = TranslationContext()
-        
+
         try:
-            # Validate input
             if not text or not text.strip():
-                raise TranslationError("Empty input text provided")
-            
-            # Find target engine
+                return Failure(AppError(detail="Empty input text provided"))
+
             target_engine = self._select_engine(text, direction, context, engine_name)
             if not target_engine:
-                raise TranslationError(f"No available engine for direction: {direction.value}")
-            
-            # Attempt translation
-            result = self._attempt_translation(target_engine, text, direction, context, **kwargs)
-            
-            # Try fallback engines if primary failed and fallback is enabled
-            if not result.success and use_fallback:
-                result = self._try_fallback_engines(text, direction, context, target_engine, **kwargs)
-            
-            # Record statistics
-            self._record_translation_metrics(result, start_time)
-            
-            return result
-            
+                return Failure(AppError(detail=f"No available engine for direction: {direction.value}"))
+
+            # _attempt_translation now returns a Result
+            result_monad = self._attempt_translation(target_engine, text, direction, context, **kwargs)
+
+            # If the first attempt fails, try fallbacks
+            if isinstance(result_monad, Failure) and use_fallback:
+                result_monad = self._try_fallback_engines(text, direction, context, target_engine, **kwargs)
+
+            # Record metrics regardless of outcome
+            if isinstance(result_monad, Success):
+                self._record_translation_metrics(result_monad.unwrap(), start_time)
+            elif isinstance(result_monad, Failure):
+                # Create a temporary TranslationResult for metrics
+                error_result = TranslationResult(
+                    success=False,
+                    translated_text="",
+                    original_text=text,
+                    translation_method="orchestrator_error",
+                    direction=direction,
+                    error_message=result_monad.failure().detail,
+                    processing_time=time.time() - start_time
+                )
+                self._record_translation_metrics(error_result, start_time)
+
+            return result_monad
+
         except Exception as e:
-            # Create error result
+            self.logger.error(f"Unhandled exception in translation orchestration: {e}", exc_info=True)
+            # Create a temporary TranslationResult for metrics
             error_result = TranslationResult(
                 success=False,
                 translated_text="",
@@ -167,12 +182,8 @@ class TranslationOrchestrator:
                 error_message=str(e),
                 processing_time=time.time() - start_time
             )
-            
-            # Record error statistics
             self._record_translation_metrics(error_result, start_time)
-            
-            self.logger.error(f"Translation orchestration failed: {e}")
-            return error_result
+            return Failure(AppError(detail=str(e), context={"error_type": "unhandled_exception"}))
     
     def translate_parallel(
         self,
@@ -262,80 +273,67 @@ class TranslationOrchestrator:
         direction: TranslationDirection,
         context: TranslationContext,
         **kwargs
-    ) -> TranslationResult:
-        """Attempt translation with specific engine."""
+    ) -> Result[TranslationResult, AppError]:
+        """Attempt translation with a single engine."""
         try:
-            self.logger.debug(f"Attempting translation with {engine.metadata.name}")
+            if not self._is_engine_healthy(engine):
+                return Failure(AppError(detail=f"Engine {engine.metadata.name} is not healthy"))
+
+            # engine.translate now returns a Result
+            translation_result = engine.translate(text, direction, context, **kwargs)
+
+            # Handle the Result monad
+            if isinstance(translation_result, Failure):
+                return translation_result # Propagate the failure
+
+            # On success, unwrap and perform post-processing
+            result = translation_result.unwrap()
+            if result.confidence < self.confidence_threshold:
+                result.success = False
+                result.error_message = f"Confidence ({result.confidence}) below threshold ({self.confidence_threshold})"
             
-            # Check health before translation
-            health_check = self.health_monitor.check_engine_health(engine.metadata.name, engine)
-            if not health_check.status.value in ['healthy', 'degraded']:
-                return TranslationResult(
-                    success=False,
-                    translated_text="",
-                    original_text=text,
-                    translation_method=engine.metadata.name,
-                    direction=direction,
-                    error_message=f"Engine unhealthy: {health_check.error_message}"
-                )
-            
-            result = engine.translate(text, direction, context, **kwargs)
-            
-            if result.success:
-                self.logger.info(f"Translation successful with {engine.metadata.name} (confidence: {result.confidence})")
-            else:
-                self.logger.warning(f"Translation failed with {engine.metadata.name}: {result.error_message}")
-            
-            return result
-            
+            return Success(result)
+
         except Exception as e:
-            error_msg = f"Engine {engine.metadata.name} threw exception: {str(e)}"
-            self.logger.error(error_msg)
-            
-            return TranslationResult(
-                success=False,
-                translated_text="",
-                original_text=text,
-                translation_method=engine.metadata.name,
-                direction=direction,
-                error_message=error_msg
-            )
+            self.logger.error(f"Translation attempt failed for engine {engine.metadata.name}: {e}", exc_info=True)
+            # Create a consistent AppError on unexpected exceptions
+            error_context = {"engine": engine.metadata.name, "direction": direction.value}
+            return Failure(AppError(detail=str(e), context=error_context))
     
     def _try_fallback_engines(
         self,
         text: str,
         direction: TranslationDirection,
         context: TranslationContext,
-        failed_engine: ITranslationEngine,
+        primary_engine: ITranslationEngine,
         **kwargs
-    ) -> TranslationResult:
-        """Try fallback engines when primary translation fails."""
-        self.logger.info(f"Trying fallback engines after {failed_engine.metadata.name} failed")
+    ) -> Result[TranslationResult, AppError]:
+        """Try fallback engines if primary fails."""
+        self.logger.warning(f"Primary engine {primary_engine.metadata.name} failed. Trying fallbacks.")
         
+        last_error: Optional[AppError] = None
+
         for fallback_engine in self.fallback_engines:
-            if fallback_engine == failed_engine or not fallback_engine.is_available:
-                continue
-            
-            if not fallback_engine.can_translate(text, direction, context):
-                continue
-            
-            if not self._is_engine_healthy(fallback_engine):
-                continue
-            
-            result = self._attempt_translation(fallback_engine, text, direction, context, **kwargs)
-            if result.success:
-                self.logger.info(f"Fallback successful with {fallback_engine.metadata.name}")
-                return result
+            if fallback_engine != primary_engine and self._is_engine_healthy(fallback_engine):
+                self.logger.info(f"Trying fallback engine: {fallback_engine.metadata.name}")
+                
+                fallback_result = self._attempt_translation(
+                    fallback_engine, text, direction, context, **kwargs
+                )
+
+                if isinstance(fallback_result, Success):
+                    return fallback_result  # Propagate success immediately
+                
+                if isinstance(fallback_result, Failure):
+                    last_error = fallback_result.failure()
+
+        # If all fallbacks fail, return a Failure
+        error_detail = "All fallback engines failed."
+        if last_error:
+            error_detail += f" Last error from '{last_error.context.get('engine', 'unknown')}': {last_error.detail}"
         
-        # All fallbacks failed
-        return TranslationResult(
-            success=False,
-            translated_text="",
-            original_text=text,
-            translation_method="all_fallbacks_failed",
-            direction=direction,
-            error_message="All translation engines failed"
-        )
+        return Failure(AppError(detail=error_detail))
+
     
     def _record_translation_metrics(self, result: TranslationResult, start_time: float) -> None:
         """Record translation metrics in statistics service."""
@@ -379,15 +377,73 @@ class TranslationOrchestrator:
         return base_priority
 
 
-class RefactoredTranslationManager:
+class BackwardCompatibleFacade:
     """
     Refactored Translation Manager using clean architecture principles.
     
     Acts as a facade over the orchestrator and provides backward compatibility
     while leveraging the new service-oriented architecture.
+    This version is adapted for simpler instantiation with grammar_content for testing.
     """
     
-    def __init__(self, service_container: Optional[ServiceContainer] = None):
+    def __init__(self, grammar_content: str, service_container: Optional[ServiceContainer] = None):
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(f"Initializing BackwardCompatibleFacade with grammar_content (first 50 chars): {grammar_content[:50]}...")
+
+        # 1. Setup dummy/default services for the core orchestrator
+        # For real use, these would be properly injected or configured.
+        if service_container is None:
+            self.container = ServiceContainer()
+            # Register dummy services if not already in a provided container
+            if not self.container.has_provider(TranslationStatisticsService):
+                self.container.register_singleton(TranslationStatisticsService, lambda: TranslationStatisticsService()) # Assuming default constructor
+            if not self.container.has_provider(TranslationHealthMonitor):
+                # Assuming CircuitBreakerConfig might be needed or has defaults
+                dummy_circuit_breaker_config = CircuitBreakerConfig(failure_threshold=5, recovery_timeout_seconds=60)
+                self.container.register_singleton(TranslationHealthMonitor, lambda: TranslationHealthMonitor(config=dummy_circuit_breaker_config)) # Assuming default constructor or simple config
+        else:
+            self.container = service_container
+
+        try:
+            stats_service = self.container.resolve(TranslationStatisticsService)
+            health_monitor = self.container.resolve(TranslationHealthMonitor)
+        except Exception as e:
+            self.logger.error(f"Error resolving core services for BackwardCompatibleFacade: {e}")
+            # Fallback to basic instantiation if resolution fails, this might not be fully functional
+            stats_service = TranslationStatisticsService()
+            health_monitor = TranslationHealthMonitor(config=CircuitBreakerConfig(failure_threshold=5, recovery_timeout_seconds=60))
+            if not self.container.has_provider(TranslationStatisticsService):
+                 self.container.register_instance(TranslationStatisticsService, stats_service)
+            if not self.container.has_provider(TranslationHealthMonitor):
+                 self.container.register_instance(TranslationHealthMonitor, health_monitor)
+
+        # 2. Instantiate the main TranslationOrchestrator
+        # The main TranslationOrchestrator (first class in this file) is now the one being instantiated here.
+        self.orchestrator = TranslationOrchestrator(
+            statistics_service=stats_service,
+            health_monitor=health_monitor,
+            service_container=self.container
+        )
+        self.container.register_instance(TranslationOrchestrator, self.orchestrator) # Register the main orchestrator instance
+        
+        # 3. Instantiate GrammarTranslationEngine
+        try:
+            grammar_engine = GrammarTranslationEngine(grammar_string=grammar_content, engine_name="FacadeGrammarEngine")
+            self.logger.info(f"Successfully instantiated GrammarTranslationEngine: {grammar_engine.name}")
+        except Exception as e:
+            self.logger.error(f"Failed to instantiate GrammarTranslationEngine in BackwardCompatibleFacade: {e}", exc_info=True)
+            raise # Re-raise the exception as this is critical for the facade's purpose
+
+        # 4. Register the grammar engine with the orchestrator
+        self.orchestrator.register_engine(grammar_engine, is_default=True)
+        self.logger.info(f"Registered GrammarTranslationEngine '{grammar_engine.name}' as default.")
+
+        # Existing facade logic for service container setup (if any was intended beyond orchestrator)
+        # self.statistics = self.container.resolve(TranslationStatisticsService)
+        # self.health_monitor = self.container.resolve(TranslationHealthMonitor)
+        # No, these are part of the main orchestrator, the facade just uses it.
+
+        self.logger.info("Initialized BackwardCompatibleFacade with grammar support.")
         # Initialize or get service container
         if service_container is None:
             from ..core.dependency_injection import get_container
@@ -410,7 +466,7 @@ class RefactoredTranslationManager:
         self.container.register_instance(TranslationOrchestrator, self.orchestrator)
         
         self.logger = logging.getLogger(__name__)
-        self.logger.info("Initialized RefactoredTranslationManager with clean architecture")
+        self.logger.info("Initialized TranslationOrchestrator with clean architecture")
     
     # Facade methods for backward compatibility
     
@@ -475,6 +531,32 @@ class RefactoredTranslationManager:
         """Reset all statistics."""
         self.statistics.reset_statistics()
     
+    def translate_english_to_formal(self, english_text: str) -> str:
+        """Translates English text to its formal representation using the configured grammar engine."""
+        self.logger.debug(f"BackwardCompatibleFacade: translating English to Formal: '{english_text}'")
+        # Default context or allow passing one?
+        # For now, assume no special context or use orchestrator's default handling.
+        result = self.orchestrator.translate(text=english_text, direction=TranslationDirection.EN_TO_FORMAL)
+        if result.success:
+            self.logger.info(f"BackwardCompatibleFacade: EN_TO_FORMAL success for '{english_text[:30]}...' -> '{result.translated_text[:30]}...'")
+            return result.translated_text
+        else:
+            self.logger.error(f"BackwardCompatibleFacade: EN_TO_FORMAL failed for '{english_text}': {result.error_message}")
+            # Consider how to propagate errors; for now, returning error message or raising an exception.
+            # For BDD tests, returning a string indicating error might be useful.
+            return f"ERROR_TRANSLATING_TO_FORMAL: {result.error_message}"
+
+    def translate_formal_to_english(self, formal_text: str) -> str:
+        """Translates formal specification text to English using the configured grammar engine."""
+        self.logger.debug(f"BackwardCompatibleFacade: translating Formal to English: '{formal_text}'")
+        result = self.orchestrator.translate(text=formal_text, direction=TranslationDirection.FORMAL_TO_EN)
+        if result.success:
+            self.logger.info(f"BackwardCompatibleFacade: FORMAL_TO_EN success for '{formal_text[:30]}...' -> '{result.translated_text[:30]}...'")
+            return result.translated_text
+        else:
+            self.logger.error(f"BackwardCompatibleFacade: FORMAL_TO_EN failed for '{formal_text}': {result.error_message}")
+            return f"ERROR_TRANSLATING_TO_ENGLISH: {result.error_message}"
+
     def set_confidence_threshold(self, threshold: float):
         """Set confidence threshold."""
         self.orchestrator.confidence_threshold = max(0.0, min(1.0, threshold))

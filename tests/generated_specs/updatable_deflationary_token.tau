@@ -1,0 +1,8 @@
+# Tau Specification: Updatable Deflationary Token
+#
+# The logic for this test case is not contained in this file. Instead, it is
+# dynamically constructed and piped into the Tau REPL by the corresponding
+# validation script: propose_burn_rate_change.sh
+#
+# This approach demonstrates how a 'smart constitution' can be built and
+# amended entirely in-memory, without relying on static files.

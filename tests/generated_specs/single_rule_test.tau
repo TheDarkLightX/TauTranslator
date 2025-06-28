@@ -1,0 +1,8 @@
+# A test to see if a single rule from the full adder is valid.
+
+tau a = console
+tau b = console
+tau cin = console
+tau sum = console
+
+sum[t] = a[t] && b[t]

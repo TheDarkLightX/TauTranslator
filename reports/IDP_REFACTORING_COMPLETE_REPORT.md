@@ -59,7 +59,7 @@ plugin_manager_refactored.py (Orchestration)
 
 **Architecture**:
 ```
-health_refactored.py (API Routes)
+health_router.py (API Routes)
 ├── domain/
 │   ├── health_types.py (Domain Types)
 │   └── health_service.py (Business Logic)

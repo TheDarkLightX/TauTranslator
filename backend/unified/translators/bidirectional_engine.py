@@ -19,12 +19,12 @@ from .base import (
     TranslationEngine, TranslationDirection, TranslationResult,
     ConfigurableEngine
 )
-from ..domain.nlp_translation_service import NLPTranslationService
-from ..domain.ilr_generation_service import ILRGenerationService
-from ..domain.ilr_tau_translation_service import ILRToTauTranslationService
-from ..domain.tau_to_english_translator import TauToEnglishService
-from ..domain.tce_types import TCEExpression
-from ..core.domain_types import SourceText
+from backend.unified.domain.nlp_translation_service import NLPTranslationService
+from backend.unified.domain.ilr_generation_service import ILRGenerationService
+from backend.unified.domain.ilr_tau_translation_service import TauTranslationService
+from backend.unified.domain.tau_to_english_translator import TauToEnglishService
+from backend.unified.domain.tce_types import TCEExpression
+from backend.unified.core.domain_types import SourceText
 
 # Import existing CNL/TCE parser
 try:
@@ -53,7 +53,7 @@ class BidirectionalTranslationEngine(ConfigurableEngine):
         # Initialize services
         self.nlp_service = NLPTranslationService()
         self.ilr_service = ILRGenerationService()
-        self.tau_service = ILRToTauTranslationService()
+        self.tau_service = TauTranslationService()
         self.tau_to_english_service = TauToEnglishService()
         
         # Initialize TCE parser if available
@@ -89,6 +89,12 @@ class BidirectionalTranslationEngine(ConfigurableEngine):
         
         return direction in self.get_supported_directions()
     
+    async def translate_async(self, text: str, direction: TranslationDirection, **kwargs) -> TranslationResult:
+        """Perform the translation asynchronously."""
+        # This is a simple async wrapper. For a truly non-blocking implementation,
+        # the underlying services would need to be async as well.
+        return self.translate(text, direction, **kwargs)
+
     def translate(self, text: str, direction: TranslationDirection, **kwargs) -> TranslationResult:
         """Perform the translation."""
         start_time = kwargs.get('start_time')

@@ -10,6 +10,8 @@ import os
 import time
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 def run_test_module(test_path, description):
     """Run a specific test module and return results."""
     print(f"🧪 Testing: {description}")
@@ -21,8 +23,8 @@ def run_test_module(test_path, description):
             sys.executable, '-m', 'pytest', test_path, 
             '-v', '--tb=no', '--disable-warnings', '-q'
         ], 
-        cwd='~/TauTranslator',
-        env={**os.environ, 'PYTHONPATH': '~/TauTranslator/src'},
+        cwd=str(PROJECT_ROOT),
+        env={**os.environ, 'PYTHONPATH': str(PROJECT_ROOT / 'src')},
         capture_output=True, 
         text=True,
         timeout=30

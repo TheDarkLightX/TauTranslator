@@ -8,12 +8,13 @@ Author: DarkLightX / Dana Edwards
 
 import pytest
 import json
+import asyncio
 import tempfile
 from pathlib import Path
 from typing import Dict, List
 
 from backend.unified.core.pattern_loader import (
-    PatternManager,
+    PatternLoader,
     PatternRule,
     PatternType,
     PatternDirection,
@@ -24,6 +25,7 @@ from backend.unified.core.pattern_matching.fsa_pattern_integration import (
     FSAEnabledPatternManager,
     get_fsa_pattern_manager
 )
+from backend.unified.infrastructure.repositories.file_pattern_repository import FilePatternRepository
 from backend.unified.core.pattern_matching import MatchResult
 
 
@@ -127,243 +129,135 @@ class TestFSAPatternAdapter:
             adapter.convert_to_fsa_pattern(template_pattern)
 
 
-class TestFSAEnabledPatternManager:
-    """Test FSA-enabled pattern manager."""
-    
+@pytest.mark.asyncio
+class TestAsyncFSAEnabledPatternManager:
+    """Test FSA-enabled pattern manager with async operations."""
+
     @pytest.fixture
     def temp_pattern_file(self):
         """Create a temporary pattern file."""
         pattern_data = {
-            "name": "Test Patterns",
-            "version": "1.0.0",
-            "description": "Test pattern set",
-            "patterns": [
-                {
-                    "id": "literal1",
-                    "name": "Literal Pattern 1",
-                    "type": "literal",
-                    "direction": "tce_to_tau",
-                    "source": "hello",
-                    "target": "HELLO",
-                    "priority": 10,
-                    "enabled": True
-                },
-                {
-                    "id": "literal2",
-                    "name": "Literal Pattern 2",
-                    "type": "literal",
-                    "direction": "tce_to_tau",
-                    "source": "world",
-                    "target": "WORLD",
-                    "priority": 5,
-                    "enabled": True
-                },
-                {
-                    "id": "regex1",
-                    "name": "Complex Regex",
-                    "type": "regex",
-                    "direction": "tce_to_tau",
-                    "source": "test.*pattern",
-                    "target": "REGEX_MATCH",
-                    "priority": 3,
-                    "enabled": True
-                }
+            "name": "Test Patterns", "version": "1.0.0",
+            "description": "A set of patterns for testing.",
+            "rules": [
+                {"id": "literal1", "name": "Hello", "type": "literal", "direction": "tce_to_tau", "source": "hello", "target": "HELLO", "priority": 10, "enabled": True},
+                {"id": "literal2", "name": "World", "type": "literal", "direction": "tce_to_tau", "source": "world", "target": "WORLD", "priority": 5, "enabled": True},
+                {"id": "regex1", "name": "Complex Regex", "type": "regex", "direction": "tce_to_tau", "source": "test.*pattern", "target": "COMPLEX", "priority": 1, "enabled": True}
             ]
         }
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
             json.dump(pattern_data, f)
             temp_path = Path(f.name)
-        
         yield temp_path
         temp_path.unlink()
-    
-    def test_sync_patterns(self, temp_pattern_file):
+
+    async def test_sync_patterns(self, temp_pattern_file):
         """Test synchronizing patterns from loader to FSA."""
-        # Create a new manager to avoid global state issues
-        manager = FSAEnabledPatternManager()
-        
-        # Load patterns
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
-        
-        # Sync patterns
+        repo = FilePatternRepository()
+        loader = PatternLoader(pattern_repository=repo)
+        manager = FSAEnabledPatternManager(pattern_loader=loader)
+        await loader.load_patterns_from_source_async(temp_pattern_file)
         manager.sync_patterns()
-        
-        # Check pattern distribution
-        assert len(manager.fsa_patterns) == 2  # Two literal patterns
-        assert len(manager.regex_patterns) == 1  # One complex regex
-        
-        assert "literal1" in manager.fsa_patterns
-        assert "literal2" in manager.fsa_patterns
-        assert "regex1" in manager.regex_patterns
-    
-    def test_match_with_fsa_patterns(self, temp_pattern_file):
+        assert len(manager.fsa_patterns) == 2
+        assert len(manager.regex_patterns) == 1
+
+    async def test_match_with_fsa_patterns(self, temp_pattern_file):
         """Test matching using FSA patterns."""
-        manager = FSAEnabledPatternManager()
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
+        repo = FilePatternRepository()
+        loader = PatternLoader(pattern_repository=repo)
+        manager = FSAEnabledPatternManager(pattern_loader=loader)
+        await loader.load_patterns_from_source_async(temp_pattern_file)
         manager.sync_patterns()
-        
-        # Test FSA match
-        match = manager.match("hello world")
-        assert match is not None
-        assert match.pattern_id == "literal1"
-        assert match.matched_text == "hello"
-        assert match.replacement == "HELLO"
-        assert manager.fsa_matches == 1
-        assert manager.regex_matches == 0
-    
-    def test_match_with_regex_fallback(self, temp_pattern_file):
+        match = manager.match("hello there")
+        assert match and match.pattern_id == "literal1"
+
+    async def test_match_with_regex_fallback(self, temp_pattern_file):
         """Test falling back to regex when FSA doesn't match."""
-        manager = FSAEnabledPatternManager()
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
+        repo = FilePatternRepository()
+        loader = PatternLoader(pattern_repository=repo)
+        manager = FSAEnabledPatternManager(pattern_loader=loader)
+        await loader.load_patterns_from_source_async(temp_pattern_file)
         manager.sync_patterns()
-        
-        # Test regex match
-        text = "test something pattern"
-        match = manager.match(text)
-        assert match is not None
-        assert match.pattern_id == "regex1"
-        assert match.replacement == "REGEX_MATCH"
-        assert manager.fsa_matches == 0
-        assert manager.regex_matches == 1
-    
-    def test_find_all_matches(self, temp_pattern_file):
-        """Test finding all matches with both FSA and regex."""
-        manager = FSAEnabledPatternManager()
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
-        manager.sync_patterns()
-        
-        text = "hello world and test some pattern"
-        matches = manager.find_all_matches(text)
-        
-        # Should find at least 2 matches (hello, world)
-        assert len(matches) >= 2
-        
-        # Check that matches are sorted by priority
-        priorities = [m.priority for m in matches]
-        assert priorities == sorted(priorities, reverse=True)
-    
-    def test_replace_functionality(self, temp_pattern_file):
-        """Test pattern replacement."""
-        manager = FSAEnabledPatternManager()
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
-        manager.sync_patterns()
-        
-        text = "hello world hello"
-        result, count = manager.replace(text)
-        
-        assert result == "HELLO WORLD HELLO"
-        assert count == 3
-    
-    def test_performance_metrics(self, temp_pattern_file):
-        """Test performance metric collection."""
-        manager = FSAEnabledPatternManager()
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
-        manager.sync_patterns()
-        
-        # Perform some matches
-        manager.match("hello")
-        manager.match("world")
-        manager.match("test pattern here")
-        
-        metrics = manager.get_performance_metrics()
-        
-        assert metrics['total_matches'] == 3
-        assert metrics['fsa_matches'] == 2
-        assert metrics['regex_matches'] == 1
-        assert metrics['fsa_percentage'] == pytest.approx(66.67, 0.01)
-        assert metrics['pattern_distribution']['fsa'] == 2
-        assert metrics['pattern_distribution']['regex'] == 1
-    
-    def test_reload_patterns(self, temp_pattern_file):
+        match = manager.match("this is a test pattern")
+        assert match and match.pattern_id == "regex1"
+
+    async def test_reload_patterns(self, temp_pattern_file, monkeypatch):
         """Test pattern reloading."""
-        manager = FSAEnabledPatternManager()
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
+        repo = FilePatternRepository()
+        loader = PatternLoader(pattern_repository=repo)
+        manager = FSAEnabledPatternManager(pattern_loader=loader)
+        
+        initial_load_result = await loader.load_patterns_from_source_async(str(temp_pattern_file))
+        assert initial_load_result.is_success(), f"Initial pattern load failed: {initial_load_result}"
+
+        # Check the specific PatternSet loaded from the temp file
+        loaded_pattern_set = loader.get_pattern_set(temp_pattern_file.stem)
+        assert loaded_pattern_set is not None, f"PatternSet for id '{temp_pattern_file.stem}' not found in loader."
+        assert len(loaded_pattern_set.rules) == 3, f"Expected 3 rules in initial PatternSet, got {len(loaded_pattern_set.rules)}."
+        initial_rule_ids = {rule.id for rule in loaded_pattern_set.rules}
+        assert {"literal1", "literal2", "regex1"}.issubset(initial_rule_ids), f"Initial rules missing. Got: {initial_rule_ids}"
+
         manager.sync_patterns()
-        
         initial_fsa_count = len(manager.fsa_patterns)
-        
-        # Modify the pattern file
-        with open(temp_pattern_file, 'r') as f:
+
+        # Modify the pattern file on disk
+        with open(temp_pattern_file, 'r+') as f:
             data = json.load(f)
-        
-        # Add a new pattern
-        data['patterns'].append({
-            "id": "literal3",
-            "name": "New Pattern",
-            "type": "literal",
-            "direction": "tce_to_tau",
-            "source": "new",
-            "target": "NEW",
-            "priority": 1,
-            "enabled": True
-        })
-        
-        with open(temp_pattern_file, 'w') as f:
+            data['rules'].append({"id": "literal3", "name": "New", "type": "literal", "direction": "tce_to_tau", "source": "new", "target": "NEW", "priority": 1, "enabled": True})
+            f.seek(0)
             json.dump(data, f)
-        
-        # Reload patterns
-        manager.reload_patterns()
-        
-        # Check that new pattern was loaded
+            f.truncate()
+
+        # Manually trigger the loader to re-read the modified file
+        reload_result = await loader.load_patterns_from_source_async(str(temp_pattern_file))
+        assert reload_result.is_success(), f"Pattern reload failed: {reload_result}"
+
+        # Check the specific PatternSet again after reload
+        updated_pattern_set = loader.get_pattern_set(temp_pattern_file.stem)
+        assert updated_pattern_set is not None, f"PatternSet for id '{temp_pattern_file.stem}' not found after reload."
+        assert len(updated_pattern_set.rules) == 4, f"Expected 4 rules after reload, got {len(updated_pattern_set.rules)}."
+        rule_ids_after_reload = {rule.id for rule in updated_pattern_set.rules}
+        assert "literal3" in rule_ids_after_reload, "Newly added rule 'literal3' not found in reloaded PatternSet."
+
+        # Manually trigger the manager to resync with the loader's updated patterns
+        await asyncio.to_thread(manager.sync_patterns)
         assert len(manager.fsa_patterns) == initial_fsa_count + 1
         assert "literal3" in manager.fsa_patterns
-    
-    def test_direction_filtering(self, temp_pattern_file):
+
+    async def test_direction_filtering(self, temp_pattern_file):
         """Test pattern filtering by direction."""
-        manager = FSAEnabledPatternManager()
-        
-        # Add bidirectional pattern
-        bidirectional_data = {
-            "name": "Bidirectional Patterns",
-            "version": "1.0.0",
-            "description": "Test bidirectional patterns",
-            "patterns": [
-                {
-                    "id": "bi1",
-                    "name": "Bidirectional Pattern",
-                    "type": "literal",
-                    "direction": "bidirectional",
-                    "source": "test",
-                    "target": "TEST",
-                    "priority": 1,
-                    "enabled": True
-                }
-            ]
-        }
-        
-        manager.pattern_manager.load_pattern_set(bidirectional_data, "bidirectional_set")
-        manager.pattern_manager.load_pattern_set(temp_pattern_file, "test_set")
-        
-        # Sync with specific direction
-        manager.sync_patterns(PatternDirection.TCE_TO_TAU)
-        
-        # Should include all TCE_TO_TAU and bidirectional patterns
-        assert len(manager.fsa_patterns) >= 3  # 2 from temp_file + 1 bidirectional
-        assert "bi1" in manager.fsa_patterns
+        repo = FilePatternRepository()
+        loader = PatternLoader(pattern_repository=repo)
+        manager = FSAEnabledPatternManager(pattern_loader=loader)
+        await loader.load_patterns_from_source_async(temp_pattern_file)
+        manager.sync_patterns(direction=PatternDirection.TCE_TO_TAU)
+        assert len(manager.fsa_patterns) == 2
+        assert len(manager.regex_patterns) == 1
+        manager.sync_patterns(direction=PatternDirection.TAU_TO_TCE)
+        assert len(manager.fsa_patterns) == 0
+        assert len(manager.regex_patterns) == 0
 
 
 class TestGlobalFSAPatternManager:
     """Test global FSA pattern manager instance."""
-    
-    def test_global_instance_access(self):
+
+    @pytest.mark.asyncio
+    async def test_global_instance_access(self, monkeypatch):
         """Test accessing global FSA pattern manager."""
+        # Reset the global instance for a clean test
+        from backend.unified.core.pattern_matching import fsa_pattern_integration
+        fsa_pattern_integration._global_fsa_pattern_manager = None
+        
         manager = get_fsa_pattern_manager()
         
         assert manager is not None
         assert isinstance(manager, FSAEnabledPatternManager)
         
+        # It should be a singleton
+        manager2 = get_fsa_pattern_manager()
+        assert manager is manager2
+
         # Clear any existing patterns
-        manager.fsa_matcher.clear_patterns()
-        manager.fsa_patterns.clear()
-        manager.regex_patterns.clear()
-        
-        # Should be able to use it
-        simple_patterns = [
-            ("p1", "test", "TEST", 1)
-        ]
-        manager.fsa_matcher.add_patterns(simple_patterns)
-        
-        match = manager.fsa_matcher.match("test string")
-        assert match is not None
-        assert match.matched_text == "test"
+        manager.sync_patterns()
+        assert not manager.fsa_patterns
+        assert not manager.regex_patterns

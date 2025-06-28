@@ -2,6 +2,7 @@ import os
 import shutil
 from pathlib import Path
 import psutil
+from typing import Optional
 from huggingface_hub import snapshot_download, HfApi, hf_hub_url
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 

@@ -14,18 +14,10 @@ from typing import Dict, List, Optional, Tuple, Set, Any, Union
 from dataclasses import dataclass, field
 import threading
 
+from backend.unified.core.pattern_matching import MatchResult
 
-@dataclass
-class MatchResult:
-    """Result of pattern matching operation."""
-    matched: bool
-    pattern_id: Optional[str] = None
-    start_pos: int = 0
-    end_pos: int = 0
-    matched_text: str = ""
-    replacement: Optional[str] = None
-    priority: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
 
 
 class HybridPatternMatcher:
@@ -102,7 +94,6 @@ class HybridPatternMatcher:
                     break
                 
                 matches.append(MatchResult(
-                    matched=True,
                     pattern_id=pattern_id,
                     start_pos=pos,
                     end_pos=pos + len(source),
@@ -116,11 +107,10 @@ class HybridPatternMatcher:
         for pattern_id, regex, replacement, priority in self.regex_patterns:
             for match in regex.finditer(text):
                 matches.append(MatchResult(
-                    matched=True,
                     pattern_id=pattern_id,
                     start_pos=match.start(),
                     end_pos=match.end(),
-                    matched_text=match.group(),
+                    matched_text=match.group(0),
                     replacement=replacement,
                     priority=priority
                 ))

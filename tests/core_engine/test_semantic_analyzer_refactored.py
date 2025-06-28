@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 # Import refactored semantic analyzer components
-from tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import SemanticAnalyzer
 from tau_translator_omega.core_engine.semantic_types import (
     SemanticError, Symbol, SymbolTable, TypeInfo, ErrorCollector,
     create_type_info, check_type_compatibility
 )
-from tau_translator_omega.core_engine.semantic_analyzer_core import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer_core import (
     ExpressionTypeResolver, ValidationEngine, SymbolDefinitionManager
 )
 

@@ -1,0 +1,21 @@
+# Tau Specification: Simple Reflex Vacuum-Cleaner Agent (Predicate-based)
+#
+# This specification models the agent using predicates instead of direct
+# stream value comparisons, which is the correct Tau idiom.
+
+# Percepts and Actions are modeled as predicates over time.
+# Input Predicates:
+#   is_in_room_a(t), is_in_room_b(t)
+#   is_dirty(t)
+#
+# Output Predicates:
+#   do_suck(t), do_move_right(t), do_move_left(t)
+
+# Agent Program (Rules):
+# Defines the logical relationship between percepts and actions.
+# Note: Equivalence (A <=> B) is expressed as (A & B) | (A' & B').
+# Note: Negation is expressed with a single quote (A').
+always( ( (do_suck(t) & is_dirty(t)) | (do_suck(t)' & is_dirty(t)') ) & ( (do_move_right(t) & (is_in_room_a(t) & is_dirty(t)')) | (do_move_right(t)' & (is_in_room_a(t) & is_dirty(t)')') ) & ( (do_move_left(t) & (is_in_room_b(t) & is_dirty(t)')) | (do_move_left(t)' & (is_in_room_b(t) & is_dirty(t)')') ) ).
+
+# Axioms and Constraints:
+always( (is_in_room_a(t) & is_in_room_b(t))' & (is_in_room_a(t) | is_in_room_b(t)) & (do_suck(t) & do_move_right(t))' & (do_suck(t) & do_move_left(t))' & (do_move_right(t) & do_move_left(t))' ).

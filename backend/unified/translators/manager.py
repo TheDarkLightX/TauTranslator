@@ -8,15 +8,12 @@ import time
 from typing import List, Optional, Dict, Any, Set
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from ..core.result_enhanced import Result, Success, Failure, success, failure
-
-from ..core.domain_types import (
-    SourceText, TargetText, Result, Success, Failure,
-    success, failure
-)
-from ..core.functional_utils import guard, guard_not_none
+from backend.unified.core.domain_types import (SourceText, TargetText, AppError)
+from returns.result import Result, Success, Failure
+from returns.pipeline import is_successful
+from backend.unified.core.functional_utils import guard, guard_not_none
 from .base import TranslationEngine, TranslationResult, TranslationDirection
-from ..core.interfaces import IEventBus, ICacheRepository
+from backend.unified.core.interfaces import IEventBus, ICacheRepository
 
 
 # Constants
@@ -66,7 +63,7 @@ class EngineSelectionStrategy(ABC):
         self,
         engines: List[EngineRegistration],
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Select an engine for the request."""
         pass
 
@@ -78,10 +75,10 @@ class PreferredEngineStrategy(EngineSelectionStrategy):
         self,
         engines: List[EngineRegistration],
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Select preferred engine."""
         if not request.preferred_engine:
-            return failure("NO_PREFERENCE", "No preferred engine specified")
+            return Failure(AppError(error_code="NO_PREFERENCE", message="No preferred engine specified"))
         
         return self._find_preferred_engine(engines, request)
     
@@ -89,12 +86,12 @@ class PreferredEngineStrategy(EngineSelectionStrategy):
         self,
         engines: List[EngineRegistration],
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Find the preferred engine."""
         engine = self._get_engine_by_name(engines, request.preferred_engine)
         if engine:
             return self._validate_engine_capability(engine, request)
-        return failure("ENGINE_NOT_FOUND", f"Engine {request.preferred_engine} not found")
+        return Failure(AppError(error_code="ENGINE_NOT_FOUND", message=f"Engine {request.preferred_engine} not found"))
     
     def _get_engine_by_name(
         self,
@@ -111,12 +108,12 @@ class PreferredEngineStrategy(EngineSelectionStrategy):
         self,
         engine: TranslationEngine,
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Validate engine can handle request."""
         if engine.can_translate(request.text, request.direction):
-            return success(engine)
-        return failure("ENGINE_CANNOT_TRANSLATE", 
-                      f"Engine {engine.name} cannot handle request")
+            return Success(engine)
+        return Failure(AppError(error_code="ENGINE_CANNOT_TRANSLATE", 
+                      message=f"Engine {engine.name} cannot handle request"))
 
 
 class DefaultEngineStrategy(EngineSelectionStrategy):
@@ -126,12 +123,12 @@ class DefaultEngineStrategy(EngineSelectionStrategy):
         self,
         engines: List[EngineRegistration],
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Select default engine."""
         engine = self._find_default_engine(engines, request)
         if engine:
-            return success(engine)
-        return failure("NO_DEFAULT_ENGINE", "No default engine available")
+            return Success(engine)
+        return Failure(AppError(error_code="DEFAULT_ENGINE_NOT_FOUND", message="No default engine found"))
     
     def _find_default_engine(
         self,
@@ -152,7 +149,7 @@ class BestAvailableStrategy(EngineSelectionStrategy):
         self,
         engines: List[EngineRegistration],
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Select highest priority engine that can handle request."""
         sorted_engines = self._sort_by_priority(engines)
         return self._find_capable_engine(sorted_engines, request)
@@ -167,12 +164,12 @@ class BestAvailableStrategy(EngineSelectionStrategy):
         self,
         engines: List[EngineRegistration],
         request: TranslationRequest
-    ) -> Result[TranslationEngine]:
+    ) -> Result[TranslationEngine, AppError]:
         """Find first capable engine."""
         engine = self._get_first_capable(engines, request)
         if engine:
-            return success(engine)
-        return failure("NO_SUITABLE_ENGINE", "No engine can handle this request")
+            return Success(engine)
+        return Failure(AppError(error_code="NO_SUITABLE_ENGINE", message="No suitable engine found"))
     
     def _get_first_capable(
         self,
@@ -287,7 +284,7 @@ class EngineRegistry:
         self._registrations: List[EngineRegistration] = []
         self._engines_by_name: Dict[str, TranslationEngine] = {}
     
-    def register(self, registration: EngineRegistration) -> Result[None]:
+    def register(self, registration: EngineRegistration) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Register an engine."""
@@ -296,15 +293,15 @@ class EngineRegistry:
             return validation
         
         self._add_registration(registration)
-        return success(None)
+        return Success(None)
     
-    def _validate_registration(self, registration: EngineRegistration) -> Result[None]:
+    def _validate_registration(self, registration: EngineRegistration) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Validate engine registration."""
         if registration.engine.name in self._engines_by_name:
-            return failure("DUPLICATE_ENGINE", f"Engine {registration.engine.name} already registered")
-        return success(None)
+            return Failure(AppError(error_code="DUPLICATE_ENGINE", message=f"Engine {registration.engine.name} already registered"))
+        return Success(None)
     
     def _add_registration(self, registration: EngineRegistration):
         """
@@ -352,13 +349,12 @@ class TranslationManager:
         Initialize core components."""
         self._registry = EngineRegistry()
         self._cache = cache_repository
+        self._event_bus = event_bus
         self._event_publisher = TranslationEventPublisher(event_bus)
         self._confidence_threshold = confidence_threshold
     
     def _init_auxiliary_components(self):
-        """
-        Note: This is a pure function (no side effects).
-        Initialize auxiliary components."""
+        """Initialize auxiliary components."""
         self._cache_key_generator = CacheKeyGenerator()
         self._selection_strategies = self._init_strategies()
         self.logger = logging.getLogger(__name__)
@@ -369,11 +365,18 @@ class TranslationManager:
         is_default: bool = False,
         is_fallback: bool = False,
         priority: int = 0
-    ) -> Result[None]:
+    ) -> Result[bool, AppError]:
         """Register a translation engine."""
-        registration = self._create_registration(engine, is_default, is_fallback, priority)
-        return self._registry.register(registration)
-    
+        try:
+            registration = self._create_registration(engine, is_default, is_fallback, priority)
+            self._registry.register(registration)
+            self._event_bus.publish(
+                "engine_registered", {"engine_name": engine.name}
+            )
+            return Success(True)
+        except ValueError as e:
+            return Failure(AppError(error_code="REGISTRATION_FAILED", message=str(e)))
+
     def _create_registration(
         self, engine: TranslationEngine, is_default: bool, 
         is_fallback: bool, priority: int
@@ -385,20 +388,23 @@ class TranslationManager:
         )
     
     async def translate_async(
-        self, text: SourceText, direction: TranslationDirection,
-        preferred_engine: Optional[str] = None, use_cache: bool = True,
-        use_fallback: bool = True
-    ) -> Result[TranslationResult]:
-        """Translate text with best engine."""
-        request = self._create_request(text, direction, preferred_engine)
-        return await self._translate_with_pipeline(request, use_cache, use_fallback)
+            self, text: SourceText, direction: TranslationDirection,
+            preferred_engine: Optional[str] = None, use_cache: bool = True,
+            use_fallback: bool = True
+        ) -> Result[TranslationResult, AppError]:
+            """Translate text with best engine."""
+            if not str(text).strip():
+                return Failure(AppError(error_code="EMPTY_TEXT", message="Input text cannot be empty."))
+            request = self._create_request(text, direction, preferred_engine)
+            return await self._translate_with_pipeline(request, use_cache, use_fallback)
+
     
     async def _translate_with_pipeline(
         self,
         request: TranslationRequest,
         use_cache: bool,
         use_fallback: bool
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Execute translation pipeline."""
         result = await self._check_cache_or_translate(request, use_cache, use_fallback)
         await self._cache_if_needed(request, result, use_cache)
@@ -406,22 +412,22 @@ class TranslationManager:
     
     async def _check_cache_or_translate(
         self, request: TranslationRequest, use_cache: bool, use_fallback: bool
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Check cache or perform translation."""
         result = await self._try_cached_translation(request, use_cache)
-        if isinstance(result, Success):
+        if is_successful(result):
             return result
         return await self._perform_translation(request, use_fallback)
     
     async def _cache_if_needed(
         self,
         request: TranslationRequest,
-        result: Result[TranslationResult],
+        result: Result[TranslationResult, AppError],
         use_cache: bool
     ):
         """Cache result if successful and caching enabled."""
-        if isinstance(result, Success) and use_cache:
-            await self._cache_result_async(request, result.value)
+        if is_successful(result) and use_cache:
+            await self._cache_result_async(request, result.unwrap())
     
     def _create_request(
         self,
@@ -438,24 +444,28 @@ class TranslationManager:
         self,
         request: TranslationRequest,
         use_cache: bool
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Try to get cached translation."""
         if use_cache:
             return await self._try_cache_async(request)
-        return failure("CACHE_DISABLED", "Cache not used")
+        return Failure(AppError(error_code="CACHE_DISABLED", message="Cache not used"))
     
     async def _perform_translation(
-        self,
-        request: TranslationRequest,
-        use_fallback: bool
-    ) -> Result[TranslationResult]:
-        """Perform translation with optional fallback."""
-        result = await self._select_and_translate_async(request)
-        if self._should_try_fallback(result, use_fallback):
-            result = await self._try_fallback_async(request)
-        return result
+            self, request: TranslationRequest, use_fallback: bool
+        ) -> Result[TranslationResult, AppError]:
+            """Perform translation with optional fallback."""
+            result = await self._select_and_translate_async(request)
+
+            if isinstance(result, Failure) and use_fallback:
+                error = result.failure()
+                if error.error_code in ["LOW_CONFIDENCE", "TRANSLATION_ERROR"]:
+                    self.logger.info(f"Primary translation failed ({error.error_code}), attempting fallback.")
+                    return await self._try_fallback_async(request)
+
+            return result
+
     
-    def _should_try_fallback(self, result: Result[TranslationResult], use_fallback: bool) -> bool:
+    def _should_try_fallback(self, result: Result[TranslationResult, AppError], use_fallback: bool) -> bool:
         """
         Note: This is a pure function (no side effects).
         Check if fallback should be attempted."""
@@ -471,7 +481,7 @@ class TranslationManager:
             BestAvailableStrategy()
         ]
     
-    async def _try_cache_async(self, request: TranslationRequest) -> Result[TranslationResult]:
+    async def _try_cache_async(self, request: TranslationRequest) -> Result[TranslationResult, AppError]:
         """
         Note: This is a pure function (no side effects).
         Try to get result from cache."""
@@ -480,9 +490,9 @@ class TranslationManager:
         
         if cached:
             self._publish_cache_hit()
-            return success(cached)
+            return Success(cached)
         
-        return failure("CACHE_MISS", "No cached result")
+        return Failure(AppError(error_code="CACHE_MISS", message="No cached result"))
     
     def _publish_cache_hit(self):
         """
@@ -499,29 +509,32 @@ class TranslationManager:
     async def _select_and_translate_async(
         self,
         request: TranslationRequest
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Select engine and translate."""
         engine_result = self._select_engine(request)
-        if isinstance(engine_result, Success):
-            return await self._execute_translation_async(engine_result.value, request)
-        return engine_result
-    
-    def _select_engine(self, request: TranslationRequest) -> Result[TranslationEngine]:
+
+        if isinstance(engine_result, Failure):
+            return engine_result
+
+        engine = engine_result.unwrap()
+        return await self._execute_translation_async(engine, request)
+
+    def _select_engine(self, request: TranslationRequest) -> Result[TranslationEngine, AppError]:
         """
         Note: This is a pure function (no side effects).
         Select engine using strategies."""
         for strategy in self._selection_strategies:
             result = strategy.select(self._registry.get_all(), request)
-            if isinstance(result, Success):
+            if is_successful(result):
                 return result
         
-        return failure("NO_ENGINE_AVAILABLE", "No engine could handle the request")
+        return Failure(AppError(error_code="NO_ENGINE_AVAILABLE", message="No engine could handle the request"))
     
     async def _execute_translation_async(
         self,
         engine: TranslationEngine,
         request: TranslationRequest
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Execute translation with engine."""
         start_time = self._start_translation(engine, request)
         result = await self._safe_translate(engine, request)
@@ -537,40 +550,39 @@ class TranslationManager:
     
     async def _safe_translate(
         self, engine: TranslationEngine, request: TranslationRequest
-    ) -> Result[TranslationResult]:
+    ) -> Result[TranslationResult, AppError]:
         """Safely execute translation."""
         try:
-            result = await self._run_engine_translation(engine, request)
-            return self._process_translation_result(result)
+            return await self._run_engine_translation(engine, request)
         except Exception as e:
             return self._handle_translation_error(engine.name, e)
     
-    def _handle_translation_error(self, engine_name: str, error: Exception) -> Result[TranslationResult]:
+    def _handle_translation_error(self, engine_name: str, error: Exception) -> Result[TranslationResult, AppError]:
         """
         Note: This is a pure function (no side effects).
         Handle translation error."""
         self._event_publisher.publish_failed(engine_name, str(error))
-        return failure("TRANSLATION_ERROR", f"Engine error: {str(error)}")
+        return Failure(AppError(error_code="TRANSLATION_ERROR", message=f"Engine error: {str(error)}"))
     
     def _publish_result(
         self,
         engine_name: str,
         start_time: float,
-        result: Result[TranslationResult]
+        result: Result[TranslationResult, AppError]
     ):
         """Publish translation result metrics."""
-        if isinstance(result, Success):
-            metrics = self._create_metrics(engine_name, start_time, result.value)
+        if is_successful(result):
+            metrics = self._create_metrics(engine_name, start_time, result.unwrap())
             self._event_publisher.publish_completed(metrics)
     
     async def _run_engine_translation(
         self,
         engine: TranslationEngine,
         request: TranslationRequest
-    ) -> TranslationResult:
+    ) -> Result[TranslationResult, AppError]:
         """Run the actual translation."""
-        # Note: engine.translate is synchronous
-        return engine.translate(request.text, request.direction)
+        # Note: We now correctly call the async version of the engine's translate method.
+        return await engine.translate_async(request.text, request.direction)
     
     def _create_metrics(
         self, engine_name: str, start_time: float, result: TranslationResult
@@ -595,15 +607,9 @@ class TranslationManager:
         Get confidence from result."""
         return result.confidence if result.success else 0.0
     
-    def _process_translation_result(self, result: TranslationResult) -> Result[TranslationResult]:
-        """
-        Note: This is a pure function (no side effects).
-        Process translation result."""
-        if result.success:
-            return success(result)
-        return failure("TRANSLATION_FAILED", result.error_message or "Unknown error")
+
     
-    async def _try_fallback_async(self, request: TranslationRequest) -> Result[TranslationResult]:
+    async def _try_fallback_async(self, request: TranslationRequest) -> Result[TranslationResult, AppError]:
         """
         Note: This is a pure function (no side effects).
         Try fallback engines."""
@@ -611,10 +617,10 @@ class TranslationManager:
         
         for engine in engines:
             result = await self._execute_translation_async(engine, request)
-            if isinstance(result, Success):
+            if is_successful(result):
                 return result
         
-        return failure("ALL_ENGINES_FAILED", "All fallback engines failed")
+        return Failure(AppError(error_code="ALL_ENGINES_FAILED", message="All fallback engines failed"))
     
     def _get_capable_fallback_engines(
         self,

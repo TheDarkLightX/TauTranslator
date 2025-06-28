@@ -1,0 +1,82 @@
+# Tau Specification for a Simple Logical AI Agent
+# version 0.1
+
+# --- Ontology ---
+# This section defines the basic types of entities and concepts in the agent's world.
+
+# --- Core Types ---
+
+is_agent(a).
+is_location(l).
+is_object(o).
+
+# --- Percepts ---
+# These predicates represent what the agent can perceive from its environment at a given time.
+
+# The agent `a` is at location `l` at time `t`.
+at(a, l, t).
+
+# The agent `a` perceives a light at time `t`.
+sees_light(a, t).
+
+# The agent `a` perceives a sound at time `t`.
+hears_sound(a, t).
+
+# The agent `a` detects an object `o` at time `t`.
+detects_object(a, o, t).
+
+# --- Actions ---
+# These predicates represent the actions the agent can choose to perform.
+
+# The agent `a` decides to move forward at time `t`.
+move_forward(a, t).
+
+# The agent `a` decides to turn left at time `t`.
+turn_left(a, t).
+
+# The agent `a` decides to wait at time `t`.
+wait(a, t).
+
+# --- Action Invariants ---
+
+# 1. Exclusivity: The agent can only perform one action at a time.
+always( (move_forward(a, t) & turn_left(a, t))' ).
+always( (move_forward(a, t) & wait(a, t))' ).
+always( (turn_left(a, t) & wait(a, t))' ).
+
+
+# --- Behavioral Rules ---
+# These rules define the agent's decision-making process based on its percepts.
+
+# 1. If the agent sees a light, it moves forward.
+# (sees_light(a, t) -> move_forward(a, t))
+always( sees_light(a, t)' | move_forward(a, t) ).
+
+# 2. If the agent hears a sound but sees no light, it turns left.
+# (hears_sound(a, t) & sees_light(a, t)') -> turn_left(a, t)
+always( (hears_sound(a, t) & sees_light(a, t)')' | turn_left(a, t) ).
+
+# 3. Default Action: If the agent doesn't see a light and doesn't hear a sound, it waits.
+# (sees_light(a, t)' & hears_sound(a, t)') -> wait(a, t)
+always( sees_light(a, t) | hears_sound(a, t) | wait(a, t) ).
+
+
+# --- Example Scenario & Verification ---
+
+# --- Scenario Facts ---
+
+# Define a specific agent.
+is_agent(a1).
+
+# At time t=0, agent a1 hears a sound.
+hears_sound(a1, 0).
+
+# At time t=0, agent a1 does not see a light.
+sees_light(a1, 0)'.
+
+# --- Verification Query ---
+# Prove that given the facts above, the agent must turn left at t=0.
+# The solver should find this UNSATISFIABLE, meaning the conclusion `turn_left(a1, 0)'`
+# is impossible, thus proving the agent *must* turn left.
+
+solve turn_left(a1, 0)'.

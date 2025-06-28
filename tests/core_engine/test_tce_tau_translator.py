@@ -17,10 +17,10 @@ Tests cover:
 import pytest
 from typing import List
 
-from tau_translator_omega.core_engine.tce_tau_translator import (
+from tau_translator_omega.core_engine.translators.tce_tau_translator import (
     TCETauTranslator, TranslationResult, TauTranslationError
 )
-from tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     VariableNode, ConstantNode, NumberNode, StringNode,
     ArithmeticBinaryOpNode, BooleanBinaryOpNode, BooleanUnaryOpNode,
     ComparisonNode, PredicateCallNode, StreamReferenceNode,

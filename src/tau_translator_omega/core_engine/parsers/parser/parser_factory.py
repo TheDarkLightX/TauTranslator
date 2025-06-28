@@ -10,7 +10,7 @@ from .domain_types import (
     GrammarConfig, TransformerConfig, ParserError,
     GrammarFormalism, ASTTransformer
 )
-from .infrastructure import (
+from .path_resolver import (
     GrammarFileLoader, LarkParserFactory, TransformerLoader
 )
 

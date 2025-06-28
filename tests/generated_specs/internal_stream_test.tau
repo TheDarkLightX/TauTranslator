@@ -1,0 +1,14 @@
+# Minimal test case for internal stream definition.
+# This tests if the behavior of an internal stream (x1) can be defined after the REPL enters history mode.
+
+# --- Streams ---
+tau i1 = console
+tau o1 = console
+tau x1 = console # Internal stream
+
+# --- Logic ---
+# This first rule for a primary output stream (o1) will succeed and enter history mode.
+o1[t] = i1[t]
+
+# This second rule for an internal stream (x1) is expected to fail.
+x1[t] = i1[t]

@@ -8,8 +8,8 @@ import logging
 from typing import Union, Optional
 
 # Use absolute imports for ASTNode and other node types
-from .ast_nodes import ASTNode, LiteralNode, BinaryExpressionNode, UnaryExpressionNode, SourceLocation
-from .expression_builders import (
+from .ast.ast_nodes import ASTNode, LiteralNode, BinaryExpressionNode, UnaryExpressionNode, SourceLocation
+from .ast.expression_builders import (
     UnaryExpressionBuilder, BinaryExpressionBuilder, 
     FactorBuilder, LocationExtractor
 )

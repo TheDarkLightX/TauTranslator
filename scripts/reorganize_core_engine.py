@@ -20,6 +20,8 @@ from typing import Dict, List, Tuple, Set
 import argparse
 import hashlib
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 class CoreEngineReorganizer:
     def __init__(self, base_path: str, dry_run: bool = False):
         self.base_path = Path(base_path)
@@ -372,7 +374,7 @@ def main():
     parser.add_argument(
         "--base-path",
         type=str,
-        default="~/TauTranslator",
+        default=str(PROJECT_ROOT),
         help="Base path of the TauTranslator project"
     )
     

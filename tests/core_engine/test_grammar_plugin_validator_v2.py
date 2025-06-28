@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from unittest.mock import Mock
 
-from src.tau_translator_omega.core_engine.grammar_plugin_validator_v2 import GrammarPluginValidatorV2
+from tau_translator_omega.core_engine.plugins.grammar_plugin_validator_v2 import GrammarPluginValidatorV2
 
 
 class TestGrammarPluginValidatorV2:
@@ -149,8 +149,8 @@ class TestValidationPipelineIntegration:
     
     def test_pipeline_stage_order(self):
         """Test that pipeline stages run in the correct order."""
-        from src.tau_translator_omega.core_engine.validation_pipeline import ValidationPipeline
-        from src.tau_translator_omega.core_engine.grammar_plugin_validator_v2 import (
+        from tau_translator_omega.core_engine.validation_pipeline import ValidationPipeline
+        from tau_translator_omega.core_engine.grammar_plugin_validator_v2 import (
             GrammarDetailsStage, 
             ILRMappingsStage
         )
@@ -165,7 +165,7 @@ class TestValidationPipelineIntegration:
     
     def test_validation_context_error_handling(self):
         """Test that validation context properly handles errors."""
-        from src.tau_translator_omega.core_engine.validation_pipeline import ValidationContext
+        from tau_translator_omega.core_engine.validation_pipeline import ValidationContext
         
         context = ValidationContext({"id": "test"}, Path("/tmp"))
         

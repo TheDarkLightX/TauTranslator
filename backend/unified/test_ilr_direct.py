@@ -2,9 +2,10 @@
 """Direct test of ILR expression parsing to identify bugs."""
 
 import sys
-sys.path.insert(0, '~/TauTranslator/backend/unified')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from domain.ilr_expression_service import ExpressionParsingService
+from backend.unified.domain.ilr_expression_service import ExpressionParsingService
 from domain.ilr_types import NumericConstant
 
 def test_expression_parsing():

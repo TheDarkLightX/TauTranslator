@@ -1,0 +1,18 @@
+# A full adder specification.
+# This demonstrates more complex Boolean logic and multiple I/O streams in Tau.
+
+# A full adder adds three binary digits: i1, i2, and a carry in (i3).
+# It produces two binary outputs: a sum (o1) and a carry out (o2).
+
+# Define three input streams and two output streams using the i/o naming convention.
+tau i1 = console
+tau i2 = console
+tau i3 = console
+tau o1 = console
+tau o2 = console
+
+# Define the logical relationships for the full adder using Boolean function operators.
+# sum = (i1 XOR i2) XOR i3
+# cout = (i1 AND i2) OR (i3 AND (i1 XOR i2))
+o1[t] = (i1[t] + i2[t]) + i3[t]
+o2[t] = (i1[t] & i2[t]) | (i3[t] & (i1[t] + i2[t]))

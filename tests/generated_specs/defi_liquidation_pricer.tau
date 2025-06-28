@@ -1,0 +1,20 @@
+# Tau Specification for a DeFi Loan Liquidation Pricer
+# version 4.0 (Canonical Function Syntax)
+
+# --- Problem Definition ---
+# We want to find the liquidation price (lp) for a loan, using integer arithmetic.
+# The relationship is: coefficient() * lp = constant_term()
+
+# --- Scenario ---
+# Loan Amount: 800
+# Collateral Amount: 2
+# Liquidation Threshold: 85 (representing 85%)
+# The formula becomes: 170 * lp = 80000
+
+# --- Definitions ---
+# We define the constants of the equation as zero-argument Tau functions.
+coefficient() := 170
+constant_term() := 80000
+
+# We ask the solver to find the value of 'lp' that makes the equation true.
+solve coefficient() lp = constant_term()

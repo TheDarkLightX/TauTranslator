@@ -28,53 +28,12 @@ except ImportError:
 from collections import defaultdict
 
 from .amr_semantic_layer import AMRSemanticAnalyzer, AMRGraph
-
-
-class RequirementType(Enum):
-    """Types of requirements that can be extracted"""
-    CONSTRAINT = auto()      # Must/shall constraints
-    BEHAVIOR = auto()        # System behavior descriptions
-    PERFORMANCE = auto()     # Timing, throughput requirements
-    VALIDATION = auto()      # Input validation rules
-    OUTPUT = auto()          # Output format requirements
-    SECURITY = auto()        # Security and access control
-    EXCEPTION = auto()       # Exception handling rules
-
-
-@dataclass
-class LogicalStructure:
-    """Represents the logical structure of a requirement"""
-    quantifiers: List[str]
-    conditionals: List[str]
-    logical_operators: List[str]
-    temporal_operators: List[str]
-    has_quantification: bool = False
-    has_conditionals: bool = False
-    has_temporal: bool = False
-
-
-@dataclass
-class FormalConstraint:
-    """Represents a formal constraint extracted from requirements"""
-    constraint_type: str
-    variables: List[str]
-    predicates: List[str]
-    logical_form: str
-    confidence: float
-
-
-@dataclass
-class RequirementItem:
-    """Represents a single extracted requirement"""
-    raw_text: str
-    type: RequirementType
-    category: str
-    entities: List[str]
-    predicates: List[str]
-    logical_structure: LogicalStructure
-    formal_constraints: List[FormalConstraint]
-    confidence: float
-    has_quantification: bool = False
+from .requirements_models import (
+    RequirementType,
+    LogicalStructure,
+    FormalConstraint,
+    RequirementItem,
+)
 
 
 class RequirementsAnalyzer:

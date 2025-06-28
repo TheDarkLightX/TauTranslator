@@ -13,13 +13,13 @@ import re
 from typing import Dict, Any, Optional, List, Tuple, Union
 from dataclasses import dataclass, asdict
 
-from .ilr_nodes import (
+from .ilr.ilr_nodes import (
     ILRNode, VariableReference, BooleanConstant, NumericConstant,
     StringConstant, ComparisonExpression, LogicalExpression,
     ArithmeticExpression, FunctionCall, FunctionDeclaration,
     VariableDeclaration, AssignmentStatement, ConditionalExpression
 )
-from .ilr_pattern_handlers import PatternHandlerRegistry
+from .ilr.ilr_pattern_handlers import PatternHandlerRegistry
 
 
 class NaturalLanguageToILRTranslator:

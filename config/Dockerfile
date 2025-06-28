@@ -14,8 +14,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY production_requirements.txt .
-RUN pip install --no-cache-dir -r production_requirements.txt
+# Install project with optional LLM extras
+COPY pyproject.toml ./
+COPY src ./src
+COPY backend ./backend
+RUN pip install --no-cache-dir \
+    ".[llm]" \
+    uvicorn[standard] fastapi
 
 # Copy application code
 COPY . .
@@ -39,4 +44,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')"
 
 # Default command starts the API server
-CMD ["python", "production_translator.py", "--api"]
+CMD ["uvicorn", "backend.api.server:app", "--host", "0.0.0.0", "--port", "8000"]

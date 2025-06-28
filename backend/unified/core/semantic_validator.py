@@ -11,10 +11,10 @@ from enum import Enum
 import logging
 
 from backend.unified.core.semantic_lexicon import SemanticLexicon, EntityCategory, RelationType
-from backend.unified.core.result_enhanced import Result, Success, Failure
+from .domain_types import Result, Success, Failure, AppError
 
 
-@dataclass
+@dataclass(frozen=True)
 class ValidationError:
     """Semantic validation error with suggestion."""
     message: str
@@ -240,7 +240,7 @@ class SemanticValidator:
         """Validate complete statement for semantic consistency."""
         return validate_statement_components(self.lexicon, parsed_components)
     
-    def validate_relation(self, subject: str, relation: str, object_: str) -> Result[bool]:
+    def validate_relation(self, subject: str, relation: str, object_: str) -> Result[bool, ValidationError]:
         """Validate subject-relation-object triplet."""
         return validate_triplet(self.lexicon, subject, relation, object_)
     
@@ -303,7 +303,7 @@ def validate_all_quantifiers(quantifiers: List[Dict]) -> List[ValidationError]:
     return errors
 
 
-def validate_triplet(lexicon: SemanticLexicon, subject: str, relation: str, object_: str) -> Result[bool]:
+def validate_triplet(lexicon: SemanticLexicon, subject: str, relation: str, object_: str) -> Result[bool, ValidationError]:
     """Validate subject-relation-object triplet."""
     subject_type = lexicon.classify_entity(subject)
     object_type = lexicon.classify_entity(object_)

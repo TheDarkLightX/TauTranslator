@@ -11,7 +11,8 @@ import os
 import sys
 import asyncio
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any, Optional, List
+from backend.security.secure_core import SecureStorage
 from pathlib import Path
 
 # FastAPI and related imports
@@ -36,10 +37,10 @@ except ImportError:
 
 # Import translation engines and parsers
 try:
-    from src.tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator
-    from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
-    from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
-    from src.tau_translator_omega.gemma3.translator import gemma3_translator
+    from tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator
+    from tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
+    from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
+    from tau_translator_omega.gemma3.translator import gemma3_translator
     TRANSLATION_ENGINES_AVAILABLE = True
 except ImportError:
     TRANSLATION_ENGINES_AVAILABLE = False
@@ -84,6 +85,13 @@ class HealthResponse(BaseModel):
     cryptoAvailable: bool = Field(..., description="Cryptography availability")
     configuredProviders: List[str] = Field(default_factory=list, description="Configured providers")
     translationEngines: Optional[Dict[str, bool]] = Field(default_factory=dict, description="Translation engine status")
+
+# FastAPI App Instance
+app = FastAPI(
+    title="TauTranslatorOmega API",
+    version="1.0.0",
+    description="Backend services for TauTranslator, including translation and secure key management."
+)
 
 # Global storage instance
 storage_instance: Optional[SecureStorage] = None
@@ -614,7 +622,7 @@ def main():
     
     # Run the server
     uvicorn.run(
-        "backend_server:app",
+        app,
         host="127.0.0.1",
         port=8000,
         reload=True,

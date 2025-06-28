@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
+from backend.unified.core.domain_types import AppError
+from returns.result import Result, Failure
 
 class EngineCapability(Enum):
     """Engine capability flags."""
@@ -129,7 +131,7 @@ class ITranslationEngine(ABC):
         direction: TranslationDirection, 
         context: Optional[TranslationContext] = None,
         **kwargs
-    ) -> TranslationResult:
+    ) -> Result[TranslationResult, AppError]:
         """
         Perform translation.
         
@@ -514,3 +516,45 @@ class BaseTranslationEngine(ITranslationEngine, IMonitorableEngine, ILifecycleMa
                 self._metrics.average_response_time * (1 - weight) + 
                 processing_time * weight
             )
+
+    def translate(
+        self,
+        text: str,
+        direction: 'TranslationDirection',
+        context: Optional['TranslationContext'] = None,
+        **kwargs
+    ) -> Result['TranslationResult', AppError]:
+        """
+        Default translation implementation.
+        
+        Subclasses should override this with their specific translation logic.
+        This implementation serves as a placeholder and returns a failed result.
+        """
+        start_time = self._record_request_start()
+        
+        # Basic validation
+        is_valid, error_msg = self.validate_input(text, direction)
+        if not is_valid:
+            result = self._create_result(
+                success=False,
+                translated_text="",
+                original_text=text,
+                direction=direction,
+                error_message=error_msg,
+                start_time=start_time
+            )
+            self._record_request_end(start_time, success=False, error_msg=error_msg)
+            return Failure(AppError(detail=error_msg or "Invalid input", context=result.to_dict()))
+        
+        # Placeholder logic
+        error_message = "Translation not implemented in BaseTranslationEngine"
+        result = self._create_result(
+            success=False,
+            translated_text="",
+            original_text=text,
+            direction=direction,
+            error_message=error_message,
+            start_time=start_time
+        )
+        self._record_request_end(start_time, success=False, error_msg=error_message)
+        return Failure(AppError(detail=error_message, context=result.to_dict()))

@@ -7,12 +7,16 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 import sys
-sys.path.append('~/TauTranslator/backend/unified')
+from pathlib import Path
+
+# Add the backend/unified directory to the Python path for parser imports
+project_root = Path(__file__).resolve().parent.parent
+backend_unified_path = project_root / 'backend' / 'unified'
+sys.path.append(str(backend_unified_path))
 
 from tce_parser_v1_01 import TCEParserV101
 from tce_parser_v1_51 import TCEParserV151
 from tce_parser_semantic import TCEParserSemanticV2
-from pathlib import Path
 
 
 def test_complex_sentences():

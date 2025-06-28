@@ -149,7 +149,7 @@ def test_bidirectional_translation():
     
     try:
         # Test TCE <-> Tau bidirectional
-        from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
+        from tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
         
         translator = TCETauTranslator()
         

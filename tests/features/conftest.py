@@ -61,6 +61,7 @@ def pytest_configure(config):
     )
 
 
+
 @pytest.fixture(scope="session")
 def project_root():
     """Get project root directory."""
@@ -80,19 +81,19 @@ def fixtures_dir(project_root):
 
 
 # Hook to generate BDD test report
-def pytest_bdd_after_scenario(request, feature, scenario):
-    """Hook called after each scenario."""
-    # Could add custom reporting here
-    pass
+# def pytest_bdd_after_scenario(request, feature, scenario):
+#     """Hook called after each scenario."""
+#     # Could add custom reporting here
+#     pass
 
 
-def pytest_bdd_step_error(request, feature, scenario, step, step_func, step_func_args, exception):
-    """Hook called when a step fails."""
-    # Could add enhanced error reporting here
-    print(f"\nBDD Step Failed: {step.name}")
-    print(f"  Feature: {feature.name}")
-    print(f"  Scenario: {scenario.name}")
-    print(f"  Error: {exception}")
+# def pytest_bdd_step_error(request, feature, scenario, step, step_func, step_func_args, exception):
+#     """Hook called when a step fails."""
+#     # Could add enhanced error reporting here
+#     print(f"\nBDD Step Failed: {step.name}")
+#     print(f"  Feature: {feature.name}")
+#     print(f"  Scenario: {scenario.name}")
+#     print(f"  Error: {exception}")
 
 
 # Custom pytest options for BDD

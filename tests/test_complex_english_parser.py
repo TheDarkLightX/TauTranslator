@@ -12,17 +12,10 @@ Tests increasingly complex sentences to show how the parser handles:
 Copyright: DarkLightX / Dana Edwards
 """
 
-import os
 import sys
-from pathlib import Path
 from typing import List, Tuple, Optional
 
-# Add project paths
-project_root = Path(__file__).parent
-backend_path = project_root / "backend/unified"
-sys.path.insert(0, str(backend_path))
-
-from domain.complex_english_parser import ComplexEnglishParser, parse_complex_english
+from backend.unified.domain.complex_english_parser import ComplexEnglishParser, parse_complex_english
 
 class ComplexEnglishParserTester:
     """Test the complex English parser with progressive examples."""

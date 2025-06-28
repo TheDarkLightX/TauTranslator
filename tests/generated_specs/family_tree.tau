@@ -1,0 +1,14 @@
+# Definitions (Facts and Rules)
+father(x, y) := male(x) && parent(x, y).
+sibling(x, y) := (ex p (parent(p, x) && parent(p, y))) && x != y.
+male(John) := T.
+female(Mary) := T.
+male(Peter) := T.
+female(Jane) := T.
+parent(John, Peter) := T.
+parent(Mary, Peter) := T.
+parent(John, Jane) := T.
+parent(Mary, Jane) := T.
+
+# Main Query
+sibling(Peter, Jane).

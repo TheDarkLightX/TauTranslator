@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, PropertyMock
 import importlib
-from tau_translator_omega.core_engine.plugin_manager import PluginManager
-from tau_translator_omega.core_engine.plugin import Plugin, PluginEntryPoint
+from tau_translator_omega.core_engine.plugins.plugin_manager import PluginManager
+from tau_translator_omega.core_engine.plugins.plugin import Plugin, PluginEntryPoint
 
 
 class TestPluginManagerLoading:

@@ -6,15 +6,7 @@ Shows what we've achieved for complex English parsing.
 Copyright: DarkLightX / Dana Edwards
 """
 
-import os
-import sys
-from pathlib import Path
 
-# Add project paths
-project_root = Path(__file__).parent
-backend_path = project_root / "backend/unified"
-sys.path.insert(0, str(backend_path))
-sys.path.insert(0, str(project_root / "src"))
 
 print("🎯 COMPLEX ENGLISH PARSING - FINAL ACHIEVEMENT SUMMARY")
 print("=" * 70)
@@ -33,7 +25,7 @@ print()
 print("1️⃣ COMPLEX ENGLISH PARSER:")
 print("-" * 50)
 
-from domain.complex_english_parser import parse_complex_english, ComplexEnglishParser
+from backend.unified.domain.complex_english_parser import parse_complex_english, ComplexEnglishParser
 
 test_sentences = [
     "all cats are animals",

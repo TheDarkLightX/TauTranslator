@@ -312,10 +312,11 @@ class TCEParserDesignAnalyzer(ast.NodeVisitor):
 
 def analyze_tce_parsers() -> Dict[str, ParserAnalysis]:
     """Analyze all TCE parsers."""
+    project_root = Path(__file__).resolve().parent.parent
     parser_files = [
-        '~/TauTranslator/backend/unified/tce_parser_v1_01.py',
-        '~/TauTranslator/backend/unified/tce_parser_v1_51.py',
-        '~/TauTranslator/backend/unified/tce_parser_semantic.py'
+        project_root / 'backend' / 'unified' / 'tce_parser_v1_01.py',
+        project_root / 'backend' / 'unified' / 'tce_parser_v1_51.py',
+        project_root / 'backend' / 'unified' / 'tce_parser_semantic.py'
     ]
     
     results = {}
@@ -479,10 +480,12 @@ def generate_comparison_report(analyses: Dict[str, ParserAnalysis]) -> None:
             'recommendations': analysis.recommendations
         }
     
-    with open('~/TauTranslator/tce_parser_design_analysis.json', 'w') as f:
+    project_root = Path(__file__).resolve().parent.parent
+    output_path = project_root / 'tce_parser_design_analysis.json'
+    with open(output_path, 'w') as f:
         json.dump(output_data, f, indent=2)
     
-    print(f"\nDetailed analysis saved to: tce_parser_design_analysis.json")
+    print(f"\nDetailed analysis saved to: {output_path}")
 
 
 def main():

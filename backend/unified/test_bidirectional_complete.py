@@ -13,8 +13,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Test imports
-from domain.tau_parser_service import TauParserService
-from domain.tau_to_english_translator import TauToEnglishService
+from src.tau_translator_omega.core_engine.parsers.grammar_driven_parser import (
+    GrammarDrivenParser,
+    TranslationMode,
+)
+from backend.unified.domain.tau_to_english_translator import TauToEnglishService
 from translators.bidirectional_engine import BidirectionalTranslationEngine
 from translators.base import TranslationDirection
 
@@ -23,7 +26,7 @@ def test_tau_parser_quantifiers_and_conditionals():
     """Test TAU parser with quantifiers and conditionals."""
     print("\n=== Testing TAU Parser ===")
     
-    parser = TauParserService()
+    parser = GrammarDrivenParser()
     
     # Test cases
     test_cases = [
@@ -54,7 +57,7 @@ def test_tau_parser_quantifiers_and_conditionals():
     
     for tau_code, description in test_cases:
         print(f"\n{description}: {tau_code}")
-        result = parser.parse_tau_code(tau_code)
+        result = parser.parse(tau_code, mode=TranslationMode.TAU_TO_NATURAL)
         
         if hasattr(result, 'is_success') and result.is_success():
             print(f"✅ Parse Success!")
@@ -70,7 +73,7 @@ def test_tau_parser_quantifiers_and_conditionals():
             else:
                 print(f"   Translation error: {english_result.message}")
         else:
-            print(f"❌ Parse Error [{result.error_code}]: {result.message}")
+            print(f"❌ Parse Error: {result.error}")
 
 
 def test_tce_parsing():

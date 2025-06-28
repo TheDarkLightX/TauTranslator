@@ -22,8 +22,8 @@ from .base import TranslationEngine, TranslationResult, TranslationDirection
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from src.tau_translator_omega.core_engine.tce_tau_translator import TCETauTranslator
-from src.tau_translator_omega.core_engine.cnl_parser.cnl_parser import CNLParser
+from tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator
+from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
 
 
 logger = logging.getLogger(__name__)

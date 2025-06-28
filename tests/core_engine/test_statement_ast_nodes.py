@@ -6,9 +6,9 @@ Tests for statement-related AST nodes.
 import unittest
 from typing import List, Tuple, Optional # Required for IfStatementNode test setup
 
-from tau_translator_omega.core_engine.ast_nodes import (
-    ASTNode, SourceLocation, IdentifierNode, LiteralNode, BlockNode, 
-    VariableDeclarationNode, IfStatementNode, BinaryExpressionNode # BinaryExpression for If condition
+from tau_translator_omega.core_engine.ast.ast_nodes import (
+    SourceLocation, IdentifierNode, LiteralNode, BlockNode, 
+    VariableDeclarationNode, IfStatementNode, BinaryExpressionNode, ASTNode
 )
 
 

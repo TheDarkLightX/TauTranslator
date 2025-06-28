@@ -19,7 +19,7 @@ def find_files_with_health_imports(root_dir: Path) -> List[Path]:
     
     for py_file in root_dir.rglob("*.py"):
         # Skip the old file itself and this migration script
-        if py_file.name in ["health.py", "migrate_health.py", "health_refactored.py"]:
+        if py_file.name in ["health.py", "migrate_health.py", "health_router.py"]:
             continue
         
         try:
@@ -48,18 +48,18 @@ def update_health_imports(file_path: Path) -> Tuple[bool, str]:
         # Update import statements
         old_patterns = [
             (r'from\s+(.*?)\.api\.health\s+import\s+(.*)',
-             r'from \1.api.health_refactored import \2'),
+             r'from \1.api.health_router import \2'),
             (r'import\s+(.*?)\.api\.health\s+as',
-             r'import \1.api.health_refactored as'),
+             r'import \1.api.health_router as'),
             (r'import\s+(.*?)\.api\.health',
-             r'import \1.api.health_refactored'),
+             r'import \1.api.health_router'),
         ]
         
         for old_pattern, new_pattern in old_patterns:
             content = re.sub(old_pattern, new_pattern, content)
         
         # Update direct health service usage patterns
-        content = re.sub(r'health\.router', r'health_refactored.router', content)
+        content = re.sub(r'health\.router', r'health_router.router', content)
         
         if content != original_content:
             with open(file_path, 'w', encoding='utf-8') as f:
@@ -79,7 +79,7 @@ Compatibility shim for health.py
 
 This module has been refactored into a modular structure following the 
 Intentional Disclosure Principle. Please update your imports to use 
-health_refactored instead.
+health_router instead.
 
 This shim provides backward compatibility during the migration period.
 
@@ -87,11 +87,11 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 import warnings
-from .health_refactored import router
+from .health_router import router
 
 warnings.warn(
     "health module has been refactored into a modular structure. "
-    "Please update your imports to use health_refactored.",
+    "Please update your imports to use health_router.",
     DeprecationWarning,
     stacklevel=2
 )
@@ -121,7 +121,7 @@ The health module has been refactored following the Intentional Disclosure Princ
 
 ```
 backend/unified/
-├── api/health_refactored.py          # FastAPI routes only (319 lines → 189 lines)
+├── api/health_router.py          # FastAPI routes only (319 lines → 189 lines)
 ├── domain/
 │   ├── health_types.py               # Domain types & value objects (185 lines)
 │   └── health_service.py             # Pure business logic (217 lines)
@@ -137,7 +137,7 @@ backend/unified/
 from backend.unified.api.health import router
 
 # New  
-from backend.unified.api.health_refactored import router
+from backend.unified.api.health_router import router
 ```
 
 ### New Capabilities
@@ -249,7 +249,7 @@ def main():
     
     # Define file paths
     old_file = project_root / "backend/unified/api/health.py"
-    new_file = project_root / "backend/unified/api/health_refactored.py"
+    new_file = project_root / "backend/unified/api/health_router.py"
     health_types = project_root / "backend/unified/domain/health_types.py"
     health_service = project_root / "backend/unified/domain/health_service.py"
     health_infra = project_root / "backend/unified/infrastructure/health_infrastructure.py"
@@ -265,7 +265,7 @@ def main():
         return
     
     print(f"Migrating from: health.py")
-    print(f"           to: health_refactored.py + modular components")
+    print(f"           to: health_router.py + modular components")
     print()
     
     # Find files that need updating

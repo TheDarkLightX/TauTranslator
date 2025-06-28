@@ -39,6 +39,7 @@ class ITestService:
 
 class TestService(ITestService):
     """Simple test service implementation."""
+    __test__ = False
     def __init__(self, value: str = "default"):
         self.value = value
         self.created_at = time.time()

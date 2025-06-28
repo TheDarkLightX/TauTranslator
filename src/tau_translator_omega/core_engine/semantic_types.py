@@ -11,7 +11,7 @@ Author: DarkLightX / Dana Edwards
 from typing import List, Optional, Dict, Any
 from abc import ABC, abstractmethod
 
-from .cnl_parser.ast_nodes import ASTNode
+from .parsers.cnl_parser.ast_nodes import ASTNode
 
 
 class SemanticError(Exception):
@@ -21,7 +21,7 @@ class SemanticError(Exception):
     Provides detailed error information including location context
     for precise error reporting and debugging.
     
-    Follows VibeArchitect principles:
+    
     - Clear error messages
     - Structured error information
     - Location context for debugging
@@ -58,7 +58,7 @@ class Symbol:
     Stores information about declared symbols including variables,
     predicates, functions, and types with associated metadata.
     
-    Follows VibeArchitect principles:
+    
     - Immutable after creation
     - Clear attribute responsibilities
     - Type safety with validation
@@ -117,7 +117,7 @@ class SymbolTable:
     Implements a stack-based approach to scope management, supporting
     nested scopes for functions, predicates, and quantified expressions.
     
-    Follows VibeArchitect principles:
+    
     - Clear scope management
     - O(1) symbol lookup
     - Comprehensive error handling
@@ -272,7 +272,7 @@ class TypeInfo:
     """
     Represents type information for semantic analysis.
     
-    Follows VibeArchitect principles:
+    
     - Immutable type information
     - Clear type relationships
     - Validation on creation
@@ -346,7 +346,7 @@ class ErrorCollector:
     """
     Collects and manages semantic errors during analysis.
     
-    Follows VibeArchitect principles:
+    
     - Comprehensive error collection
     - Clear error categorization
     - Performance tracking

@@ -15,6 +15,8 @@ from enum import Enum
 import threading
 from collections import defaultdict, deque
 
+from backend.unified.core.pattern_matching.types import MatchResult
+
 
 class StateType(Enum):
     """Types of FSA states."""
@@ -75,17 +77,7 @@ class FSAState:
         return [t for t in self.transitions if t.matches(char)]
 
 
-@dataclass
-class MatchResult:
-    """Result of pattern matching operation."""
-    matched: bool
-    pattern_id: Optional[str] = None
-    start_pos: int = 0
-    end_pos: int = 0
-    matched_text: str = ""
-    replacement: Optional[str] = None
-    priority: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 
 class FSAWrapper:
@@ -279,19 +271,25 @@ class FiniteStateAutomaton:
         for state_id in self.current_states:
             state = self.states.get(state_id)
             if state and state.state_type == StateType.ACCEPTING and state.pattern_id:
-                match = MatchResult(
-                    matched=True,
+                # NOTE: This is a partial fix. The current FSA state tracking does not
+                # easily expose the start/end positions for this specific match.
+                # This will require a more significant refactor to track match indices.
+                # For now, we create a result with the available info to fix the type error.
+                matches.append(MatchResult(
                     pattern_id=state.pattern_id,
+                    start_pos=0,  # Placeholder
+                    end_pos=0,    # Placeholder
+                    matched_text="", # Placeholder
                     replacement=state.replacement,
                     priority=state.priority,
                     metadata=state.metadata.copy()
-                )
-                matches.append(match)
+                ))
         
         # Sort by priority (higher first)
         matches.sort(key=lambda m: m.priority, reverse=True)
         return matches
     
+    # ... (rest of the code remains the same)
     def match(self, text: str, start_pos: int = 0) -> Optional[MatchResult]:
         """Find first match in text starting from position."""
         if not self.compiled:

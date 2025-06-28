@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "filename": "tau_controlled.lark",
+    "originalName": "Tau Controlled English Grammar",
+    "type": ".lark",
+    "isActive": true
+  }
+]

@@ -26,7 +26,7 @@ class TauTranslationService:
         if isinstance(ilr_result, Failure):
             return ilr_result
         
-        ilr_dict = ilr_result.unwrap()
+        ilr_dict = ilr_result.value
         
         # Handle special case of SBF declarations
         if self._has_sbf_declaration(ilr_dict):
@@ -60,14 +60,14 @@ class TauTranslationService:
             decl_result = self._translate_declaration(decl)
             if isinstance(decl_result, Failure):
                 return decl_result
-            tau_lines.append(decl_result.unwrap())
+            tau_lines.append(decl_result.value)
         
         # Translate statements
         for stmt in program.get("statements", []):
             stmt_result = self._translate_statement(stmt)
             if isinstance(stmt_result, Failure):
                 return stmt_result
-            tau_lines.append(stmt_result.unwrap())
+            tau_lines.append(stmt_result.value)
         
         # Handle top-level expression
         if "expression" in program:
@@ -111,7 +111,7 @@ class TauTranslationService:
             if isinstance(value_result, Failure):
                 return value_result
             
-            return Success(f"{name} = {value_result.unwrap()}.")
+            return Success(f"{name} = {value_result.value}.")
         
         # Variable without initial value
         return Success(f"# Variable {name} declared")
@@ -146,7 +146,7 @@ class TauTranslationService:
         if isinstance(expr_result, Failure):
             return expr_result
         
-        return Success(f"{expr_result.unwrap()}.")
+        return Success(f"{expr_result.value}.")
     
     def _translate_temporal_statement(self, stmt: Dict[str, Any]) -> Result[str]:
         """Translate temporal statement to TAU."""
@@ -225,7 +225,7 @@ class TauTranslationService:
         op_enum = ComparisonOperator[expr["operator"]]
         tau_op = OperatorMapper.get_tau_operator(op_enum)
         
-        return Success(f"{left_result.unwrap()} {tau_op} {right_result.unwrap()}")
+        return Success(f"{left_result.value} {tau_op} {right_result.value}")
     
     def _translate_logical(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate logical expression to TAU."""
@@ -320,9 +320,9 @@ class TauTranslationService:
         var_list = ", ".join(v["name"] for v in bound_vars)
         
         if quantifier == "FOR_ALL":
-            return Success(f"for all {var_list}, {body_result.unwrap()}")
+            return Success(f"for all {var_list}, {body_result.value}")
         else:  # EXISTS
-            return Success(f"exists {var_list} such that {body_result.unwrap()}")
+            return Success(f"exists {var_list} such that {body_result.value}")
     
     def _translate_conditional(self, expr: Dict[str, Any]) -> Result[str]:
         """Translate conditional expression to TAU."""

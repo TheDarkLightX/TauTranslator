@@ -8,10 +8,10 @@ Copyright: DarkLightX / Dana Edwards
 
 from typing import List, Optional
 from .base import TranslationEngine, TranslationResult, TranslationDirection
-from ..domain.enhanced_nlp_service import create_enhanced_nlp_service
-from ..domain.complex_english_parser import ComplexEnglishParser
-from ..domain.tau_to_english_translator import TauToEnglishTranslator
-from ..core.domain_types import SourceText
+from backend.unified.domain.enhanced_nlp_service import create_enhanced_nlp_service
+from backend.unified.domain.complex_english_parser import ComplexEnglishParser
+from backend.unified.domain.tau_to_english_translator import TauToEnglishTranslator
+from backend.unified.core.domain_types import SourceText
 import logging
 
 logger = logging.getLogger(__name__)

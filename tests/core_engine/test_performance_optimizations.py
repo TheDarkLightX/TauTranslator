@@ -23,10 +23,10 @@ from tau_translator_omega.lmql_engine.confidence_optimizer import (
     ConfidenceOptimizer, TranslationExample
 )
 from tau_translator_omega.core_engine.trie import Trie, PatternTrie, KeywordTrie
-from tau_translator_omega.core_engine.lazy_loader import (
+from tau_translator_omega.core_engine.utils.lazy_loader import (
     LazyGrammarLoader, LazyPluginLoader, LazyLoaderManager
 )
-from tau_translator_omega.core_engine.bloom_filter import (
+from tau_translator_omega.core_engine.utils.bloom_filter import (
     BloomFilter, ScalableBloomFilter, SymbolBloomFilter
 )
 
@@ -330,7 +330,7 @@ class TestLazyLoading:
             (plugin_dir / "plugin.json").write_text(json.dumps(manifest))
             
             # Test loader
-            loader = LazyPluginLoader([str(tmpdir / "plugins")])
+            loader = LazyPluginLoader([str(Path(tmpdir) / "plugins")])
             
             # Check available plugins
             available = loader.get_available_plugins()

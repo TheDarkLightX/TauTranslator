@@ -12,14 +12,9 @@ from unittest.mock import Mock, patch, MagicMock
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from translators.advanced_llm_translator import (
-    AdvancedLLMTranslator, 
-    TranslationContext,
-    AVAILABLE_FRAMEWORKS
-)
+from backend.unified.translators.manager import TranslationManager
+from backend.unified.core.engine_interface import TranslationContext, TranslationDirection
+from backend.unified.translators.pattern_translator import PatternTranslationEngine
 from nlp.nlp_requirements_engine import (
     NLPRequirementsEngine,
     RequirementType,
@@ -162,115 +157,69 @@ class TestNLPRequirementsEngine:
         assert "always temp[t] >= 20 & temp[t] <= 80" in tau_code
 
 
-class TestAdvancedLLMTranslator:
-    """Test Advanced LLM Translator with mocked dependencies."""
-    
+class TestTranslationManagerWithPatterns:
+    """Test Translation Manager with a focus on the PatternTranslationEngine."""
+
     @pytest.fixture
-    def translator(self):
-        """Create translator with pattern-based fallback."""
-        with patch.dict('sys.modules', {
-            'lmql': MagicMock(),
-            'guidance': MagicMock(),
-            'transformers': MagicMock(),
-            'openai': MagicMock(),
-            'anthropic': MagicMock()
-        }):
-            # Force pattern-based mode
-            translator = AdvancedLLMTranslator(preferred_framework="pattern")
-            return translator
-    
-    def test_translator_initialization(self, translator):
-        """Test translator initialization."""
-        assert translator.framework == "pattern"
-        assert translator.tau_patterns is not None
-    
-    def test_validate_tau_syntax_valid(self, translator):
-        """Test Tau syntax validation with valid code."""
-        valid_tau = """
-        sbf input = ifile("data.txt")
-        r temp[t] = input[t]
-        always temp[t] >= 20 & temp[t] <= 80
-        """
-        
-        result = translator._validate_tau_syntax(valid_tau)
-        
-        assert result['valid'] == True
-        assert len(result['errors']) == 0
-        assert result['confidence'] > 0
-        assert 'stream_declaration' in result['patterns_found']
-        assert 'rule_definition' in result['patterns_found']
-        assert 'temporal_property' in result['patterns_found']
-    
-    def test_validate_tau_syntax_invalid(self, translator):
-        """Test Tau syntax validation with invalid code."""
-        invalid_tau = "r temp[t = input[t"  # Missing closing bracket
-        
-        result = translator._validate_tau_syntax(invalid_tau)
-        
-        assert result['valid'] == False
-        assert len(result['errors']) > 0
-        assert "Unmatched brackets" in result['errors'][0]
-    
-    def test_pattern_based_translation(self, translator):
-        """Test fallback pattern-based translation."""
-        requirements = "Always ensure temperature stays between 20 and 80 degrees"
-        
-        tau_code = translator._translate_with_patterns(requirements)
-        
-        assert tau_code is not None
-        assert "always" in tau_code.lower()
-    
-    def test_auto_feedback_generation(self, translator):
-        """Test automatic feedback generation."""
-        validation_result = {
-            'valid': False,
-            'errors': ['Line 1: Syntax error'],
-            'patterns_found': ['rule_definition'],
-            'confidence': 0.3
-        }
-        
-        feedback = translator._generate_auto_feedback(validation_result)
-        
-        assert "Fix these syntax errors" in feedback
-        assert "Line 1: Syntax error" in feedback
-        assert "Consider adding:" in feedback
-    
-    @pytest.mark.asyncio
-    async def test_translate_requirements_basic(self, translator):
-        """Test basic requirements translation."""
-        requirements = "The system must always monitor temperature"
-        
-        context = await translator.translate_requirements_to_tau(
-            requirements,
-            max_iterations=1,
-            interactive=False
+    def manager(self):
+        """Create a TranslationManager with a registered PatternTranslationEngine."""
+        manager = TranslationManager()
+        pattern_engine = PatternTranslationEngine()
+        manager.register_engine(pattern_engine, is_default=True)
+        return manager
+
+    def test_manager_initialization(self, manager):
+        """Test manager initialization with a pattern engine."""
+        assert isinstance(manager, TranslationManager)
+        assert manager.default_engine is not None
+        assert isinstance(manager.default_engine, PatternTranslationEngine)
+
+    def test_translate_valid_tau_to_tce(self, manager):
+        """Test translating valid Tau code to TCE using patterns."""
+        valid_tau = (
+            'sbf input = ifile("data.txt")\n'
+            'r temp[t] = input[t]\n'
+            'always temp[t] >= 20 & temp[t] <= 80'
+        )
+        result = manager.translate(
+            text=valid_tau, 
+            direction=TranslationDirection.TO_TCE
         )
         
-        assert context.original_text == requirements
-        assert context.current_translation != ""
-        assert context.iteration >= 1
-    
-    @pytest.mark.asyncio  
-    async def test_iterative_refinement(self, translator):
-        """Test iterative refinement process."""
-        requirements = "Monitor temperature and ensure it stays safe"
+        assert result.success is True
+        assert "stream input is read from file" in result.translated_text
+        assert "rule temp[t] is defined as input[t]" in result.translated_text
+        assert "always the condition (temp[t] >= 20 & temp[t] <= 80) must hold" in result.translated_text
+        assert result.confidence > 0.5
+
+    def test_translate_invalid_tau_to_tce(self, manager):
+        """Test translating invalid Tau code to TCE."""
+        invalid_tau = "r temp[t = input[t"  # Malformed
+        result = manager.translate(
+            text=invalid_tau,
+            direction=TranslationDirection.TO_TCE
+        )
         
-        # Mock validation to trigger refinement
-        with patch.object(translator, '_validate_tau_syntax') as mock_validate:
-            # First validation fails, second succeeds
-            mock_validate.side_effect = [
-                {'valid': False, 'confidence': 0.5, 'errors': ['Missing temporal property'], 'patterns_found': []},
-                {'valid': True, 'confidence': 0.9, 'errors': [], 'patterns_found': ['temporal_property']}
-            ]
-            
-            context = await translator.translate_requirements_to_tau(
-                requirements,
-                max_iterations=3,
-                interactive=False
-            )
-            
-            assert context.iteration >= 2
-            assert len(context.feedback_history) >= 1
+        assert result.success is True
+        assert result.translated_text == invalid_tau
+        assert result.confidence < 0.1
+
+    def test_translate_tce_to_tau(self, manager):
+        """Test translating TCE to Tau using patterns."""
+        tce_text = "always temperature equals 50 and pressure is less than 100"
+        result = manager.translate(
+            text=tce_text,
+            direction=TranslationDirection.TO_TAU
+        )
+        
+        assert result.success is True
+        assert "always" in result.translated_text
+        assert "=" in result.translated_text
+        assert "&" in result.translated_text
+        assert "<" in result.translated_text
+        assert "equals" not in result.translated_text
+        assert "and" not in result.translated_text
+        assert "is less than" not in result.translated_text
 
 
 class TestIntegration:

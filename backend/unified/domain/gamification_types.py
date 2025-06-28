@@ -24,6 +24,7 @@ StreakCount = NewType("StreakCount", int)
 UserId = NewType("UserId", str)
 SkillPoints = NewType("SkillPoints", int)
 BadgeId = NewType("BadgeId", str)
+Ability = NewType("Ability", str)
 
 class AchievementCategory(Enum):
     """Categories of achievements."""
@@ -51,6 +52,8 @@ class SkillArea(Enum):
     FUNCTION_DEFINITIONS = "function_definitions"
     PATTERN_MATCHING = "pattern_matching"
     TRANSLATION = "translation"
+    SYSTEM_KNOWLEDGE = "system_knowledge"
+    CONSISTENCY = "consistency"
 
 class BadgeRarity(Enum):
     """Rarity levels for badges."""
@@ -104,8 +107,8 @@ class Challenge:
     type: ChallengeType
     reward_xp: ExperiencePoints
     target_value: int
+    expires_at: datetime # Moved before current_value
     current_value: int = 0
-    expires_at: datetime
     skill_areas: List[SkillArea] = field(default_factory=list)
     
     def is_completed(self) -> bool:
@@ -236,7 +239,12 @@ class GamificationRules:
     xp_per_correct_pattern: ExperiencePoints = ExperiencePoints(15)
     streak_bonus_multiplier: float = 1.5
     daily_challenge_count: int = 3
+    challenge_duration_days: int = 7
+    consistency_challenge_days: int = 10
     level_up_bonus_xp: ExperiencePoints = ExperiencePoints(100)
+    xp_per_feature_challenge: ExperiencePoints = ExperiencePoints(20)
+    xp_per_skill_challenge: ExperiencePoints = ExperiencePoints(30)
+    xp_per_consistency_challenge: ExperiencePoints = ExperiencePoints(50)
     
     # XP penalties (optional)
     xp_penalty_for_error: ExperiencePoints = ExperiencePoints(0)

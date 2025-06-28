@@ -12,7 +12,7 @@ from typing import Any, Optional, Dict, Type, Callable
 from abc import ABC, abstractmethod
 import logging
 
-from .cnl_parser.ast_nodes import (
+from ..parsers.cnl_parser.ast_nodes import (
     ASTNode, VariableNode, ConstantNode, NumberNode, StringNode,
     ArithmeticBinaryOpNode, BooleanBinaryOpNode, ComparisonNode,
     PredicateCallNode, VariableDeclNode, AssignmentNode,

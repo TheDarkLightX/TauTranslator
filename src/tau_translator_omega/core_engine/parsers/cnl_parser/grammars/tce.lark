@@ -1,105 +1,78 @@
-// Tau Controlled English (TCE) Grammar for Lark
-// Version 0.1.0
+// Tau Controlled English (TCE) - Production Grammar
+// This grammar defines a subset of English that maps directly to canonical Tau constructs.
 
-?start: sentence*
-
-sentence: fact SENTENCE_TERMINATOR
-        | rule SENTENCE_TERMINATOR
-        | definition SENTENCE_TERMINATOR
-
-fact: expr       // Allows full expressions (including boolean logic) as top-level facts
-
-rule: IF_KW condition THEN_KW predicate_call
-    | quant_block THEN_KW predicate_call // Rule starting with a quantifier
-
-predicate_def: (PREDICATE_KW | FUNCTION_KW) CNAME LPAR [param_list] RPAR
-definition: DEFINE_KW predicate_def AS_KW expr // Made AS_KW expr mandatory
-
-predicate_call: CNAME LPAR [arg_list] RPAR
-
-?condition: [quant_block] expr
-
-quant_block: (FORALL_KW | EXISTS_KW) var_list (SUCH_KW THAT_KW expr)?
-
-// Expressions
-expr: or_expr
-
-// Operator precedence (simplified)
-or_expr: xor_expr (OR_KW xor_expr)*
-xor_expr: and_expr (XOR_KW and_expr)*
-and_expr: comparison_expr (AND_KW comparison_expr)*
-comparison_expr: arithmetic_expr (COMPARISON_OP arithmetic_expr)*
-arithmetic_expr: term ((PLUS | MINUS) term)*
-term: factor ((MUL | DIV | MOD) factor)*
-factor: [PLUS | MINUS] atom // Unary plus/minus
-
-atom: stream_ref     // Stream reference as an expression
-    | predicate_call // Function call as an expression
-    | constant       // Prioritize CNAME as constant over variable
-    | variable       // CNAME as variable (e.g., in quantifiers, definitions)
-    | LPAR expr RPAR // Parenthesized expression
-
-constant: NUMBER | ESCAPED_STRING | boolean_literal | CNAME // CNAME added as a constant type
-boolean_literal: TRUE_KW | FALSE_KW // Definition for boolean literals
-variable: CNAME // This will now likely only be used in var_list for quantifiers/definitions
-stream_ref: [INPUT_KW | OUTPUT_KW] CNAME [LSQB time_spec RSQB] // Corrected definition
-
-time_spec: CNAME
-         | CNAME MINUS NUMBER
-         | CNAME PLUS NUMBER
-         | variable MINUS NUMBER  // e.g. t-1
-         | variable PLUS NUMBER   // e.g. t+1
-
-var_list: variable ("," variable)*
-arg_list: expr (COMMA expr)* // Simplified: expr can resolve to variable, constant, stream_ref etc.
-param_list: param (COMMA param)*
-param: CNAME [COLON CNAME] // Type hint is optional
-
-// Terminals
-CNAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-COMPARISON_OP: "=" | "!=" | "<" | ">" | "<=" | ">="
-ARITHMETIC_OP: "+" | "-" | "*" | "/"
-COMMENT: /\/\/.*/
-
-// Keyword Terminals (Case-Insensitive)
-IF_KW.5: /(?i:if)/
-THEN_KW.5: /(?i:then)/
-DEFINE_KW.5: /(?i:define)/
-PREDICATE_KW.5: /(?i:predicate)/
-FUNCTION_KW.5: /(?i:function)/
-AS_KW.5: /(?i:as)/
-FORALL_KW.5: /(?i:forall)/  // Added for 'forall'
-EXISTS_KW.5: /(?i:exists)/   // Retained for 'exists'
-SUCH_KW.5: /(?i:such)/
-THAT_KW.5: /(?i:that)/
-NOT_KW.5: /(?i:not)/
-AND_KW.5: /(?i:and)/
-OR_KW.5: /(?i:or)/
-XOR_KW.5: /(?i:xor)/
-INPUT_KW.5: /(?i:input)/
-OUTPUT_KW.5: /(?i:output)/
-AT_KW.5: /(?i:at)/
-TRUE_KW.5: /(?i:true)/
-FALSE_KW.5: /(?i:false)/
-
-// Define a more comprehensive NUMBER terminal
-NUMBER: /(\+|-)?[0-9]+(\.[0-9]+)?([eE](\+|-)?[0-9]+)?/
-
-%import common.ESCAPED_STRING
+// ---- Terminals & Config ----
 %import common.WS
 %ignore WS
-%ignore COMMENT
+%import common.CNAME -> WORD
+%import common.SIGNED_NUMBER
 
-// Special Terminals for punctuation (ensure they don't get consumed by CNAME if they were patterns)
+ARTICLE: "a" | "an" | "the"
+
+// ---- Entry Rule ----
+start: statement
+
+// ---- Core Rules ----
+statement: (definition | fact) "."
+
+fact: quantified_statement
+    | simple_statement
+
+// A simple statement like "Socrates is a man" or "Plato teaches Aristotle"
+// It can be a boolean expression of multiple simple statements.
+simple_statement: logical_or
+logical_or: logical_and (OR logical_and)*
+logical_and: simple_fact (AND simple_fact)*
+
+simple_fact: subject predicate
+
+predicate: "is" ARTICLE? property -> is_a
+         | "is" "not" ARTICLE? property -> is_not_a
+         | VERB object -> relation
+         | "is" VERB -> property_verb // e.g., "is barking"
+
+// A quantified statement like "every car is a vehicle"
+quantified_statement: quantifier noun_phrase predicate
+
+quantifier: "every" | "all" -> universal
+          | "some" | "a" | "an" -> existential
+
+// ---- Definitions ----
+definition: set_definition_fact | recursive_relation_fact
+
+// "the apostles are {peter, james, john}" -> the_apostles :: {peter, james, john}
+set_definition_fact: subject ("is" | "are") "{" member_list "}"
+member_list: subject ("," subject)*
+
+// "the definition of rotate at n with x, y, z is ..."
+recursive_relation_fact: "the" "definition" "of" WORD "at" index "with" member_list "is" definition_body -> recursive_relation_def
+index: WORD MINUS SIGNED_NUMBER | WORD | SIGNED_NUMBER
+definition_body: simple_statement // Can be a full expression
+predicate_call: WORD "at" index "with" member_list -> recursive_predicate_call
+
+
+// ---- Phrase Components ----
+subject: noun_phrase
+object: noun_phrase
+property: noun_phrase // A property can be a noun phrase, e.g., "a man", "mortal"
+
+noun_phrase: (ARTICLE)? (WORD+ | complex_noun_phrase)
+complex_noun_phrase: WORD+ "who" VERB object
+
+VERB: WORD
+
+// ---- Boolean Operators ----
+AND.1: "and"
+OR.1: "or"
+MINUS: "-"
+NOT.1: /it is not the case that/
 LPAR: "("
 RPAR: ")"
-COMMA: ","
-COLON: ":"
-LSQB: "["  // Ensure LSQB is defined
-RSQB: "]"  // Ensure RSQB is defined
-PLUS: "+"
-MINUS: "-"
-MUL: "*"
-DIV: "/"
-MOD: "%"
-SENTENCE_TERMINATOR: "."
+
+// ---- Relational Operator Terminals (for future use) ----
+NOT_EQUAL_TO.2: "not equal to"
+LTE.2: "less than or equal to"
+GTE.2: "greater than or equal to"
+EQUAL_TO.2: "equal to"
+LESS_THAN.2: "less than"
+GREATER_THAN.2: "greater than"

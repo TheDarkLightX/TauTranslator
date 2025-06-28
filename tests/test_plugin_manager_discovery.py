@@ -2,7 +2,7 @@ import pytest
 import json
 from pathlib import Path
 from unittest.mock import Mock, patch
-from tau_translator_omega.core_engine.plugin_manager import PluginManager
+from tau_translator_omega.core_engine.plugins.plugin_manager import PluginManager
 
 
 class TestPluginManagerDiscovery:

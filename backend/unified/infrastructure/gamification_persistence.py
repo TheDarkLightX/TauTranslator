@@ -1,24 +1,27 @@
-"""
-Persistence layer for gamification data.
-
-Handles saving and loading player profiles, achievements, and progress.
-Follows Rule 1: I/O at the boundaries.
-
-Copyright: DarkLightX / Dana Edwards
-"""
-
-import json
 import sqlite3
+import json
+import contextlib
 from pathlib import Path
-from typing import Optional, List, Dict, Set
-from datetime import datetime
-from contextlib import contextmanager
+from typing import Optional, Dict, Any, List, Tuple
+from datetime import datetime, timezone
 
-from ..core.result_enhanced import Result, Success, Failure
-from ..domain.gamification_types import (
-    PlayerProfile, Achievement, AchievementId, Badge, BadgeId,
-    Challenge, ChallengeId, ExperiencePoints, LevelNumber,
-    SkillArea, SkillProgress, SkillPoints, UserId, StreakCount
+from returns.result import Result, Success, Failure
+
+from backend.unified.core.domain_types import AppError
+from backend.unified.domain.gamification_types import (
+    PlayerProfile,
+    UserId,
+    ExperiencePoints,
+    LevelNumber,
+    AchievementId,
+    SkillArea,
+    SkillProgress,
+    SkillPoints,
+    StreakCount,
+    Challenge,
+    ChallengeId,
+    ChallengeType,
+    Ability
 )
 
 class GamificationRepository:
@@ -30,23 +33,31 @@ class GamificationRepository:
     """
     
     def __init__(self, db_path: Optional[Path] = None):
-        """Initialize with database path."""
+        """Initialize with a persistent database connection."""
         self._db_path = db_path or self._get_default_db_path()
+        # Use check_same_thread=False for in-memory DBs in multi-threaded test environments
+        self._connection = sqlite3.connect(str(self._db_path), check_same_thread=False)
+        self._connection.row_factory = sqlite3.Row
         self._ensure_database_exists()
-    
+
+    def close(self):
+        """Close the database connection."""
+        if self._connection:
+            self._connection.close()
+            self._connection = None
+
     # =======================
     # Public API Methods
     # =======================
     
-    def save_profile(self, profile: PlayerProfile) -> Result[None]:
+    def save_profile(self, profile: PlayerProfile) -> Result[None, AppError]:
         """Save or update player profile."""
         try:
             with self._get_connection() as conn:
-                # Serialize complex data
                 skill_data = self._serialize_skill_progress(profile.skill_progress)
                 achievements = json.dumps(list(profile.completed_achievements))
                 badges = json.dumps(list(profile.earned_badges))
-                challenges = json.dumps(profile.active_challenges)
+                challenges = json.dumps([c.id for c in profile.active_challenges])
                 
                 conn.execute("""
                     INSERT OR REPLACE INTO player_profiles (
@@ -55,7 +66,7 @@ class GamificationRepository:
                         skill_progress, daily_streak, last_active, created_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    profile.user_id,
+                    str(profile.user_id),
                     profile.username,
                     profile.total_xp,
                     profile.current_level,
@@ -67,258 +78,158 @@ class GamificationRepository:
                     profile.last_active.isoformat(),
                     profile.created_at.isoformat()
                 ))
-                
-                conn.commit()
-                return Success(None)
-                
+            return Success(None)
         except Exception as e:
-            return Failure("SAVE_FAILED", f"Failed to save profile: {str(e)}")
-    
-    def load_profile(self, user_id: UserId) -> Result[PlayerProfile]:
-        """Load player profile by user ID."""
+            return Failure(AppError("DB_SAVE_PROFILE_ERROR", str(e)))
+
+    def load_profile(self, user_id: UserId) -> Result[PlayerProfile, AppError]:
+        """Load player profile."""
         try:
             with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT username, total_xp, current_level,
-                           completed_achievements, earned_badges, active_challenges,
-                           skill_progress, daily_streak, last_active, created_at
-                    FROM player_profiles
-                    WHERE user_id = ?
-                """, (user_id,))
-                
+                cursor = conn.execute("SELECT * FROM player_profiles WHERE user_id = ?", (str(user_id),))
                 row = cursor.fetchone()
-                if not row:
-                    return Failure("NOT_FOUND", f"Profile not found for user {user_id}")
-                
-                # Deserialize data
-                profile = PlayerProfile(
-                    user_id=user_id,
-                    username=row[0],
-                    total_xp=ExperiencePoints(row[1]),
-                    current_level=LevelNumber(row[2]),
-                    completed_achievements=set(json.loads(row[3])),
-                    earned_badges=set(json.loads(row[4])),
-                    active_challenges=json.loads(row[5]),
-                    skill_progress=self._deserialize_skill_progress(row[6]),
-                    daily_streak=StreakCount(row[7]),
-                    last_active=datetime.fromisoformat(row[8]),
-                    created_at=datetime.fromisoformat(row[9])
-                )
-                
-                return Success(profile)
-                
+            
+            if not row:
+                return Failure(AppError("PROFILE_NOT_FOUND", f"Profile for user {user_id} not found."))
+            
+            skill_progress = self._deserialize_skill_progress(row["skill_progress"])
+            completed_achievements = set(json.loads(row["completed_achievements"]))
+            earned_badges = set(json.loads(row["earned_badges"]))
+            
+            return Success(PlayerProfile(
+                user_id=UserId(row["user_id"]),
+                username=row["username"],
+                total_xp=ExperiencePoints(row["total_xp"]),
+                current_level=LevelNumber(row["current_level"]),
+                completed_achievements=completed_achievements,
+                earned_badges=earned_badges,
+                active_challenges=[],
+                skill_progress=skill_progress,
+                daily_streak=StreakCount(row["daily_streak"]),
+                last_active=datetime.fromisoformat(row["last_active"]),
+                created_at=datetime.fromisoformat(row["created_at"])
+            ))
         except Exception as e:
-            return Failure("LOAD_FAILED", f"Failed to load profile: {str(e)}")
-    
-    def create_profile(
-        self,
-        user_id: UserId,
-        username: str
-    ) -> Result[PlayerProfile]:
-        """Create a new player profile."""
-        profile = PlayerProfile(
-            user_id=user_id,
-            username=username,
-            total_xp=ExperiencePoints(0),
-            current_level=LevelNumber(1),
-            completed_achievements=set(),
-            earned_badges=set(),
-            active_challenges=[],
-            skill_progress={},
-            daily_streak=StreakCount(0),
-            last_active=datetime.now(),
-            created_at=datetime.now()
-        )
-        
-        save_result = self.save_profile(profile)
-        if save_result.is_success():
-            return Success(profile)
-        return save_result
-    
-    def save_challenges(
-        self,
-        user_id: UserId,
-        challenges: List[Challenge]
-    ) -> Result[None]:
-        """Save user's active challenges."""
+            return Failure(AppError("DB_LOAD_PROFILE_ERROR", str(e)))
+
+    def save_challenges(self, user_id: UserId, challenges: List[Challenge]) -> Result[None, AppError]:
+        """Save or update challenges for a user."""
         try:
             with self._get_connection() as conn:
-                # Clear existing challenges
-                conn.execute(
-                    "DELETE FROM challenges WHERE user_id = ?",
-                    (user_id,)
-                )
-                
-                # Insert new challenges
                 for challenge in challenges:
                     conn.execute("""
-                        INSERT INTO challenges (
-                            challenge_id, user_id, name, description,
-                            type, reward_xp, target_value, current_value,
-                            expires_at, skill_areas
+                        INSERT OR REPLACE INTO challenges (
+                            id, user_id, name, description, type, reward_xp,
+                            target_value, current_value, expires_at, skill_areas
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
-                        challenge.id,
-                        user_id,
-                        challenge.name,
-                        challenge.description,
-                        challenge.type.value,
-                        challenge.reward_xp,
-                        challenge.target_value,
-                        challenge.current_value,
-                        challenge.expires_at.isoformat(),
+                        challenge.id, str(user_id), challenge.name, challenge.description,
+                        challenge.type.value, challenge.reward_xp, challenge.target_value,
+                        challenge.current_value, challenge.expires_at.isoformat(),
                         json.dumps([s.value for s in challenge.skill_areas])
                     ))
-                
-                conn.commit()
-                return Success(None)
-                
+            return Success(None)
         except Exception as e:
-            return Failure("SAVE_FAILED", f"Failed to save challenges: {str(e)}")
-    
-    def load_challenges(self, user_id: UserId) -> Result[List[Challenge]]:
-        """Load user's active challenges."""
+            return Failure(AppError("DB_SAVE_CHALLENGES_ERROR", str(e)))
+
+    def load_challenges(self, user_id: UserId) -> Result[List[Challenge], AppError]:
+        """Load active challenges for a user."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.execute("SELECT * FROM challenges WHERE user_id = ?", (str(user_id),))
+                rows = cursor.fetchall()
+
+            challenges = []
+            for row in rows:
+                challenges.append(Challenge(
+                    id=ChallengeId(row["id"]),
+                    name=row["name"],
+                    description=row["description"],
+                    type=ChallengeType(row["type"]),
+                    reward_xp=ExperiencePoints(row["reward_xp"]),
+                    target_value=row["target_value"],
+                    current_value=row["current_value"],
+                    expires_at=datetime.fromisoformat(row["expires_at"]),
+                    skill_areas=[SkillArea(s) for s in json.loads(row["skill_areas"])]
+                ))
+            return Success(challenges)
+        except Exception as e:
+            return Failure(AppError("DB_LOAD_CHALLENGES_ERROR", str(e)))
+
+    def get_leaderboard(self, limit: int = 10) -> Result[List[Dict[str, Any]], AppError]:
+        """Get top players by XP."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.execute("""
-                    SELECT challenge_id, name, description, type,
-                           reward_xp, target_value, current_value,
-                           expires_at, skill_areas
-                    FROM challenges
-                    WHERE user_id = ?
-                """, (user_id,))
-                
-                challenges = []
-                for row in cursor.fetchall():
-                    challenge = Challenge(
-                        id=ChallengeId(row[0]),
-                        name=row[1],
-                        description=row[2],
-                        type=row[3],
-                        reward_xp=ExperiencePoints(row[4]),
-                        target_value=row[5],
-                        current_value=row[6],
-                        expires_at=datetime.fromisoformat(row[7]),
-                        skill_areas=[
-                            SkillArea(s) for s in json.loads(row[8])
-                        ]
-                    )
-                    challenges.append(challenge)
-                
-                return Success(challenges)
-                
-        except Exception as e:
-            return Failure("LOAD_FAILED", f"Failed to load challenges: {str(e)}")
-    
-    def get_leaderboard(
-        self,
-        limit: int = 10,
-        offset: int = 0
-    ) -> Result[List[Dict]]:
-        """Get leaderboard entries."""
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.execute("""
-                    SELECT user_id, username, total_xp, current_level,
-                           COUNT(DISTINCT earned_badges) as badge_count
+                    SELECT 
+                        RANK() OVER (ORDER BY total_xp DESC) as rank,
+                        username,
+                        total_xp,
+                        current_level as level
                     FROM player_profiles
                     ORDER BY total_xp DESC
-                    LIMIT ? OFFSET ?
-                """, (limit, offset))
+                    LIMIT ?
+                """, (limit,))
                 
-                entries = []
-                for i, row in enumerate(cursor.fetchall()):
-                    entries.append({
-                        "rank": offset + i + 1,
-                        "user_id": row[0],
-                        "username": row[1],
-                        "total_xp": row[2],
-                        "level": row[3],
-                        "badges": row[4]
-                    })
-                
+                entries = [dict(row) for row in cursor.fetchall()]
                 return Success(entries)
-                
         except Exception as e:
-            return Failure("LOAD_FAILED", f"Failed to load leaderboard: {str(e)}")
-    
-    def update_streak(
-        self,
-        user_id: UserId,
-        new_streak: StreakCount
-    ) -> Result[None]:
-        """Update user's daily streak."""
-        try:
-            with self._get_connection() as conn:
-                conn.execute("""
-                    UPDATE player_profiles
-                    SET daily_streak = ?, last_active = ?
-                    WHERE user_id = ?
-                """, (new_streak, datetime.now().isoformat(), user_id))
-                
-                conn.commit()
-                return Success(None)
-                
-        except Exception as e:
-            return Failure("UPDATE_FAILED", f"Failed to update streak: {str(e)}")
-    
+            return Failure(AppError("DB_LEADERBOARD_ERROR", str(e)))
+
     # =======================
-    # Private Implementation Methods
+    # Private Helper Methods
     # =======================
     
     def _get_default_db_path(self) -> Path:
-        """Get default database path."""
-        app_data = Path.home() / ".tau_translator" / "gamification"
-        app_data.mkdir(parents=True, exist_ok=True)
-        return app_data / "progress.db"
-    
-    @contextmanager
-    def _get_connection(self):
-        """Get database connection with automatic cleanup."""
-        conn = sqlite3.connect(str(self._db_path))
+        """Get default database path (in-memory)."""
+        return Path(":memory:")
+
+    @contextlib.contextmanager
+    def _get_connection(self) -> sqlite3.Connection:
+        """Provide a transactional scope around a series of operations."""
         try:
-            yield conn
-        finally:
-            conn.close()
-    
+            yield self._connection
+        except Exception:
+            self._connection.rollback()
+            raise
+        else:
+            self._connection.commit()
+
     def _ensure_database_exists(self):
-        """Create database tables if they don't exist."""
+        """Ensure database and tables exist."""
         with self._get_connection() as conn:
-            # Player profiles table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS player_profiles (
                     user_id TEXT PRIMARY KEY,
                     username TEXT NOT NULL,
-                    total_xp INTEGER NOT NULL DEFAULT 0,
-                    current_level INTEGER NOT NULL DEFAULT 1,
+                    total_xp INTEGER NOT NULL,
+                    current_level INTEGER NOT NULL,
                     completed_achievements TEXT NOT NULL DEFAULT '[]',
                     earned_badges TEXT NOT NULL DEFAULT '[]',
                     active_challenges TEXT NOT NULL DEFAULT '[]',
                     skill_progress TEXT NOT NULL DEFAULT '{}',
-                    daily_streak INTEGER NOT NULL DEFAULT 0,
+                    daily_streak INTEGER NOT NULL,
                     last_active TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 )
             """)
             
-            # Challenges table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS challenges (
-                    challenge_id TEXT PRIMARY KEY,
+                    id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
                     name TEXT NOT NULL,
                     description TEXT NOT NULL,
                     type TEXT NOT NULL,
                     reward_xp INTEGER NOT NULL,
                     target_value INTEGER NOT NULL,
-                    current_value INTEGER NOT NULL DEFAULT 0,
+                    current_value INTEGER NOT NULL,
                     expires_at TEXT NOT NULL,
                     skill_areas TEXT NOT NULL DEFAULT '[]',
                     FOREIGN KEY (user_id) REFERENCES player_profiles(user_id)
                 )
             """)
             
-            # Create indexes
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_profiles_xp
                 ON player_profiles(total_xp DESC)
@@ -328,9 +239,7 @@ class GamificationRepository:
                 CREATE INDEX IF NOT EXISTS idx_challenges_user
                 ON challenges(user_id)
             """)
-            
-            conn.commit()
-    
+
     def _serialize_skill_progress(
         self,
         skill_progress: Dict[SkillArea, SkillProgress]
@@ -342,7 +251,7 @@ class GamificationRepository:
                 "current_points": progress.current_points,
                 "level": progress.level,
                 "next_level_points": progress.next_level_points,
-                "unlocked_abilities": progress.unlocked_abilities
+                "unlocked_abilities": [a.value for a in progress.unlocked_abilities]
             }
         return json.dumps(data)
     
@@ -361,47 +270,284 @@ class GamificationRepository:
                 current_points=SkillPoints(skill_info["current_points"]),
                 level=skill_info["level"],
                 next_level_points=SkillPoints(skill_info["next_level_points"]),
-                unlocked_abilities=skill_info["unlocked_abilities"]
+                unlocked_abilities=[Ability(a) for a in skill_info["unlocked_abilities"]]
             )
         
         return progress
 
-class GamificationCache:
+import sqlite3
+import json
+import contextlib
+from pathlib import Path
+from typing import Optional, Dict, Any, List, Tuple
+from datetime import datetime, timezone
+
+from returns.result import Result, Success, Failure
+
+from backend.unified.core.domain_types import AppError
+from backend.unified.domain.gamification_types import (
+    PlayerProfile,
+    UserId,
+    ExperiencePoints,
+    LevelNumber,
+    AchievementId,
+    SkillArea,
+    SkillProgress,
+    SkillPoints,
+    StreakCount,
+    Challenge,
+    ChallengeId,
+    ChallengeType,
+    Ability
+)
+
+class GamificationRepository:
     """
-    In-memory cache for frequently accessed gamification data.
+    Repository for persisting gamification data.
     
-    Reduces database queries for better performance.
+    Uses SQLite for local storage with JSON serialization for complex types.
+    Follows Rule 1: All I/O operations at the boundary.
     """
     
-    def __init__(self):
-        """Initialize cache storage."""
-        self._profiles: Dict[UserId, PlayerProfile] = {}
-        self._challenges: Dict[UserId, List[Challenge]] = {}
-        self._achievements: Dict[AchievementId, Achievement] = {}
-        self._last_update: Dict[UserId, datetime] = {}
+    def __init__(self, db_path: Optional[Path] = None):
+        """Initialize with a persistent database connection."""
+        self._db_path = db_path or self._get_default_db_path()
+        # Use check_same_thread=False for in-memory DBs in multi-threaded test environments
+        self._connection = sqlite3.connect(str(self._db_path), check_same_thread=False)
+        self._connection.row_factory = sqlite3.Row
+        self._ensure_database_exists()
+
+    def close(self):
+        """Close the database connection."""
+        if self._connection:
+            self._connection.close()
+            self._connection = None
+
+    # =======================
+    # Public API Methods
+    # =======================
     
-    def get_profile(self, user_id: UserId) -> Optional[PlayerProfile]:
-        """Get cached profile if fresh."""
-        if self._is_cache_fresh(user_id):
-            return self._profiles.get(user_id)
-        return None
+    def save_profile(self, profile: PlayerProfile) -> Result[None, AppError]:
+        """Save or update player profile."""
+        try:
+            with self._get_connection() as conn:
+                skill_data = self._serialize_skill_progress(profile.skill_progress)
+                achievements = json.dumps(list(profile.completed_achievements))
+                badges = json.dumps(list(profile.earned_badges))
+                challenges = json.dumps([c.id for c in profile.active_challenges])
+                
+                conn.execute("""
+                    INSERT OR REPLACE INTO player_profiles (
+                        user_id, username, total_xp, current_level,
+                        completed_achievements, earned_badges, active_challenges,
+                        skill_progress, daily_streak, last_active, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    str(profile.user_id),
+                    profile.username,
+                    profile.total_xp,
+                    profile.current_level,
+                    achievements,
+                    badges,
+                    challenges,
+                    skill_data,
+                    profile.daily_streak,
+                    profile.last_active.isoformat(),
+                    profile.created_at.isoformat()
+                ))
+            return Success(None)
+        except Exception as e:
+            return Failure(AppError("DB_SAVE_PROFILE_ERROR", str(e)))
+
+    def load_profile(self, user_id: UserId) -> Result[PlayerProfile, AppError]:
+        """Load player profile."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.execute("SELECT * FROM player_profiles WHERE user_id = ?", (str(user_id),))
+                row = cursor.fetchone()
+            
+            if not row:
+                return Failure(AppError("PROFILE_NOT_FOUND", f"Profile for user {user_id} not found."))
+            
+            skill_progress = self._deserialize_skill_progress(row["skill_progress"])
+            completed_achievements = set(json.loads(row["completed_achievements"]))
+            earned_badges = set(json.loads(row["earned_badges"]))
+            
+            return Success(PlayerProfile(
+                user_id=UserId(row["user_id"]),
+                username=row["username"],
+                total_xp=ExperiencePoints(row["total_xp"]),
+                current_level=LevelNumber(row["current_level"]),
+                completed_achievements=completed_achievements,
+                earned_badges=earned_badges,
+                active_challenges=[],
+                skill_progress=skill_progress,
+                daily_streak=StreakCount(row["daily_streak"]),
+                last_active=datetime.fromisoformat(row["last_active"]),
+                created_at=datetime.fromisoformat(row["created_at"])
+            ))
+        except Exception as e:
+            return Failure(AppError("DB_LOAD_PROFILE_ERROR", str(e)))
+
+    def save_challenges(self, user_id: UserId, challenges: List[Challenge]) -> Result[None, AppError]:
+        """Save or update challenges for a user."""
+        try:
+            with self._get_connection() as conn:
+                for challenge in challenges:
+                    conn.execute("""
+                        INSERT OR REPLACE INTO challenges (
+                            id, user_id, name, description, type, reward_xp,
+                            target_value, current_value, expires_at, skill_areas
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        challenge.id, str(user_id), challenge.name, challenge.description,
+                        challenge.type.value, challenge.reward_xp, challenge.target_value,
+                        challenge.current_value, challenge.expires_at.isoformat(),
+                        json.dumps([s.value for s in challenge.skill_areas])
+                    ))
+            return Success(None)
+        except Exception as e:
+            return Failure(AppError("DB_SAVE_CHALLENGES_ERROR", str(e)))
+
+    def load_challenges(self, user_id: UserId) -> Result[List[Challenge], AppError]:
+        """Load active challenges for a user."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.execute("SELECT * FROM challenges WHERE user_id = ?", (str(user_id),))
+                rows = cursor.fetchall()
+
+            challenges = []
+            for row in rows:
+                challenges.append(Challenge(
+                    id=ChallengeId(row["id"]),
+                    name=row["name"],
+                    description=row["description"],
+                    type=ChallengeType(row["type"]),
+                    reward_xp=ExperiencePoints(row["reward_xp"]),
+                    target_value=row["target_value"],
+                    current_value=row["current_value"],
+                    expires_at=datetime.fromisoformat(row["expires_at"]),
+                    skill_areas=[SkillArea(s) for s in json.loads(row["skill_areas"])]
+                ))
+            return Success(challenges)
+        except Exception as e:
+            return Failure(AppError("DB_LOAD_CHALLENGES_ERROR", str(e)))
+
+    def get_leaderboard(self, limit: int = 10) -> Result[List[Dict[str, Any]], AppError]:
+        """Get top players by XP."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.execute("""
+                    SELECT 
+                        RANK() OVER (ORDER BY total_xp DESC) as rank,
+                        username,
+                        total_xp,
+                        current_level as level
+                    FROM player_profiles
+                    ORDER BY total_xp DESC
+                    LIMIT ?
+                """, (limit,))
+                
+                entries = [dict(row) for row in cursor.fetchall()]
+                return Success(entries)
+        except Exception as e:
+            return Failure(AppError("DB_LEADERBOARD_ERROR", str(e)))
+
+    # =======================
+    # Private Helper Methods
+    # =======================
     
-    def set_profile(self, profile: PlayerProfile):
-        """Cache profile."""
-        self._profiles[profile.user_id] = profile
-        self._last_update[profile.user_id] = datetime.now()
+    def _get_default_db_path(self) -> Path:
+        """Get default database path (in-memory)."""
+        return Path(":memory:")
+
+    @contextlib.contextmanager
+    def _get_connection(self) -> sqlite3.Connection:
+        """Provide a transactional scope around a series of operations."""
+        try:
+            yield self._connection
+        except Exception:
+            self._connection.rollback()
+            raise
+        else:
+            self._connection.commit()
+
+    def _ensure_database_exists(self):
+        """Ensure database and tables exist."""
+        with self._get_connection() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS player_profiles (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    total_xp INTEGER NOT NULL,
+                    current_level INTEGER NOT NULL,
+                    completed_achievements TEXT NOT NULL DEFAULT '[]',
+                    earned_badges TEXT NOT NULL DEFAULT '[]',
+                    active_challenges TEXT NOT NULL DEFAULT '[]',
+                    skill_progress TEXT NOT NULL DEFAULT '{}',
+                    daily_streak INTEGER NOT NULL,
+                    last_active TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS challenges (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    reward_xp INTEGER NOT NULL,
+                    target_value INTEGER NOT NULL,
+                    current_value INTEGER NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    skill_areas TEXT NOT NULL DEFAULT '[]',
+                    FOREIGN KEY (user_id) REFERENCES player_profiles(user_id)
+                )
+            """)
+            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_profiles_xp
+                ON player_profiles(total_xp DESC)
+            """)
+            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_challenges_user
+                ON challenges(user_id)
+            """)
+
+    def _serialize_skill_progress(
+        self,
+        skill_progress: Dict[SkillArea, SkillProgress]
+    ) -> str:
+        """Serialize skill progress to JSON."""
+        data = {}
+        for skill, progress in skill_progress.items():
+            data[skill.value] = {
+                "current_points": progress.current_points,
+                "level": progress.level,
+                "next_level_points": progress.next_level_points,
+                "unlocked_abilities": [a.value for a in progress.unlocked_abilities]
+            }
+        return json.dumps(data)
     
-    def invalidate_user(self, user_id: UserId):
-        """Invalidate all cached data for a user."""
-        self._profiles.pop(user_id, None)
-        self._challenges.pop(user_id, None)
-        self._last_update.pop(user_id, None)
-    
-    def _is_cache_fresh(self, user_id: UserId) -> bool:
-        """Check if cache is still fresh (5 minutes)."""
-        last_update = self._last_update.get(user_id)
-        if not last_update:
-            return False
+    def _deserialize_skill_progress(
+        self,
+        data: str
+    ) -> Dict[SkillArea, SkillProgress]:
+        """Deserialize skill progress from JSON."""
+        skill_data = json.loads(data)
+        progress = {}
         
-        age = datetime.now() - last_update
-        return age.total_seconds() < 300  # 5 minutes
+        for skill_name, skill_info in skill_data.items():
+            skill = SkillArea(skill_name)
+            progress[skill] = SkillProgress(
+                skill=skill,
+                current_points=SkillPoints(skill_info["current_points"]),
+                level=skill_info["level"],
+                next_level_points=SkillPoints(skill_info["next_level_points"]),
+                unlocked_abilities=[Ability(a) for a in skill_info["unlocked_abilities"]]
+            )
+        
+        return progress

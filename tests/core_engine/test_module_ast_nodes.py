@@ -6,7 +6,7 @@ Tests for module and import related AST nodes.
 import unittest
 from typing import List, Optional
 
-from tau_translator_omega.core_engine.ast_nodes import (
+from tau_translator_omega.core_engine.ast.ast_nodes import (
     ASTNode, SourceLocation, IdentifierNode, LiteralNode, BlockNode, # For ModuleNode body
     ImportSpecifierNode, ImportStatementNode, ModuleNode
 )

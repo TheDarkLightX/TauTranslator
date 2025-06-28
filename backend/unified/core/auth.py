@@ -8,10 +8,8 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import logging
-from .result_enhanced import Result, Success, Failure, success, failure
-
 from .domain_types import (
-    UserId, SessionId, ApiKey, Result, Success, Failure
+    UserId, SessionId, ApiKey, Result, Success, Failure, AppError
 )
 from .interfaces import IAuthenticationRepository, IEventBus
 
@@ -45,7 +43,7 @@ class AuthenticationService:
         self._master_password = master_password
         self._session_expire_hours = session_expire_hours
     
-    async def authenticate_with_password_async(self, password: str) -> Result[SessionId]:
+    async def authenticate_with_password_async(self, password: str) -> Result[SessionId, AppError]:
         """
         Note: This is a pure function (no side effects).
         
@@ -54,9 +52,11 @@ class AuthenticationService:
         Rule 2: Orchestrator pattern delegating to private methods.
         """
         validation_result = await self._validate_and_notify(password)
-        return validation_result if isinstance(validation_result, Failure) else await self._create_and_store_session()
+        if isinstance(validation_result, Failure):
+            return validation_result
+        return await self._create_and_store_session()
     
-    async def _validate_and_notify(self, password: str) -> Result[None]:
+    async def _validate_and_notify(self, password: str) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Validate password and notify on failure."""
@@ -65,7 +65,7 @@ class AuthenticationService:
             await self._publish_auth_event("authentication_failed", {"reason": "invalid_password"})
         return validation_result
     
-    async def _create_and_store_session(self) -> Result[SessionId]:
+    async def _create_and_store_session(self) -> Result[SessionId, AppError]:
         """
         Note: This is a pure function (no side effects).
         Create new session and store it."""
@@ -76,9 +76,11 @@ class AuthenticationService:
         if isinstance(save_result, Success):
             await self._notify_auth_success(session_id, session_data)
         
-        return save_result.map(lambda _: session_id) if isinstance(save_result, Success) else save_result
+        if isinstance(save_result, Failure):
+            return save_result
+        return Success(session_id)
     
-    async def _save_session(self, session_id: SessionId, session_data: Dict[str, Any]) -> Result[None]:
+    async def _save_session(self, session_id: SessionId, session_data: Dict[str, Any]) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Save session to repository."""
@@ -93,7 +95,7 @@ class AuthenticationService:
             {"session_id": str(session_id), "expires_at": session_data["expires_at"]}
         )
     
-    async def validate_session_async(self, session_id: SessionId) -> Result[bool]:
+    async def validate_session_async(self, session_id: SessionId) -> Result[bool, AppError]:
         """
         Note: This is a pure function (no side effects).
         
@@ -106,7 +108,7 @@ class AuthenticationService:
         
         return await self._validate_and_cleanup_session(session_id, session_result.value)
     
-    async def _get_session_data(self, session_id: SessionId) -> Result[Optional[Dict[str, Any]]]:
+    async def _get_session_data(self, session_id: SessionId) -> Result[Optional[Dict[str, Any]], AppError]:
         """
         Note: This is a pure function (no side effects).
         Get session data from repository."""
@@ -119,7 +121,7 @@ class AuthenticationService:
     
     async def _validate_and_cleanup_session(
         self, session_id: SessionId, session_data: Optional[Dict[str, Any]]
-    ) -> Result[bool]:
+    ) -> Result[bool, AppError]:
         """Validate session and cleanup if expired."""
         if not session_data:
             return Success(False)
@@ -142,7 +144,30 @@ class AuthenticationService:
         await self._auth_repo.delete_session_async(session_id)
         await self._publish_auth_event("session_expired", {"session_id": str(session_id)})
     
-    async def logout_session_async(self, session_id: SessionId) -> Result[None]:
+    async def get_session_data_async(self, session_id: SessionId) -> Result[Optional[Dict[str, Any]], AppError]:
+        """
+        Note: This is a pure function (no side effects).
+        
+        Validate a session and return its data if valid.
+        Returns Success(session_data) if valid, Success(None) if invalid, Failure on error.
+        """
+        session_data_result = await self._get_session_data(session_id)
+        if isinstance(session_data_result, Failure):
+            return session_data_result
+
+        session_data = session_data_result.unwrap()
+        if session_data and self._is_session_valid(session_data):
+            # Add session_id to the returned data for convenience
+            session_data['session_id'] = str(session_id)
+            return Success(session_data)
+        
+        # If session is expired, clean it up
+        if session_data:
+            await self._cleanup_expired_session(session_id)
+
+        return Success(None) # Session not found or expired
+
+    async def logout_session_async(self, session_id: SessionId) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         
@@ -156,26 +181,28 @@ class AuthenticationService:
     
     async def store_api_key_for_provider_async(
         self, provider: str, api_key: str, session_id: SessionId
-    ) -> Result[None]:
+    ) -> Result[None, AppError]:
         """
         Store an API key for a provider after session validation.
         Rule 1: Name clearly indicates storage operation for provider.
         """
         session_valid = await self._ensure_valid_session(session_id)
-        return session_valid if isinstance(session_valid, Failure) else await self._store_api_key(provider, api_key, session_id)
+        if isinstance(session_valid, Failure):
+            return session_valid
+        return await self._store_api_key(provider, api_key, session_id)
     
-    async def _ensure_valid_session(self, session_id: SessionId) -> Result[None]:
+    async def _ensure_valid_session(self, session_id: SessionId) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Ensure session is valid."""
         validation_result = await self.validate_session_async(session_id)
         if isinstance(validation_result, Failure):
             return validation_result
-        if not validation_result.value:
-            return Failure("INVALID_SESSION", "Session is invalid or expired")
+        if not validation_result.unwrap():
+            return Failure(AppError(error_code="INVALID_SESSION", message="Session is invalid or expired"))
         return Success(None)
     
-    async def _store_api_key(self, provider: str, api_key: str, session_id: SessionId) -> Result[None]:
+    async def _store_api_key(self, provider: str, api_key: str, session_id: SessionId) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Store API key and publish event."""
@@ -195,15 +222,17 @@ class AuthenticationService:
     
     async def retrieve_api_key_for_provider_async(
         self, provider: str, session_id: SessionId
-    ) -> Result[Optional[ApiKey]]:
+    ) -> Result[Optional[ApiKey], AppError]:
         """
         Retrieve an API key for a provider after session validation.
         Rule 1: Name clearly indicates retrieval operation for provider.
         """
         session_valid = await self._ensure_valid_session(session_id)
-        return session_valid if isinstance(session_valid, Failure) else await self._get_provider_api_key(provider)
+        if isinstance(session_valid, Failure):
+            return session_valid
+        return await self._get_provider_api_key(provider)
     
-    async def _get_provider_api_key(self, provider: str) -> Result[Optional[ApiKey]]:
+    async def _get_provider_api_key(self, provider: str) -> Result[Optional[ApiKey], AppError]:
         """
         Note: This is a pure function (no side effects).
         Get API key for provider."""
@@ -211,10 +240,10 @@ class AuthenticationService:
         if isinstance(keys_result, Failure):
             return keys_result
         
-        api_keys = keys_result.value
+        api_keys = keys_result.unwrap()
         return Success(api_keys.get(provider))
     
-    async def clean_expired_sessions_async(self) -> Result[int]:
+    async def clean_expired_sessions_async(self) -> Result[int, AppError]:
         """
         Note: This is a pure function (no side effects).
         
@@ -224,11 +253,11 @@ class AuthenticationService:
         sessions_result = await self._auth_repo.load_sessions_async()
         return await self._process_session_cleanup(sessions_result) if isinstance(sessions_result, Success) else sessions_result
     
-    async def _process_session_cleanup(self, sessions_result: Success) -> Result[int]:
+    async def _process_session_cleanup(self, sessions_result: Success) -> Result[int, AppError]:
         """
         Note: This is a pure function (no side effects).
         Process session cleanup."""
-        expired_count = await self._clean_sessions(sessions_result.value)
+        expired_count = await self._clean_sessions(sessions_result.unwrap())
         await self._notify_if_cleaned(expired_count)
         return Success(expired_count)
     
@@ -252,14 +281,14 @@ class AuthenticationService:
     
     # --- Private Implementation Methods (Rule 2) ---
     
-    def _validate_master_password(self, password: str) -> Result[None]:
+    def _validate_master_password(self, password: str) -> Result[None, AppError]:
         """
         Note: This is a pure function (no side effects).
         Validate the provided password against master password."""
         if not self._master_password:
-            return Failure("NO_MASTER_PASSWORD", "No master password configured")
+            return Failure(AppError(error_code="NO_MASTER_PASSWORD", message="No master password configured"))
         if not self._is_password_match(password, self._master_password):
-            return Failure("INVALID_PASSWORD", "Invalid password")
+            return Failure(AppError(error_code="INVALID_PASSWORD", message="Invalid password"))
         return Success(None)
     
     def _is_password_match(self, provided: str, stored: str) -> bool:
@@ -311,16 +340,18 @@ class AuthenticationService:
         Publish authentication-related events."""
         await self._event_bus.publish_event_async(f"auth.{event_type}", data)
     
-    async def delete_api_key_async(self, provider: str, session_id: SessionId) -> Result[bool]:
+    async def delete_api_key_async(self, provider: str, session_id: SessionId) -> Result[bool, AppError]:
         """
         Delete an API key for a provider after session validation.
         Rule 1: Name clearly indicates deletion operation for provider.
         Returns Success(True) if deleted, Success(False) if not found.
         """
         session_valid = await self._ensure_valid_session(session_id)
-        return session_valid if isinstance(session_valid, Failure) else await self._delete_provider_api_key(provider)
+        if isinstance(session_valid, Failure):
+            return session_valid
+        return await self._delete_provider_api_key(provider)
     
-    async def _delete_provider_api_key(self, provider: str) -> Result[bool]:
+    async def _delete_provider_api_key(self, provider: str) -> Result[bool, AppError]:
         """
         Note: This is a pure function (no side effects).
         Delete API key for provider and notify."""
@@ -341,18 +372,20 @@ class AuthenticationService:
                 {"provider": provider}
             )
             return Success(True)  # Successfully deleted
-        return delete_result.map(lambda _: True)  # Convert Result[None] to Result[bool]
+        return Success(True)
     
-    async def list_api_keys_async(self, session_id: SessionId) -> Result[Dict[str, bool]]:
+    async def list_api_keys_async(self, session_id: SessionId) -> Result[Dict[str, bool], AppError]:
         """
         List all providers with stored API keys after session validation.
         Rule 1: Name clearly indicates listing operation.
         Returns dict mapping provider names to True (for security).
         """
         session_valid = await self._ensure_valid_session(session_id)
-        return session_valid if isinstance(session_valid, Failure) else await self._list_provider_api_keys()
+        if isinstance(session_valid, Failure):
+            return session_valid
+        return await self._list_provider_api_keys()
     
-    async def _list_provider_api_keys(self) -> Result[Dict[str, bool]]:
+    async def _list_provider_api_keys(self) -> Result[Dict[str, bool], AppError]:
         """
         Note: This is a pure function (no side effects).
         List providers with API keys."""
@@ -363,3 +396,68 @@ class AuthenticationService:
         api_keys = keys_result.value
         # Return dict with provider names mapped to True (don't expose actual keys)
         return Success({provider: True for provider in api_keys.keys()})
+
+
+# --- Dependency Injection and Service Instantiation ---
+
+# Import concrete implementations for instantiation
+from ..infrastructure.auth_infrastructure import InMemoryAuthRepository
+from ..infrastructure.event_bus_mock import MockEventBus
+from .config import settings
+
+# Create singleton instances of dependencies
+auth_repository_instance = InMemoryAuthRepository()
+event_bus_instance = MockEventBus()
+
+# Create a singleton instance of the AuthenticationService
+auth_service = AuthenticationService(
+    auth_repository=auth_repository_instance,
+    event_bus=event_bus_instance,
+    master_password=settings.master_password,
+    session_expire_hours=settings.session_expire_hours
+)
+
+# --- FastAPI Dependencies ---
+
+from fastapi import Depends, HTTPException, status, Request
+
+async def get_optional_user(
+    request: Request, service: AuthenticationService = Depends(lambda: auth_service)
+) -> Optional[Dict[str, Any]]:
+    """
+    FastAPI dependency to get user from session token, if available.
+    Returns session data dict if authenticated, otherwise None.
+    """
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return None
+    
+    try:
+        token_type, token = auth_header.split()
+        if token_type.lower() != "bearer":
+            return None
+    except ValueError:
+        return None
+
+    session_data_result = await service.get_session_data_async(SessionId(token))
+
+    if isinstance(session_data_result, Success):
+        return session_data_result.unwrap()
+    
+    logging.warning(f"Optional user auth failed: {session_data_result}")
+    return None
+
+async def get_current_user(
+    user: Optional[Dict[str, Any]] = Depends(get_optional_user)
+) -> Dict[str, Any]:
+    """
+    FastAPI dependency that requires an authenticated user.
+    Raises HTTPException if the user is not authenticated.
+    """
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user

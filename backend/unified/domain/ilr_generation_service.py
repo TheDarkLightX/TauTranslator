@@ -60,7 +60,7 @@ class ILRGenerationService:
         # Parse predicate body
         body_result = self._expression_parser.parse_expression(components['body'])
         if isinstance(body_result, Failure):
-            return Failure(f"Failed to parse predicate body: {body_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse predicate body: {body_result.message}")
         
         # Create parameters
         params = self._create_function_parameters(components['parameters'])
@@ -70,7 +70,7 @@ class ILRGenerationService:
             name=FunctionName(components['predicate_name']),
             parameters=params,
             return_type=DataType.BOOLEAN,
-            body=[{"type": "RETURN", "value": body_result.unwrap().to_dict()}]
+            body=[{"type": "RETURN", "value": body_result.value.to_dict()}]
         )
         
         # Create ILR program
@@ -82,7 +82,7 @@ class ILRGenerationService:
         # Parse function body
         body_result = self._expression_parser.parse_expression(components['body'])
         if isinstance(body_result, Failure):
-            return Failure(f"Failed to parse function body: {body_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse function body: {body_result.message}")
         
         # Create parameters
         params = self._create_function_parameters(components['parameters'])
@@ -92,7 +92,7 @@ class ILRGenerationService:
             name=FunctionName(components['function_name']),
             parameters=params,
             return_type=DataType.AUTO,  # Infer from body
-            body=[{"type": "RETURN", "value": body_result.unwrap().to_dict()}]
+            body=[{"type": "RETURN", "value": body_result.value.to_dict()}]
         )
         
         # Create ILR program
@@ -104,7 +104,7 @@ class ILRGenerationService:
         # Parse condition
         condition_result = self._expression_parser.parse_expression(components['condition'])
         if isinstance(condition_result, Failure):
-            return Failure(f"Failed to parse condition: {condition_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse condition: {condition_result.message}")
         
         # Create bound variables
         bound_vars = self._create_bound_variables(components)
@@ -113,7 +113,7 @@ class ILRGenerationService:
         quantifier = QuantifierExpression(
             quantifier=QuantifierType.FOR_ALL,
             bound_variables=bound_vars,
-            body=condition_result.unwrap()
+            body=condition_result.value
         )
         
         # Wrap in assertion
@@ -126,7 +126,7 @@ class ILRGenerationService:
         # Parse condition
         condition_result = self._expression_parser.parse_expression(components['condition'])
         if isinstance(condition_result, Failure):
-            return Failure(f"Failed to parse condition: {condition_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse condition: {condition_result.message}")
         
         # Create bound variables
         bound_vars = self._create_bound_variables(components)
@@ -135,7 +135,7 @@ class ILRGenerationService:
         quantifier = QuantifierExpression(
             quantifier=QuantifierType.EXISTS,
             bound_variables=bound_vars,
-            body=condition_result.unwrap()
+            body=condition_result.value
         )
         
         # Wrap in assertion
@@ -148,16 +148,16 @@ class ILRGenerationService:
         # Parse condition and consequence
         cond_result = self._expression_parser.parse_expression(components['condition'])
         if isinstance(cond_result, Failure):
-            return Failure(f"Failed to parse condition: {cond_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse condition: {cond_result.message}")
         
         cons_result = self._expression_parser.parse_expression(components['consequence'])
         if isinstance(cons_result, Failure):
-            return Failure(f"Failed to parse consequence: {cons_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse consequence: {cons_result.message}")
         
         # Create implication
         implication = LogicalExpression(
             LogicalOperator.IMPLIES,
-            [cond_result.unwrap(), cons_result.unwrap()]
+            [cond_result.value, cons_result.value]
         )
         
         # Wrap in assertion
@@ -170,13 +170,13 @@ class ILRGenerationService:
         # Parse value expression
         value_result = self._expression_parser.parse_expression(components['value'])
         if isinstance(value_result, Failure):
-            return Failure(f"Failed to parse value: {value_result.failure()}")
+            return Failure(value_result.error_code, f"Failed to parse value: {value_result.message}")
         
         # Create variable declaration with initial value
         var_decl = VariableDeclaration(
             name=VariableName(components['variable']),
             data_type=DataType.AUTO,
-            initial_value=value_result.unwrap()
+            initial_value=value_result.value
         )
         
         # Create ILR program
@@ -188,10 +188,10 @@ class ILRGenerationService:
         # Parse expression
         expr_result = self._expression_parser.parse_expression(components['expression'])
         if isinstance(expr_result, Failure):
-            return Failure(f"Failed to parse expression: {expr_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse expression: {expr_result.message}")
         
         # Wrap in assertion
-        assertion = AssertionStatement(expr_result.unwrap())
+        assertion = AssertionStatement(expr_result.value)
         program = ILRProgram(declarations=[], statements=[assertion])
         return Success(program.to_json())
     
@@ -200,10 +200,10 @@ class ILRGenerationService:
         # Parse inner expression
         expr_result = self._expression_parser.parse_expression(components['expression'])
         if isinstance(expr_result, Failure):
-            return Failure(f"Failed to parse expression: {expr_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse expression: {expr_result.message}")
         
         # Create NOT expression
-        negation = LogicalExpression(LogicalOperator.NOT, [expr_result.unwrap()])
+        negation = LogicalExpression(LogicalOperator.NOT, [expr_result.value])
         
         # Wrap in assertion
         assertion = AssertionStatement(negation)
@@ -221,12 +221,12 @@ class ILRGenerationService:
         # Parse value
         value_result = self._expression_parser.parse_expression(components['value'])
         if isinstance(value_result, Failure):
-            return Failure(f"Failed to parse value: {value_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse value: {value_result.message}")
         
         # Create assignment
         assignment = AssignmentStatement(
             target=VariableName(components['stream_name']),
-            value=value_result.unwrap()
+            value=value_result.value
         )
         
         # Create stream declaration
@@ -247,12 +247,12 @@ class ILRGenerationService:
         # Parse right side expression
         right_result = self._temporal_parser.parse_temporal_expression(components['right_side'])
         if isinstance(right_result, Failure):
-            return Failure(f"Failed to parse stream rule: {right_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse stream rule: {right_result.message}")
         
         # Create assignment
         assignment = AssignmentStatement(
             target=VariableName(stream_name),
-            value=right_result.unwrap()
+            value=right_result.value
         )
         
         program = ILRProgram(declarations=[], statements=[assignment])
@@ -263,12 +263,12 @@ class ILRGenerationService:
         # Parse temporal expression
         expr_result = self._temporal_parser.parse_temporal_expression(components['expression'])
         if isinstance(expr_result, Failure):
-            return Failure(f"Failed to parse temporal expression: {expr_result.failure()}")
+            return Failure(result.error_code, f"Failed to parse temporal expression: {expr_result.message}")
         
         # Create temporal statement
         temporal_stmt = TemporalStatement(
             operator=TemporalOperator.ALWAYS,
-            expression=expr_result.unwrap()
+            expression=expr_result.value
         )
         
         program = ILRProgram(declarations=[], statements=[temporal_stmt])

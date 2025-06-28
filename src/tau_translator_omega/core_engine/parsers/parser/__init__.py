@@ -10,10 +10,11 @@ from .domain_types import (
     ParseResult, ASTTransformer, ParserError
 )
 
-from .infrastructure import (
+from .path_resolver import (
     ProjectPathResolver, GrammarFileLoader, LarkParserFactory,
     TransformerLoader, GrammarValidator, PluginConfigExtractor
 )
+
 
 from .parser_factory import (
     ParserFactory, TransformerFactory, FallbackTransformer

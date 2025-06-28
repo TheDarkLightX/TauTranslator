@@ -14,10 +14,10 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from tau_translator_omega.core_engine.nlp_enhanced.symmetric_translator import (
+from tau_translator_omega.core_engine.translators.nlp_enhanced.symmetric_translator import (
     SymmetricTranslator, LinearizationStrategy, TranslationDirection
 )
-from tau_translator_omega.core_engine.nlp_enhanced.amr_semantic_layer import AMRGraph
+from tau_translator_omega.core_engine.translators.nlp_enhanced.amr_semantic_layer import AMRGraph
 
 
 class TestSymmetricTranslation(unittest.TestCase):
@@ -200,7 +200,7 @@ class TestAMRLinearization(unittest.TestCase):
     
     def _create_test_amr_graph(self):
         """Create a simple test AMR graph"""
-        from tau_translator_omega.core_engine.nlp_enhanced.amr_semantic_layer import (
+        from tau_translator_omega.core_engine.translators.nlp_enhanced.amr_semantic_layer import (
             AMRGraph, AMRConcept, AMRRelation
         )
         

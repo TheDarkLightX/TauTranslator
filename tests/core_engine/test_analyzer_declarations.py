@@ -1,6 +1,6 @@
 import unittest
-from src.tau_translator_omega.core_engine.semantic_analyzer import SemanticAnalyzer, SemanticError
-from src.tau_translator_omega.core_engine.cnl_parser.ast_nodes import (
+from tau_translator_omega.core_engine.semantic.semantic_analyzer import SemanticAnalyzer, SemanticError
+from tau_translator_omega.core_engine.parsers.cnl_parser.ast_nodes import (
     SentenceNode, VariableDeclNode, ConstantNode
 )
 

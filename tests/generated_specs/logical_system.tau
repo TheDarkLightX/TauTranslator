@@ -1,0 +1,1 @@
+man(Socrates) && all x (man(x) -> mortal(x)).

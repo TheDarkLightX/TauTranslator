@@ -3,26 +3,29 @@
 __all__ = [
     "ASTNode",
     "IdentifierNode",
-    "BooleanLiteralNode",
-    "NumberLiteralNode",
-    "StreamTypeEnum",
-    "StreamVariableNode",
-    "UnaryOperatorEnum",
-    "UnaryOpNode",
-    "BinaryOperatorEnum",
-    "BinaryOpNode",
+    "LiteralNode",
+    # "StreamTypeEnum", # Removed
+    # "StreamVariableNode", # Removed
+    # "UnaryOperatorEnum", # Removed
+    # "UnaryOpNode", # Removed
+    "UnaryExpressionNode",
+    # "BinaryOperatorEnum", # Removed
+    # "BinaryOpNode", # Removed
+    "BinaryExpressionNode", # Added
+    "SourceLocation", # Added
     # Other AST node classes will be added to __all__ as they are defined.
 ]
 
 # Import nodes to make them easily accessible from the package.
-# This will initially cause an import error for ast_nodes itself until it's created.
 from .ast_nodes import ASTNode
 from .ast_nodes import IdentifierNode
-from .ast_nodes import BooleanLiteralNode
-from .ast_nodes import NumberLiteralNode
-from .ast_nodes import StreamTypeEnum
-from .ast_nodes import StreamVariableNode
-from .ast_nodes import UnaryOperatorEnum
-from .ast_nodes import UnaryOpNode
-from .ast_nodes import BinaryOperatorEnum
-from .ast_nodes import BinaryOpNode
+from .ast_nodes import LiteralNode
+# from .ast_nodes import StreamTypeEnum # Removed
+# from .ast_nodes import StreamVariableNode # Removed
+# from .ast_nodes import UnaryOperatorEnum # Removed
+# from .ast_nodes import UnaryOpNode # Removed
+from .ast_nodes import UnaryExpressionNode
+# from .ast_nodes import BinaryOperatorEnum # Removed
+# from .ast_nodes import BinaryOpNode # Removed
+from .ast_nodes import BinaryExpressionNode # Added
+from .ast_nodes import SourceLocation # Added

@@ -174,11 +174,9 @@ if __name__ == '__main__':
         url='https://github.com/DarkLightX/TauTranslator',
         
         # Package configuration
-        packages=find_packages(where='backend/unified') + find_packages(where='src'),
-        package_dir={
-            '': 'backend/unified',
-            'tau_translator_omega': 'src/tau_translator_omega'
-        },
+        packages=find_packages(exclude=['tests', 'tests.*', 'venv', 'venv.*']),
+
+
         
         # Include non-Python files
         include_package_data=True,

@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
 import logging
 
-from .plugin import BasePluginValidator
-from .validation_pipeline import (
+from ..plugin import BasePluginValidator
+from ..utils.validation_pipeline import (
     ValidationPipeline, 
     SchemaValidationStage, 
     FileExistenceStage,
@@ -20,7 +20,7 @@ from .validation_pipeline import (
     ValidationContext,
     StageResult
 )
-from .logging_config import get_component_logger
+from ..utils.logging_config import get_component_logger
 
 
 class GrammarDetailsStage(ValidationStage):

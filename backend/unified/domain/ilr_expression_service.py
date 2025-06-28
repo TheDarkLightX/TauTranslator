@@ -7,7 +7,7 @@ Copyright: DarkLightX / Dana Edwards
 """
 
 from typing import List, Tuple, Optional
-from ..core.result_enhanced import Result, Success, Failure
+from backend.unified.core.result_enhanced import Result, Success, Failure
 
 from .ilr_types import (
     ILRNode, VariableReference, BooleanConstant, NumericConstant,
@@ -44,7 +44,7 @@ class ExpressionParsingService:
                 or self._try_parse_arithmetic(text)
                 or self._try_parse_predicate(text)
                 or self._try_parse_atom(text)
-                or Failure(f"Cannot parse expression: {text}"))
+                or Failure(error_code="EXPRESSION_PARSE_FAILED", message=f"Cannot parse expression: {text}"))
     
     def _try_parse_parentheses(self, text: str) -> Optional[Result[ILRNode]]:
         """Try to parse parentheses expression."""
@@ -113,7 +113,7 @@ class ExpressionParsingService:
                 
                 return Success(PredicateCall(
                     predicate_name=PredicateName(predicate),
-                    arguments=[subject_result.unwrap()]
+                    arguments=[subject_result.value]
                 ))
         
         return None
@@ -179,10 +179,10 @@ class ExpressionParsingService:
         # Check for failures
         for i, result in enumerate(operand_results):
             if isinstance(result, Failure):
-                return Failure(f"Failed to parse operand {i+1}: {result.failure()}")
+                return Failure(result.error_code, f"Failed to parse operand {i+1}: {result.message}")
         
-        operands = [r.unwrap() for r in operand_results]
-        return Success(LogicalExpression(op_result.unwrap(), operands))
+        operands = [r.value for r in operand_results]
+        return Success(LogicalExpression(op_result.value, operands))
     
     def _parse_not_expression(self, text: str) -> Result[ILRNode]:
         """Parse NOT expression."""
@@ -213,9 +213,9 @@ class ExpressionParsingService:
             return op_result
         
         return Success(ComparisonExpression(
-            op_result.unwrap(),
-            left_result.unwrap(),
-            right_result.unwrap()
+            op_result.value,
+            left_result.value,
+            right_result.value
         ))
     
     def _build_arithmetic_expression(self, parts: List[str], op_str: str) -> Result[ILRNode]:
@@ -229,10 +229,10 @@ class ExpressionParsingService:
         # Check for failures
         for i, result in enumerate(operand_results):
             if isinstance(result, Failure):
-                return Failure(f"Failed to parse operand {i+1}: {result.failure()}")
+                return Failure(result.error_code, f"Failed to parse operand {i+1}: {result.message}")
         
-        operands = [r.unwrap() for r in operand_results]
-        return Success(ArithmeticExpression(op_result.unwrap(), operands))
+        operands = [r.value for r in operand_results]
+        return Success(ArithmeticExpression(op_result.value, operands))
     
     def _parse_function_call(self, text: str) -> Result[ILRNode]:
         """Parse function call expression."""
@@ -254,9 +254,9 @@ class ExpressionParsingService:
         # Check for failures
         for i, result in enumerate(arg_results):
             if isinstance(result, Failure):
-                return Failure(f"Failed to parse argument {i+1}: {result.failure()}")
+                return Failure(result.error_code, f"Failed to parse argument {i+1}: {result.message}")
         
-        arguments = [r.unwrap() for r in arg_results]
+        arguments = [r.value for r in arg_results]
         return Success(FunctionCall(FunctionName(func_name), arguments))
     
     def _split_arguments(self, text: str) -> List[str]:
@@ -327,7 +327,7 @@ class ExpressionParsingService:
         if isinstance(result, Failure):
             return result
         
-        var_name, offset = result.unwrap()
+        var_name, offset = result.value
         
         if offset == 0:
             return Success(VariableReference(var_name))
@@ -352,6 +352,6 @@ class TemporalExpressionService(ExpressionParsingService):
             if isinstance(base_result, Failure):
                 return base_result
             
-            return Success(LogicalExpression(LogicalOperator.NOT, [base_result.unwrap()]))
+            return Success(LogicalExpression(LogicalOperator.NOT, [base_result.value]))
         
         return self.parse_expression(text)

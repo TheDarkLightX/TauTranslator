@@ -1,83 +1,78 @@
-import unittest
-from dataclasses import FrozenInstanceError
-import pytest # For pytest.raises
-from enum import Enum # Required for UnaryOperatorEnum
+import pytest
+from pydantic import ValidationError
 
-# Import specific AST nodes needed for these tests
 from tau_translator_omega.core_engine.ast import (
-    ASTNode, UnaryOpNode, UnaryOperatorEnum, IdentifierNode, BooleanLiteralNode
+    ASTNode, UnaryExpressionNode, IdentifierNode, LiteralNode
 )
 
-class TestUnaryOpNode(unittest.TestCase):
-    def test_import_unary_op_node_eventually_succeeds(self):
-        """Ensures UnaryOpNode and UnaryOperatorEnum are importable."""
-        self.assertIsNotNone(UnaryOpNode, "UnaryOpNode class should be imported.")
-        self.assertIsNotNone(UnaryOperatorEnum, "UnaryOperatorEnum enum should be imported.")
+def test_import_unary_expression_node_succeeds():
+    """Ensures UnaryExpressionNode is importable."""
+    assert UnaryExpressionNode is not None, "UnaryExpressionNode class should be imported."
 
-    def test_create_unary_op_node_valid(self):
-        """Test creating UnaryOpNode with valid parameters."""
-        operand1 = IdentifierNode("p")
-        operand2 = BooleanLiteralNode(True)
+def test_create_unary_expression_node_valid():
+    """Test creating UnaryExpressionNode with valid parameters."""
+    operand1 = IdentifierNode(name="p")
+    operand2 = LiteralNode(value=True)
 
-        node_logical_not = UnaryOpNode(UnaryOperatorEnum.LOGICAL_NOT, operand1)
-        self.assertEqual(node_logical_not.operator, UnaryOperatorEnum.LOGICAL_NOT)
-        self.assertEqual(node_logical_not.operand, operand1)
-        self.assertIsInstance(node_logical_not, ASTNode)
+    node_logical_not = UnaryExpressionNode(operator="NOT", operand=operand1)
+    assert node_logical_not.operator == "NOT"
+    assert node_logical_not.operand == operand1
+    assert isinstance(node_logical_not, ASTNode)
+    assert isinstance(node_logical_not, UnaryExpressionNode)
 
-        node_boolean_neg = UnaryOpNode(UnaryOperatorEnum.BOOLEAN_NEGATION, operand2)
-        self.assertEqual(node_boolean_neg.operator, UnaryOperatorEnum.BOOLEAN_NEGATION)
-        self.assertEqual(node_boolean_neg.operand, operand2)
+    node_boolean_neg = UnaryExpressionNode(operator="NEG", operand=operand2)
+    assert node_boolean_neg.operator == "NEG"
+    assert node_boolean_neg.operand == operand2
+    assert isinstance(node_boolean_neg, ASTNode)
+    assert isinstance(node_boolean_neg, UnaryExpressionNode)
 
-        node_always = UnaryOpNode(UnaryOperatorEnum.TEMPORAL_ALWAYS, operand1)
-        self.assertEqual(node_always.operator, UnaryOperatorEnum.TEMPORAL_ALWAYS)
+    node_always = UnaryExpressionNode(operator="ALWAYS", operand=operand1)
+    assert node_always.operator == "ALWAYS"
+    assert isinstance(node_always, UnaryExpressionNode)
 
-        node_sometimes = UnaryOpNode(UnaryOperatorEnum.TEMPORAL_SOMETIMES, operand2)
-        self.assertEqual(node_sometimes.operator, UnaryOperatorEnum.TEMPORAL_SOMETIMES)
+    node_sometimes = UnaryExpressionNode(operator="SOMETIMES", operand=operand2)
+    assert node_sometimes.operator == "SOMETIMES"
+    assert isinstance(node_sometimes, UnaryExpressionNode)
 
-    def test_unary_op_node_immutable(self):
-        """Test that UnaryOpNode is immutable."""
-        node = UnaryOpNode(UnaryOperatorEnum.LOGICAL_NOT, IdentifierNode("q"))
-        with pytest.raises(FrozenInstanceError):
-            node.operator = UnaryOperatorEnum.BOOLEAN_NEGATION # type: ignore
-        with pytest.raises(FrozenInstanceError):
-            node.operand = IdentifierNode("r") # type: ignore
+def test_unary_expression_node_immutable():
+    """Test that UnaryExpressionNode is immutable."""
+    node = UnaryExpressionNode(operator="NOT", operand=IdentifierNode(name="q"))
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        node.operator = "NEG"
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        node.operand = IdentifierNode(name="r")
 
-    def test_unary_op_node_invalid_operator(self):
-        """Test creating UnaryOpNode with invalid operator."""
-        with pytest.raises((ValueError, TypeError), match="operator must be an instance of UnaryOperatorEnum"):
-            UnaryOpNode(operator="NOT", operand=IdentifierNode("p")) # type: ignore
+def test_unary_expression_node_invalid_operator_type():
+    """Test creating UnaryExpressionNode with invalid operator type."""
+    with pytest.raises(ValidationError, match=r"Input should be a valid string"):
+        UnaryExpressionNode(operator=123, operand=IdentifierNode(name="p"))
 
-    def test_unary_op_node_invalid_operand(self):
-        """Test creating UnaryOpNode with invalid operand."""
-        with pytest.raises((ValueError, TypeError), match="operand must be an ASTNode instance"):
-            UnaryOpNode(operator=UnaryOperatorEnum.LOGICAL_NOT, operand="p") # type: ignore
+def test_unary_expression_node_invalid_operand_type():
+    """Test creating UnaryExpressionNode with invalid operand type."""
+    with pytest.raises(ValidationError, match=r"Input should be a valid dictionary or instance of ASTNode"):
+        UnaryExpressionNode(operator="NOT", operand="p")
 
-    def test_unary_op_node_equality_and_hash(self):
-        """Test equality and hashability of UnaryOpNode instances."""
-        p = IdentifierNode("p")
-        q = IdentifierNode("q")
-        true_lit = BooleanLiteralNode(True)
+def test_unary_expression_node_equality_and_hash():
+    """Test equality and hashability of UnaryExpressionNode instances."""
+    p = IdentifierNode(name="p")
+    q = IdentifierNode(name="q")
+    true_lit = LiteralNode(value=True)
 
-        op1 = UnaryOpNode(UnaryOperatorEnum.LOGICAL_NOT, p)
-        op2 = UnaryOpNode(UnaryOperatorEnum.LOGICAL_NOT, p) # Same as op1
-        op3 = UnaryOpNode(UnaryOperatorEnum.BOOLEAN_NEGATION, p) # Diff operator
-        op4 = UnaryOpNode(UnaryOperatorEnum.LOGICAL_NOT, q) # Diff operand (content)
-        op5 = UnaryOpNode(UnaryOperatorEnum.LOGICAL_NOT, true_lit) # Diff operand (type)
+    op1 = UnaryExpressionNode(operator="NOT", operand=p)
+    op2 = UnaryExpressionNode(operator="NOT", operand=p)  # Same as op1
+    op3 = UnaryExpressionNode(operator="NEG", operand=p)  # Diff operator
+    op4 = UnaryExpressionNode(operator="NOT", operand=q)  # Diff operand (content)
+    op5 = UnaryExpressionNode(operator="NOT", operand=true_lit)  # Diff operand (type)
 
-        self.assertEqual(op1, op2)
-        self.assertNotEqual(op1, op3)
-        self.assertNotEqual(op1, op4)
-        self.assertNotEqual(op1, op5)
+    assert op1 == op2
+    assert op1 != op3
+    assert op1 != op4
+    assert op1 != op5
 
-        try:
-            node_set = {op1, op2, op3, op4, op5}
-            self.assertEqual(len(node_set), 4)
-            self.assertIn(op1, node_set)
-            self.assertIn(op3, node_set)
-            self.assertIn(op4, node_set)
-            self.assertIn(op5, node_set)
-        except TypeError:
-            self.fail("UnaryOpNode instances are not hashable.")
-
-if __name__ == '__main__':
-    unittest.main()
+    # Pydantic models with model_config(frozen=True) are hashable by default if all fields are hashable.
+    node_set = {op1, op2, op3, op4, op5}
+    assert len(node_set) == 4  # op1 and op2 are duplicates
+    assert op1 in node_set
+    assert op3 in node_set
+    assert op4 in node_set
+    assert op5 in node_set

@@ -14,7 +14,8 @@ from typing import List, Dict, Any
 from fastapi.testclient import TestClient
 from ..core.result_enhanced import Success, Failure
 
-from backend.unified.api.nlp import router, AutocompleteRequest
+from backend.unified.api.autocomplete_educational import educational_router as router
+from backend.unified.api.gamified_autocomplete import AutocompleteRequest
 from backend.unified.core.autocomplete.models import (
     EducationalSuggestion,
     SuggestionText,
