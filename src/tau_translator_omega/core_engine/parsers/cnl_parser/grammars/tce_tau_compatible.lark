@@ -23,34 +23,27 @@ spec_conjunction: tau_spec AND3_KW tau_spec  // &&& for spec-level and
 spec_disjunction: tau_spec OR2_KW tau_spec   // || for spec-level or
 
 // Local specifications (boolean formulas at specific time)
-local_spec: boolean_expr
+local_spec: wff
           | quantified_formula
           | stream_equation
 
 // Boolean expressions map to Tau operators
-boolean_expr: and_expr
+wff: and_expr
             | or_expr
             | not_expr
             | implies_expr
             | iff_expr
             | comparison
             | atomic_prop
-            | LPAR boolean_expr RPAR
+            | LPAR wff RPAR
 
 // Logical operators following Tau syntax
-and_expr: boolean_term AND2_KW boolean_term      // Maps to &&
-or_expr: boolean_term OR_KW boolean_term         // Maps to ||
-not_expr: NOT_KW boolean_term                    // Maps to !
-implies_expr: boolean_term IMPLIES_KW boolean_term // Maps to ->
-iff_expr: boolean_term IFF_KW boolean_term       // Maps to <->
-
-boolean_term: comparison
-            | atomic_prop
-            | stream_access
-            | LPAR boolean_expr RPAR
+and_expr: wff AND2_KW wff      // Maps to &&
+or_expr: wff OR_KW wff         // Maps to ||
+not_expr: NOT_KW wff                    // Maps to !
 
 // Comparisons in Tau style
-comparison: term comparison_op term
+comparison: bf comparison_op bf
 
 comparison_op: EQUALS_KW      // Maps to =
              | NOT_EQUALS_KW  // Maps to !=
@@ -59,17 +52,17 @@ comparison_op: EQUALS_KW      // Maps to =
              | LESS_EQUAL_KW  // Maps to <=
              | GREATER_EQUAL_KW // Maps to >=
 
-// Terms (arithmetic expressions)
-term: arithmetic_expr
+// Boolean Functions (bf) / Terms
+bf: arithmetic_expr
     | stream_access
-    | variable
+    | IDENTIFIER
     | number
-    | LPAR term RPAR
+    | LPAR bf RPAR
 
-arithmetic_expr: term PLUS_KW term
-               | term MINUS_KW term
-               | term TIMES_KW term
-               | term DIVIDED_BY_KW term
+arithmetic_expr: bf PLUS_KW bf
+               | bf MINUS_KW bf
+               | bf TIMES_KW bf
+               | bf DIVIDED_BY_KW bf
 
 // Quantified formulas (Tau: all/ex)
 quantified_formula: universal_formula
@@ -81,10 +74,10 @@ universal_formula: FOR_ALL_KW variable_list local_spec
 existential_formula: THERE_EXISTS_KW variable_list SUCH_THAT_KW local_spec
                    | EXISTS_KW variable_list COMMA local_spec
 
-variable_list: variable (COMMA variable)*
+variable_list: IDENTIFIER (COMMA IDENTIFIER)*
 
 // Stream handling (core Tau feature)
-stream_equation: stream_access EQUALS_KW term
+stream_equation: stream_access EQUALS_KW bf
 
 stream_access: input_stream
              | output_stream
@@ -101,17 +94,15 @@ time_index: LSQB time_expr RSQB
           | AT_TIME_KW time_expr
 
 time_expr: T_KW
-         | T_KW MINUS number     // t-1, t-2
-         | T_KW PLUS number      // t+1, t+2
+         | T_KW MINUS_KW number     // t-1, t-2
+         | T_KW PLUS_KW number      // t+1, t+2
          | number                // absolute time
 
 // Atomic propositions and variables
-atomic_prop: predicate_name [LPAR argument_list RPAR]
-           | variable
+atomic_prop: IDENTIFIER LPAR [argument_list] RPAR
 
-predicate_name: IDENTIFIER
-variable: IDENTIFIER
-argument_list: term (COMMA term)*
+
+argument_list: bf (COMMA bf)*
 
 // Numbers
 number: INTEGER
