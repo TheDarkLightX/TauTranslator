@@ -32,11 +32,11 @@ from PyQt6.QtWidgets import (
     QDockWidget, QTreeWidget, QTreeWidgetItem, QTabWidget,
     QToolBar, QStatusBar, QMenuBar, QMenu, QGroupBox,
     QGridLayout, QProgressBar, QMessageBox, QFileDialog,
-    QStyle, QStyleFactory
+    QStyle, QStyleFactory, QSizePolicy
 )
 from PyQt6.QtCore import (
     Qt, QThread, pyqtSignal, QTimer, QSettings, QSize, QPropertyAnimation,
-    QEasingCurve, pyqtProperty, QPoint
+    QEasingCurve, pyqtProperty, QPoint, QMetaObject, Q_ARG
 )
 from PyQt6.QtGui import (
     QAction, QFont, QFontDatabase, QColor, QPalette, QIcon,
@@ -46,6 +46,12 @@ from PyQt6.QtGui import (
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# Add project root to path for backend imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Import translation engine components
+from backend.unified.translators.bidirectional_engine import BidirectionalTranslationEngine
+from backend.unified.translators.base import TranslationDirection
 
 
 class TauSyntaxHighlighter(QSyntaxHighlighter):
@@ -156,29 +162,60 @@ class TranslationWorker(QThread):
         try:
             self.progress.emit("Starting translation...")
             
-            # Determine translation direction
-            if "Natural" in self.source_format and "Tau" in self.target_format:
-                result = self.translator.translate_tce_to_tau(self.source_text)
-            elif "Tau" in self.source_format and ("Natural" in self.target_format or "TCE" in self.target_format):
-                result = self.translator.translate_tau_to_tce(self.source_text)
-            else:
-                # Mock translation for other formats
-                result = type('Result', (), {
-                    'success': True,
-                    'output': f"// Translated from {self.source_format} to {self.target_format}\n{self.source_text}",
-                    'confidence': 0.95,
-                    'patterns_detected': ['mock_pattern']
-                })()
+            # Map UI format names to TranslationDirection enum
+            direction_map = {
+                ('Natural Language', 'Tau Language'): TranslationDirection.NL_TO_TAU,
+                ('Natural Language', 'TCE'): TranslationDirection.NL_TO_TCE,
+                ('Tau Language', 'TCE'): TranslationDirection.TO_TCE,  # Tau->TCE for viewing
+                ('Tau Language', 'Natural Language'): TranslationDirection.TO_ENGLISH,
+                ('Tau Language', 'ILR'): TranslationDirection.TO_TCE,  # Tau->ILR via TCE
+                ('TCE', 'Tau Language'): TranslationDirection.TCE_TO_TAU,
+                ('TCE', 'Natural Language'): TranslationDirection.TCE_TO_NL,
+                ('TCE', 'ILR'): TranslationDirection.TO_TCE,  # TCE->ILR
+                ('ILR', 'Tau Language'): TranslationDirection.TO_TAU,
+                ('ILR', 'Natural Language'): TranslationDirection.TO_ENGLISH,
+                ('ILR', 'TCE'): TranslationDirection.TO_TCE  # ILR->TCE
+            }
             
-            if result.success:
-                self.finished.emit({
-                    'success': True,
-                    'output': result.output,
-                    'confidence': result.confidence,
-                    'patterns': result.patterns_detected if hasattr(result, 'patterns_detected') else []
-                })
+            direction_key = (self.source_format, self.target_format)
+            if direction_key not in direction_map:
+                self.error.emit(f"Translation from {self.source_format} to {self.target_format} is not currently supported.")
+                return
+            
+            direction = direction_map[direction_key]
+            
+            # Perform translation using unified interface
+            import time
+            result = self.translator.translate(self.source_text, direction, start_time=time.time())
+            
+            # Check if result has success attribute (TranslationResult)
+            # or if it's a Result monad that needs unwrapping
+            if hasattr(result, 'success'):
+                # Direct TranslationResult object
+                if result.success:
+                    self.finished.emit({
+                        'success': True,
+                        'output': result.translated_text,
+                        'confidence': result.confidence,
+                        'patterns': result.metadata.get('patterns', []) if result.metadata else []
+                    })
+                else:
+                    self.error.emit(f"Translation failed: {result.error_message or 'Unknown error'}")
             else:
-                self.error.emit(f"Translation failed: {result.errors if hasattr(result, 'errors') else 'Unknown error'}")
+                # Assume it's a Result monad - try to unwrap it
+                if hasattr(result, 'unwrap'):
+                    try:
+                        unwrapped = result.unwrap()
+                        self.finished.emit({
+                            'success': True,
+                            'output': unwrapped.translated_text,
+                            'confidence': unwrapped.confidence,
+                            'patterns': unwrapped.metadata.get('patterns', []) if unwrapped.metadata else []
+                        })
+                    except Exception as e:
+                        self.error.emit(f"Translation failed: {str(e)}")
+                else:
+                    self.error.emit(f"Translation failed: unexpected result type")
                 
         except Exception as e:
             self.error.emit(f"Translation error: {str(e)}")
@@ -213,7 +250,7 @@ class TauTranslatorQt(QMainWindow):
         QApplication.setStyle(QStyleFactory.create('Fusion'))
         
         # Central widget
-        central_widget = QWidget()
+        central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
         
         # Create UI components
@@ -335,11 +372,8 @@ class TauTranslatorQt(QMainWindow):
         toolbar.addWidget(self.translate_btn)
         
         # Add spacer
-        spacer = QWidget()
-        spacer.setSizePolicy(
-            spacer.sizePolicy().horizontalPolicy().Expanding,
-            spacer.sizePolicy().verticalPolicy().Preferred
-        )
+        spacer = QWidget(self)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
         
         # Theme toggle
@@ -416,25 +450,61 @@ class TauTranslatorQt(QMainWindow):
         self.properties_tabs = QTabWidget()
         
         # Grammar tab
-        grammar_widget = QWidget()
+        grammar_widget = QWidget(self.properties_tabs)
         grammar_layout = QVBoxLayout(grammar_widget)
         self.grammar_status = QLabel("No grammar loaded")
+        self.grammar_details = QTextEdit()
+        self.grammar_details.setReadOnly(True)
+        self.grammar_details.setMaximumHeight(200)
         grammar_layout.addWidget(self.grammar_status)
+        grammar_layout.addWidget(self.grammar_details)
+        
+        # LLM Status section
+        llm_group = QGroupBox("LLM Status")
+        llm_layout = QVBoxLayout()
+        self.llm_status = QLabel("Checking LLM...")
+        self.llm_details = QTextEdit()
+        self.llm_details.setReadOnly(True)
+        self.llm_details.setMaximumHeight(150)
+        llm_layout.addWidget(self.llm_status)
+        llm_layout.addWidget(self.llm_details)
+        llm_group.setLayout(llm_layout)
+        
+        grammar_layout.addWidget(llm_group)
         grammar_layout.addStretch()
-        self.properties_tabs.addTab(grammar_widget, "Grammar")
+        self.properties_tabs.addTab(grammar_widget, "Grammar & LLM")
         
         # History tab
-        history_widget = QWidget()
+        history_widget = QWidget(self.properties_tabs)
         history_layout = QVBoxLayout(history_widget)
-        self.history_list = QTreeWidget()
+        
+        # Translation history
+        history_label = QLabel("Translation History:")
+        history_layout.addWidget(history_label)
+        self.history_list = QTreeWidget(history_widget)
         self.history_list.setHeaderLabels(["Time", "From", "To", "Status"])
+        self.history_list.setMaximumHeight(200)
         history_layout.addWidget(self.history_list)
+        
+        # Conversation context display
+        context_label = QLabel("LLM Conversation Context:")
+        history_layout.addWidget(context_label)
+        self.conversation_context = QTextEdit()
+        self.conversation_context.setReadOnly(True)
+        self.conversation_context.setPlaceholderText("Conversation history will appear here...")
+        history_layout.addWidget(self.conversation_context)
+        
+        # Clear history button
+        clear_btn = QPushButton("Clear Conversation History")
+        clear_btn.clicked.connect(self.clear_conversation_history)
+        history_layout.addWidget(clear_btn)
+        
         self.properties_tabs.addTab(history_widget, "History")
         
         # Validation tab
-        validation_widget = QWidget()
+        validation_widget = QWidget(self.properties_tabs)
         validation_layout = QVBoxLayout(validation_widget)
-        self.validation_output = QTextEdit()
+        self.validation_output = QTextEdit(validation_widget)
         self.validation_output.setReadOnly(True)
         validation_layout.addWidget(self.validation_output)
         self.properties_tabs.addTab(validation_widget, "Validation")
@@ -528,14 +598,61 @@ class TauTranslatorQt(QMainWindow):
         """Load the translator in a background thread."""
         def load():
             try:
-                from tau_translator_omega.lmql_engine.bidirectional_translator import LMQLBidirectionalTranslator
-                self.translator = LMQLBidirectionalTranslator()
-                self.status_label.setText("Translator loaded successfully")
+                self.translator = BidirectionalTranslationEngine()
+                # Thread-safe UI update - check if widget still exists
+                try:
+                    QMetaObject.invokeMethod(self.status_label, "setText", 
+                        Qt.ConnectionType.QueuedConnection, 
+                        Q_ARG(str, "Translator loaded successfully"))
+                    # Update grammar and LLM status
+                    QMetaObject.invokeMethod(self, "update_grammar_llm_status", 
+                        Qt.ConnectionType.QueuedConnection)
+                except RuntimeError:
+                    pass  # Widget was deleted
             except Exception as e:
-                self.status_label.setText(f"Failed to load translator: {str(e)}")
+                # Thread-safe UI update - check if widget still exists
+                try:
+                    QMetaObject.invokeMethod(self.status_label, "setText", 
+                        Qt.ConnectionType.QueuedConnection, 
+                        Q_ARG(str, f"Failed to load translator: {str(e)}"))
+                except RuntimeError:
+                    pass  # Widget was deleted
                 
         thread = threading.Thread(target=load, daemon=True)
         thread.start()
+        
+    def update_grammar_llm_status(self):
+        """Update grammar and LLM status displays (≤10 lines)."""
+        if not self.translator:
+            return
+            
+        # Update grammar status
+        grammar_info = self.translator.get_grammar_info()
+        if grammar_info['available']:
+            self.grammar_status.setText(f"Grammar loaded: {grammar_info['preferred']}")
+            details = []
+            for g in grammar_info['available']:
+                details.append(f"• {g['name']}: {g['size']} bytes")
+            self.grammar_details.setPlainText("Available grammars:\n" + "\n".join(details))
+        else:
+            self.grammar_status.setText("No grammar files found")
+            self.grammar_details.setPlainText("Missing expected grammar files")
+            
+        # Update LLM status
+        llm_status = self.translator.get_llm_status()
+        if llm_status['llm_available']:
+            self.llm_status.setText(f"LLM Active: {llm_status['llm_provider']}")
+            details = [
+                f"Provider: {llm_status['llm_provider'] or 'None'}",
+                f"Knowledge Base: {'Enabled' if llm_status['knowledge_base_enabled'] else 'Disabled'}",
+                f"Grammar Loaded: {'Yes' if llm_status['grammar_loaded_for_llm'] else 'No'}",
+                f"Conversation Tracking: {'Active' if llm_status['conversation_tracking'] else 'Inactive'}",
+                f"History Size: {llm_status['conversation_history_size']} translations"
+            ]
+            self.llm_details.setPlainText("\n".join(details))
+        else:
+            self.llm_status.setText("LLM Service Not Available")
+            self.llm_details.setPlainText("Configure API key for LLM support")
         
     def translate(self):
         """Perform translation."""
@@ -554,6 +671,16 @@ class TauTranslatorQt(QMainWindow):
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)  # Indeterminate
         
+        # Clean up previous worker if exists
+        if hasattr(self, 'worker'):
+            try:
+                if self.worker.isRunning():
+                    self.worker.quit()
+                    self.worker.wait()
+            except RuntimeError:
+                # Worker was already deleted
+                pass
+        
         # Create worker thread
         self.worker = TranslationWorker(
             self.translator,
@@ -566,40 +693,51 @@ class TauTranslatorQt(QMainWindow):
         self.worker.finished.connect(self.on_translation_finished)
         self.worker.progress.connect(self.on_translation_progress)
         self.worker.error.connect(self.on_translation_error)
+        self.worker.finished.connect(lambda: self.worker.deleteLater())
         
         # Start translation
         self.worker.start()
         
     def on_translation_finished(self, result):
         """Handle translation completion."""
-        self.output_editor.setPlainText(result['output'])
-        
-        # Update statistics
-        self.translation_count += 1
-        self.translation_count_label.setText(f"Translations: {self.translation_count}")
-        
-        # Add to history
-        time_str = datetime.now().strftime("%H:%M:%S")
-        item = QTreeWidgetItem([
-            time_str,
-            self.source_combo.currentText(),
-            self.target_combo.currentText(),
-            "Success"
-        ])
-        self.history_list.insertTopLevelItem(0, item)
-        
-        # Update validation tab
-        confidence = result.get('confidence', 0)
-        patterns = result.get('patterns', [])
-        validation_text = f"Translation successful\n"
-        validation_text += f"Confidence: {confidence:.1%}\n"
-        validation_text += f"Patterns detected: {', '.join(patterns) if patterns else 'None'}"
-        self.validation_output.setPlainText(validation_text)
-        
-        # Re-enable UI
-        self.translate_btn.setEnabled(True)
-        self.progress_bar.setVisible(False)
-        self.status_label.setText("Translation complete")
+        try:
+            self.output_editor.setPlainText(result.get('output', ''))
+            
+            # Update statistics
+            self.translation_count += 1
+            self.translation_count_label.setText(f"Translations: {self.translation_count}")
+            
+            # Add to history
+            time_str = datetime.now().strftime("%H:%M:%S")
+            item = QTreeWidgetItem([
+                time_str,
+                self.source_combo.currentText(),
+                self.target_combo.currentText(),
+                "Success"
+            ])
+            self.history_list.insertTopLevelItem(0, item)
+            
+            # Update validation tab
+            confidence = result.get('confidence', 0)
+            patterns = result.get('patterns', [])
+            validation_text = f"Translation successful\n"
+            validation_text += f"Confidence: {confidence:.1%}\n"
+            validation_text += f"Patterns detected: {', '.join(patterns) if patterns else 'None'}"
+            self.validation_output.setPlainText(validation_text)
+            
+            # Update conversation context display
+            self.update_conversation_display()
+            
+            # Update LLM status to show conversation history size
+            self.update_grammar_llm_status()
+            
+            self.status_label.setText("Translation complete")
+        except Exception as e:
+            QMessageBox.error(self, "Display Error", f"Failed to display results: {str(e)}")
+        finally:
+            # Re-enable UI
+            self.translate_btn.setEnabled(True)
+            self.progress_bar.setVisible(False)
         
     def on_translation_progress(self, message):
         """Handle translation progress updates."""
@@ -629,6 +767,52 @@ class TauTranslatorQt(QMainWindow):
         elapsed = datetime.now() - self.session_start
         minutes = int(elapsed.total_seconds() / 60)
         self.session_time_label.setText(f"Session: {minutes}m")
+        
+    def update_conversation_display(self):
+        """Update the conversation context display (≤10 lines)."""
+        if not self.translator:
+            return
+            
+        # Get conversation summary
+        summary = self.translator.get_conversation_summary()
+        
+        if summary['total_translations'] == 0:
+            self.conversation_context.setPlainText("No translations yet in this session.")
+            return
+            
+        # Build conversation display
+        lines = [f"Total translations: {summary['total_translations']}"]
+        lines.append(f"Average confidence: {summary['average_confidence']:.1%}")
+        lines.append("\nRecent translations:")
+        
+        # Show last 5 from conversation history
+        if hasattr(self.translator, 'conversation_history'):
+            for entry in self.translator.conversation_history[-5:]:
+                lines.append(f"\n[{entry['timestamp'].split('T')[1][:8]}]")
+                lines.append(f"Input: {entry['input']}")
+                lines.append(f"Output: {entry['output']}")
+                if 'explanation' in entry:
+                    lines.append(f"Explanation: {entry['explanation']}")
+                    
+        self.conversation_context.setPlainText("\n".join(lines))
+        
+    def clear_conversation_history(self):
+        """Clear the conversation history (≤10 lines)."""
+        if not self.translator:
+            return
+            
+        reply = QMessageBox.question(
+            self, 'Clear History',
+            'Clear conversation history? This will reset the LLM context.',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.translator.clear_conversation_history()
+            self.conversation_context.clear()
+            self.update_grammar_llm_status()
+            self.status_label.setText("Conversation history cleared")
         
     def new_file(self):
         """Create a new file."""
@@ -682,6 +866,15 @@ class TauTranslatorQt(QMainWindow):
         
     def closeEvent(self, event):
         """Handle application close event."""
+        # Stop timer
+        if hasattr(self, 'timer'):
+            self.timer.stop()
+        
+        # Clean up worker thread
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            self.worker.quit()
+            self.worker.wait()
+        
         # Save settings
         self.settings.setValue('geometry', self.saveGeometry())
         self.settings.setValue('windowState', self.saveState())
