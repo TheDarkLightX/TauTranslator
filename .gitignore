@@ -149,6 +149,8 @@ mcp-memory-service/acli
 
 # Serena & Windsurf
 .serena/
+.windsurfrules
+Internal_standards/
 
 # Deprecated and Trash
 depreciated/
@@ -156,3 +158,9 @@ _trash/
 backups/
 reports/
 
+docs/internal/
+
+# Dating Sim Sub-project (temporarily ignored)
+dating_sim/
+data/grammars/official/**
+data/grammar_packs/raw/**
