@@ -25,6 +25,7 @@
     .err { color: var(--err); }
     .bar { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 12px; }
     .bar .right { display:flex; align-items:center; gap:8px; }
+    .stack { display:flex; align-items:center; gap:8px; }
     small { color: var(--muted); }
   </style>
 </head>
@@ -33,9 +34,16 @@
     <div class="bar">
       <h1>Translator Demo</h1>
       <div class="right">
-        <small>API base</small>
-        <input id="apiBase" placeholder="https://api.tautranslator.ai" />
-        <button class="btn" id="saveApi">Save</button>
+        <div class="stack">
+          <small>API</small>
+          <input id="apiBase" placeholder="https://api.tautranslator.ai" />
+          <button class="btn" id="saveApi">Save</button>
+        </div>
+        <div class="stack">
+          <small>BYOK (OpenRouter)</small>
+          <input id="byok" type="password" placeholder="sk-or-v1-... (optional)" />
+          <button class="btn" id="saveByok">Save</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -88,14 +96,21 @@
 
   <script>
     const $ = (id)=>document.getElementById(id);
-    const fromQS = new URLSearchParams(location.search).get('api');
+    const qs = new URLSearchParams(location.search);
+    const fromQS = qs.get('api');
     const saved = localStorage.getItem('tau_api_base');
-    const defaultBase = fromQS || saved || '';
+    const defaultBase = fromQS || saved || 'https://api.tautranslator.ai';
     $('apiBase').value = defaultBase;
+    const savedByok = localStorage.getItem('tau_byok_openrouter') || '';
+    $('byok').value = qs.get('byok') || savedByok;
 
     $('saveApi').onclick = ()=>{
       localStorage.setItem('tau_api_base', $('apiBase').value.trim());
       alert('Saved API base.');
+    };
+    $('saveByok').onclick = ()=>{
+      localStorage.setItem('tau_byok_openrouter', $('byok').value.trim());
+      alert('Saved BYOK key.');
     };
 
     function apiBase(){
@@ -106,7 +121,10 @@
 
     async function post(path, body){
       const url = apiBase() + path;
-      const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      const headers = { 'Content-Type':'application/json' };
+      const byok = $('byok').value.trim();
+      if(byok){ headers['X-OpenRouter-Key'] = byok; }
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
       if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
       return res.json();
     }
