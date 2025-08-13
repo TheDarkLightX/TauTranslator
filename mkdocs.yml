@@ -5,6 +5,7 @@ repo_name: TauTranslatorOmega
 nav:
   - Home: home.md
   - Translator: translator.html
+  - TCE: tce.md
   - Architecture:
       - Translation Pipeline: architecture/translation_pipeline.md
       - Grammar Engine: architecture/grammar_engine.md
