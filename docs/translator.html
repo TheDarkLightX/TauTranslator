@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tau Translator — Demo</title>
+  <style>
+    :root { --bg:#0f0f1e; --card:#13132a; --fg:#e8e8e8; --muted:#a3a3a3; --b:#1f2040; --brand:#00d4ff; --ok:#00ff88; --err:#ff6b6b; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #0f0f1e, #1a1a2e); color: var(--fg); }
+    .wrap { max-width: 1100px; margin: 28px auto; padding: 0 16px; }
+    h1 { margin: 0 0 16px; font-size: 28px; color: var(--brand); }
+    .hint { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .row { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; }
+    .card { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 14px; }
+    label { display:block; font-size: 13px; color: var(--muted); margin: 8px 0 6px; }
+    textarea, input, select { width: 100%; background: var(--card); color: var(--fg); border: 1px solid var(--b); border-radius: 10px; padding: 10px 12px; outline: none; }
+    textarea { min-height: 120px; resize: vertical; }
+    .controls { display:flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 12px; }
+    .btn { padding: 10px 12px; border-radius: 10px; border:1px solid rgba(255,255,255,0.12); background: #18203a; color: var(--fg); cursor: pointer; }
+    .btn.primary { background: linear-gradient(45deg, var(--brand), #0099ff); border-color: transparent; color: #081018; font-weight: 700; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .cols { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .bar { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 12px; }
+    .bar .right { display:flex; align-items:center; gap:8px; }
+    small { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <h1>Translator Demo</h1>
+      <div class="right">
+        <small>API base</small>
+        <input id="apiBase" placeholder="https://api.tautranslator.ai" />
+        <button class="btn" id="saveApi">Save</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="controls">
+        <label style="flex:1">
+          Operation
+          <select id="op">
+            <option value="p2s">Prompt → Spec (English → TCE)</option>
+            <option value="validate">Validate TCE</option>
+            <option value="tce2tau">TCE → Tau</option>
+            <option value="s2p">Spec → Prompt (TCE/Tau → English)</option>
+          </select>
+        </label>
+        <label>
+          Mode
+          <select id="mode">
+            <option value="assist">assist</option>
+            <option value="generate">generate</option>
+          </select>
+        </label>
+        <label style="min-width: 200px;">
+          Provider (optional)
+          <input id="provider" placeholder="openai|local|..." />
+        </label>
+        <button class="btn primary" id="run">Run</button>
+      </div>
+      <div class="row">
+        <div class="card">
+          <label id="inLabel">Input</label>
+          <textarea id="input" placeholder="e.g., x equals 5"></textarea>
+        </div>
+        <div class="card">
+          <div class="cols">
+            <div>
+              <label>TCE</label>
+              <div id="outTce" class="mono"></div>
+            </div>
+            <div>
+              <label>Tau</label>
+              <div id="outTau" class="mono"></div>
+            </div>
+          </div>
+          <label style="margin-top:10px">Reasons / Errors</label>
+          <div id="outReasons" class="mono"></div>
+        </div>
+      </div>
+      <div class="hint">Note: This page calls your configured API. Ensure CORS allows your domain.</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const fromQS = new URLSearchParams(location.search).get('api');
+    const saved = localStorage.getItem('tau_api_base');
+    const defaultBase = fromQS || saved || '';
+    $('apiBase').value = defaultBase;
+
+    $('saveApi').onclick = ()=>{
+      localStorage.setItem('tau_api_base', $('apiBase').value.trim());
+      alert('Saved API base.');
+    };
+
+    function apiBase(){
+      const v = $('apiBase').value.trim();
+      if(!v){ throw new Error('Set API base URL first.'); }
+      return v.replace(/\/$/, '');
+    }
+
+    async function post(path, body){
+      const url = apiBase() + path;
+      const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
+      return res.json();
+    }
+
+    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[] }){
+      $('outTce').textContent = tce || '';
+      $('outTau').textContent = tau || '';
+      const msgs = [];
+      if(Array.isArray(reasons) && reasons.length) msgs.push('Reasons:\n- ' + reasons.join('\n- '));
+      if(Array.isArray(errors) && errors.length) msgs.push('Errors:\n- ' + errors.join('\n- '));
+      if(typeof valid === 'boolean') msgs.push(`Valid: ${valid ? 'true' : 'false'}`);
+      if(typeof success === 'boolean') msgs.push(`Success: ${success ? 'true' : 'false'}`);
+      $('outReasons').textContent = msgs.join('\n\n');
+    }
+
+    $('run').onclick = async ()=>{
+      $('run').disabled = true;
+      setOutputs({ tce:'', tau:'', reasons:[], errors:[] });
+      try{
+        const op = $('op').value;
+        const mode = $('mode').value;
+        const provider = $('provider').value.trim() || undefined;
+        const input = $('input').value.trim();
+        if(!input){ throw new Error('Enter input.'); }
+
+        if(op === 'p2s'){
+          const body = { prompt: input, mode };
+          if(provider) body.provider = provider;
+          const r = await post('/llm/prompt-to-spec', body);
+          setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [] });
+        } else if (op === 'validate'){
+          const r = await post('/validate/tce', { tce: input });
+          setOutputs({ valid: r.valid, reasons: r.errors ? [] : [], errors: r.errors || [] });
+        } else if (op === 'tce2tau'){
+          const r = await post('/translate/tce-to-tau', { tce: input });
+          setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
+        } else if (op === 's2p'){
+          const isTau = /(^\s*module\b|\bdefine\b|;\s*$)/i.test(input);
+          const payload = isTau ? { tau: input } : { tce: input };
+          const r = await post('/llm/spec-to-prompt', payload);
+          setOutputs({ tce: '', tau: '', reasons: [r.prompt, ...(r.explanations||[])] });
+        }
+      } catch (e){
+        setOutputs({ errors: [String(e && e.message || e)] });
+      } finally {
+        $('run').disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
+
+
