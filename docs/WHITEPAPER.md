@@ -1,3 +1,124 @@
+## Tau Translator — Product Whitepaper (Public PoC Edition)
+
+### Executive Summary
+Software projects live or die by the quality of their specifications. Tau Translator turns natural-language intent into clear, testable specifications and brings them back to English when you need to explain or iterate. It serves engineering leaders, product managers, and regulated industries that demand both velocity and rigor.
+
+This document explains the business value, core capabilities, trust and safety posture, and the path to adoption—without exposing implementation internals. A public proof of concept is available for hands-on trials.
+
+### Problem
+- Ambiguous requirements stall delivery, spawn rework, and cause defects.
+- Teams struggle to balance speed with auditability, especially in regulated domains.
+- LLMs draft text quickly but don’t guarantee that outputs are unambiguous or verifiable.
+
+### Solution
+Tau Translator formalizes intent and ensures results are unambiguous before teams act on them. It provides:
+- English → Controlled English → Formal Spec translation
+- Formal Spec → Controlled English → English explanation
+- Deterministic validation before acceptance
+- Assisted authoring to accelerate drafts while preserving control
+
+### Who It’s For
+- Engineering and product teams writing requirements and interface contracts
+- Safety‑critical and regulated sectors (finance, healthcare, aerospace, public sector)
+- Standards bodies, researchers, and documentation teams
+
+### Key Capabilities
+- Translate English to controlled, precise specifications suitable for downstream tooling
+- Explain or simplify formal specifications back to business-friendly English
+- Validate every output deterministically before acceptance
+- Assist‑only and Generate modes to match your governance needs
+- Knowledge packs to ground outputs in safe, curated guidance (no raw licensed grammar embedded)
+
+### How It Works (High‑Level)
+1) Draft: Provide your intent in English or a controlled variant.
+2) Propose: The system can assist with suggestions or generate a candidate spec.
+3) Validate: Outputs are checked deterministically for structure and consistency.
+4) Repair: If validation fails, the system offers a minimal repair path.
+5) Translate: Approved specs can be translated to the formal target format or back to English.
+
+The PoC includes a simple web UI and public API for evaluation. Under the hood, deterministic checks gate outputs so teams maintain trust even when using LLM assistance.
+
+### Trust, Compliance, and Licensing
+- No raw licensed grammar is embedded or distributed.
+- Knowledge packs contain only derivative summaries, examples, and embeddings that are safe to store and share.
+- Optional runtime download of official materials (where permitted) uses ephemeral handling.
+- Clear provenance notes and safety filters for retrieval‑augmented suggestions.
+
+### Security and Privacy (Principles)
+- Validate all machine‑generated outputs before acceptance.
+- Redact and minimize inputs and logs; never store secrets.
+- Enforce origin and rate controls on public endpoints.
+- Support customer‑managed keys and private provider routes.
+
+### Operating Modes
+- Assist‑Only: The system helps draft and refine content; humans approve.
+- Generate Spec: The system proposes a full controlled spec; validation gates acceptance.
+- Repair Loop: Minimal, targeted fixes when outputs are almost valid.
+
+### Integrations
+- Works with local and cloud LLM providers via a provider abstraction.
+- Embedding‑powered retrieval over knowledge packs to improve suggestions.
+- Public API suitable for PWA, desktop, CI gates, and custom tools.
+
+### Deployment Options
+- Public PoC site for evaluation and demos
+- Customer‑hosted API for private deployments (cloud or on‑prem)
+- Optional desktop client for air‑gapped workflows
+
+### Pricing (Preview)
+- Beta: Free for early testers.
+- Team: Subscription with monthly quotas; overages available.
+- Enterprise: SSO, private connectors, SLAs, security reviews.
+- Optional BYOK (bring your own API keys) to lower variable compute costs.
+
+### Roadmap
+- Stabilize end‑to‑end validation + repair flow on broader language patterns
+- Expand provider matrix and constrained‑generation options
+- Provenance UI for retrieved context and evaluation harness for suggestions
+- Accessibility and UX enhancements for authoring at scale
+
+### Measuring Success
+- Time‑to‑approved spec and rework rate
+- Validation pass rates and repair depth
+- Round‑trip fidelity (spec ↔ explanation) on a curated corpus
+- Stakeholder understanding and satisfaction
+
+### Case Studies (Representative Scenarios)
+1) Regulated fintech: Convert policy text to precise, testable rules; back‑explain for audits.
+2) Platform teams: Formalize API contracts and validate client expectations.
+3) Research and standards: Draft formal proposals from natural‑language discussions.
+
+### Frequently Asked Questions
+Q: Does this replace requirements engineers?
+A: No. It accelerates drafting and improves clarity while keeping humans in control.
+
+Q: Do we need to change how we write specs?
+A: No. You can start with plain English and progressively formalize where it matters.
+
+Q: How do you handle licensing?
+A: We never embed raw licensed material; only derived, safe summaries are stored. Any optional runtime downloads are ephemeral and governed by clear policy.
+
+Q: Which providers do you support?
+A: Multiple local and cloud providers via a pluggable interface. You choose what’s allowed.
+
+### API Overview (Public PoC)
+- POST /llm/prompt-to-spec — English → controlled spec (assist or generate)
+- POST /llm/spec-to-prompt — Formal or controlled spec → English explanation
+- POST /validate/tce — Validate a controlled‑spec statement
+- POST /translate/tce-to-tau — Controlled spec → formal spec
+- GET /rag/retrieve — Retrieve license‑safe knowledge items
+
+All endpoints return structured, deterministic envelopes and never include secrets or raw licensed content.
+
+### Getting Started
+1) Try the live demo on the public site.
+2) Connect your preferred provider (or run locally) and validate a few examples.
+3) Pilot with one team and one document type; instrument results.
+4) Roll out with governance (Assist‑Only first; enable Generate where appropriate).
+
+### Contact
+For early access, partnerships, and enterprise pilots: info@tautranslator.ai
+
 ## Tau Translator Whitepaper (Public PoC Blueprint)
 
 ### Abstract
