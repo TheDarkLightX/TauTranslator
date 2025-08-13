@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tau Translator</title>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
     <meta name="description" content="Production-grade bidirectional translation: English ↔ Tau Controlled English ↔ Tau Language. Deterministic parsing meets LLM assistance." />
     <meta property="og:title" content="Tau Translator" />
     <meta property="og:description" content="Production-grade bidirectional translation: English ↔ TCE ↔ Tau." />
@@ -77,21 +78,21 @@
         <div class="nav-inner">
             <div class="brand"><span class="brand-logo"></span> Tau Translator</div>
             <nav class="nav-links">
+                <a class="btn" href="home.html">Docs</a>
                 <a class="btn" href="WHITEPAPER.html">Whitepaper</a>
-                <a class="btn" href="reference/index.html">API Docs</a>
-                <a class="btn" href="architecture/translation_pipeline.html">Architecture</a>
-                <a class="btn primary" href="translator.html">Try PoC</a>
+                <a class="btn" href="#pricing">Pricing</a>
+                <a class="btn primary" href="translator.html">Try the Demo</a>
             </nav>
         </div>
     </header>
 
     <main class="hero">
         <section class="hero-card">
-            <h1>Deterministic parsing meets LLM assistance</h1>
-            <p>Production-grade bidirectional translation among English, Tau Controlled English (TCE), and Tau Language. Secure, license-compliant, and verifiable by design.</p>
+            <h1>From plain English to verifiable specifications</h1>
+            <p>Turn natural-language intent into clear, testable specs. Translate English ⇄ Controlled English ⇄ Tau Language with confidence.</p>
             <div class="hero-actions">
-                <a class="btn primary" href="WHITEPAPER.html">Read Whitepaper</a>
-                <a class="btn" href="reference/index.html">View API</a>
+                <a class="btn primary" href="translator.html">Try the Demo</a>
+                <a class="btn" href="WHITEPAPER.html">Read the Whitepaper</a>
             </div>
         </section>
         <section class="hero-card">
@@ -106,70 +107,82 @@
 
     <section class="grid">
         <div class="card">
-            <h3>🎨 Presentation</h3>
+            <h3>✨ Clarity</h3>
             <ul>
-                <li>PWA and Desktop (PyQt)</li>
-                <li>Two-pane editor with live validation</li>
-                <li>Diff, provenance, and trace views</li>
+                <li>Remove ambiguity from requirements</li>
+                <li>Human-friendly Controlled English</li>
+                <li>Explainers for non-technical stakeholders</li>
             </ul>
         </div>
         <div class="card">
-            <h3>🔌 API Layer</h3>
+            <h3>✅ Confidence</h3>
             <ul>
-                <li>Prompt→Spec, Spec→Prompt</li>
-                <li>TCE validation and TCE→Tau</li>
-                <li>RAG retrieval of knowledge packs</li>
+                <li>Deterministic validation before acceptance</li>
+                <li>Built-in consistency checks</li>
+                <li>Safe by default</li>
             </ul>
         </div>
         <div class="card">
-            <h3>⚙️ Parsing</h3>
+            <h3>⚡ Speed</h3>
             <ul>
-                <li>Lark (canonical) with Pratt fallback</li>
-                <li>Parser adapter + repair loop</li>
-                <li>ILR transforms and checks</li>
+                <li>Assist mode to draft faster</li>
+                <li>Repair loop to fix minor issues</li>
+                <li>Works with local or cloud LLMs</li>
             </ul>
         </div>
     </section>
 
     <section class="grid">
         <div class="card">
-            <h3>🤖 LLM Integration</h3>
+            <h3>🎯 Use cases</h3>
             <ul>
-                <li>Assist-only and Generate modes</li>
-                <li>Constrained decoding and guards</li>
-                <li>Provider abstraction (local + external)</li>
+                <li>Engineering teams formalizing specs</li>
+                <li>Regulated industries documenting rigor</li>
+                <li>Researchers and standards bodies</li>
             </ul>
         </div>
         <div class="card">
-            <h3>📊 Quality</h3>
+            <h3>🔐 Compliance</h3>
             <ul>
-                <li>ROP error handling</li>
-                <li>TDD and property tests</li>
-                <li>Metrics, logs, and traces</li>
-            </ul>
-        </div>
-        <div class="card">
-            <h3>🔒 Compliance</h3>
-            <ul>
-                <li>License-safe knowledge packs</li>
+                <li>License-safe by design</li>
                 <li>No raw grammar embedding</li>
-                <li>Runtime-only official downloads</li>
+                <li>Clear provenance and boundaries</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>🧪 Try it</h3>
+            <ul>
+                <li>Live demo with example prompts</li>
+                <li>Validate outputs instantly</li>
+                <li><a href="translator.html">Open the Translator</a></li>
             </ul>
         </div>
     </section>
 
-    <section class="section endpoints" id="try">
-        <h2 style="color:var(--brand1); margin: 0 0 12px">Public API Endpoints</h2>
-        <div class="endpoint">POST <code>/llm/prompt-to-spec</code> — Convert English to TCE</div>
-        <div class="endpoint">POST <code>/llm/spec-to-prompt</code> — Convert TCE/Tau to English</div>
-        <div class="endpoint">POST <code>/validate/tce</code> — Validate TCE syntax</div>
-        <div class="endpoint">POST <code>/translate/tce-to-tau</code> — TCE to Tau translation</div>
-        <div class="endpoint">GET <code>/rag/retrieve</code> — Retrieve knowledge pack items</div>
+    <section class="section" id="how">
+        <h2 style="color:var(--brand1); margin: 0 0 12px">How it works</h2>
+        <div class="endpoints">
+            <div class="endpoint">1. Draft in English → get a clear, controlled spec</div>
+            <div class="endpoint">2. Validate before acceptance → fix issues fast</div>
+            <div class="endpoint">3. Translate to formal Tau for downstream tooling</div>
+        </div>
+    </section>
+
+    <section class="section" id="pricing">
+        <h2 style="color:var(--brand1); margin: 0 0 12px">Pricing</h2>
+        <div class="endpoints">
+            <div class="endpoint">Beta: free for early testers. Teams & Enterprise pricing coming soon.</div>
+            <div class="endpoint">Contact: info@tautranslator.ai</div>
+        </div>
     </section>
 
     <footer class="footer">
-        <div>© Tau Translator — Public Proof of Concept</div>
-        <div>English ↔ TCE ↔ Tau • Deterministic parsing + LLM assistance</div>
+        <div>© Tau Translator</div>
+        <div>
+            <a href="home.html">Docs</a> ·
+            <a href="WHITEPAPER.html">Whitepaper</a> ·
+            <a href="#pricing">Pricing</a>
+        </div>
     </footer>
 </body>
 <script>
