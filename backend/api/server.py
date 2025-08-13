@@ -15,7 +15,28 @@ except ImportError as exc:  # fallback for src-layout execution inside container
     raise RuntimeError("Failed to import EnglishToTauTranslator. Did you install the project as a package?") from exc
 
 translator = EnglishToTauTranslator()
+# Enable CORS for PWA frontend
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Tau Translator API", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://www.tautranslator.ai",
+        "https://thedarklightx.github.io",
+        "https://thedarklightx.github.io/TauTranslator",
+    ],
+    allow_credentials=False,
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-OpenRouter-Key"],
+)
+
+# Mount v2 functional endpoints
+from backend.api.endpoints.translation_endpoints import router as translation_router
+from backend.unified.api.llm_endpoints import router as llm_router
+app.include_router(translation_router)
+app.include_router(llm_router)
 
 
 class TranslationResponse(BaseModel):
@@ -25,6 +46,12 @@ class TranslationResponse(BaseModel):
 
 
 @app.get("/healthz")
+async def healthz() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+# Backwards-compat alias used by older PWA clients
+@app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
