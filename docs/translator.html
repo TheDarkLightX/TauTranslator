@@ -27,6 +27,7 @@
     .bar .right { display:flex; align-items:center; gap:8px; }
     .stack { display:flex; align-items:center; gap:8px; }
     small { color: var(--muted); }
+    .hint-box { background: rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.2); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -47,6 +48,7 @@
       </div>
     </div>
     <div class="card">
+      <div class="hint-box" style="margin-bottom:10px">Alpha note: You can attach your own grammar per request (e.g., .tgf). Uploaded files remain in your browser memory; if supported, the backend can accept an uploaded grammar for your session. Do not upload licensed content you do not have rights to share.</div>
       <div class="controls">
         <label style="flex:1">
           Operation
@@ -69,6 +71,34 @@
           <input id="provider" placeholder="openai|local|..." />
         </label>
         <button class="btn primary" id="run">Run</button>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <label>
+          Grammar source
+          <select id="grammarMode">
+            <option value="none">None (use server defaults)</option>
+            <option value="upload">Upload local grammar (.tgf/.lark/.json)</option>
+            <option value="hosted">Use a hosted grammar reference</option>
+          </select>
+        </label>
+        <div id="uploadRow" style="display:none; margin-top:8px">
+          <input type="file" id="grammarFile" accept=".tgf,.lark,.json,.txt" />
+          <label style="display:inline-flex; align-items:center; gap:8px; margin-left:8px">
+            <input type="checkbox" id="attachInline" checked /> Attach to each request
+          </label>
+          <button class="btn" id="clearGrammar" style="margin-left:8px">Clear</button>
+          <div id="uploadStatus" class="hint" style="margin-top:6px"></div>
+        </div>
+        <div id="hostedRow" style="display:none; margin-top:8px">
+          <label>
+            Hosted grammar
+            <select id="hostedSelect">
+              <option value="">Select…</option>
+              <option value="tce_minimal@v1">TCE Minimal @ v1</option>
+            </select>
+          </label>
+          <div class="hint" style="margin-top:6px">Sends a grammar reference (ID/version) to the server. The server decides which artifact to use.</div>
+        </div>
       </div>
       <div class="row">
         <div class="card">
@@ -119,11 +149,73 @@
       return v.replace(/\/$/, '');
     }
 
+    // Grammar UI state
+    let grammarInline = null; // { name, type, size, content }
+    function saveGrammarState(){
+      try{
+        const mode = $('grammarMode').value;
+        localStorage.setItem('tau_grammar_mode', mode);
+        if(mode === 'hosted'){
+          localStorage.setItem('tau_grammar_hosted', $('hostedSelect').value);
+        }
+        localStorage.setItem('tau_grammar_attach_inline', $('attachInline').checked ? '1':'0');
+      }catch{}
+    }
+    function loadGrammarState(){
+      const mode = localStorage.getItem('tau_grammar_mode') || 'none';
+      $('grammarMode').value = mode;
+      const hosted = localStorage.getItem('tau_grammar_hosted') || '';
+      const attach = (localStorage.getItem('tau_grammar_attach_inline') || '1') === '1';
+      const hostedSel = document.getElementById('hostedSelect'); if(hostedSel) hostedSel.value = hosted;
+      const attachCb = document.getElementById('attachInline'); if(attachCb) attachCb.checked = attach;
+      onGrammarModeChange();
+    }
+    function onGrammarModeChange(){
+      const m = $('grammarMode').value;
+      $('uploadRow').style.display = (m === 'upload') ? '' : 'none';
+      $('hostedRow').style.display = (m === 'hosted') ? '' : 'none';
+      const st = document.getElementById('uploadStatus'); if(st) st.textContent = grammarInline ? `Loaded: ${grammarInline.name} (${grammarInline.size} bytes)` : '';
+      saveGrammarState();
+    }
+    $('grammarMode')?.addEventListener('change', onGrammarModeChange);
+    $('hostedSelect')?.addEventListener('change', saveGrammarState);
+    $('attachInline')?.addEventListener('change', saveGrammarState);
+    $('clearGrammar')?.addEventListener('click', ()=>{ grammarInline = null; const st = document.getElementById('uploadStatus'); if(st) st.textContent=''; });
+    $('grammarFile')?.addEventListener('change', (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f){ return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        grammarInline = { name: f.name, type: f.type || 'text/plain', size: f.size, content: String(reader.result) };
+        const st = document.getElementById('uploadStatus'); if(st) st.textContent = `Loaded: ${grammarInline.name} (${grammarInline.size} bytes)`;
+        saveGrammarState();
+      };
+      reader.readAsText(f);
+    });
+    loadGrammarState();
+
     async function post(path, body){
       const url = apiBase() + path;
       const headers = { 'Content-Type':'application/json' };
       const byok = $('byok').value.trim();
       if(byok){ headers['X-OpenRouter-Key'] = byok; }
+      // Attach grammar metadata/payload if selected
+      const mode = (document.getElementById('grammarMode')||{}).value || 'none';
+      if(mode === 'upload' && grammarInline && (document.getElementById('attachInline')||{checked:false}).checked){
+        body.grammar_inline = {
+          name: grammarInline.name,
+          mime: grammarInline.type,
+          size: grammarInline.size,
+          content: grammarInline.content
+        };
+      } else if (mode === 'hosted'){
+        const selEl = document.getElementById('hostedSelect');
+        const sel = selEl ? selEl.value : '';
+        if(sel){
+          const parts = sel.split('@');
+          body.grammar_ref = { id: parts[0], version: (parts[1]||'').replace(/^v/,'') };
+        }
+      }
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
       if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
       return res.json();
