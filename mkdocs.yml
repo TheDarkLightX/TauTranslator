@@ -3,7 +3,7 @@ site_url: https://www.tautranslator.ai/
 repo_url: https://github.com/your-org/TauTranslatorOmega
 repo_name: TauTranslatorOmega
 nav:
-  - Home: index.md
+  - Home: home.md
   - Architecture:
       - Translation Pipeline: architecture/translation_pipeline.md
       - Grammar Engine: architecture/grammar_engine.md

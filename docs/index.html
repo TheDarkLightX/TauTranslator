@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tau Translator</title>
+    <meta name="description" content="Production-grade bidirectional translation: English ↔ Tau Controlled English ↔ Tau Language. Deterministic parsing meets LLM assistance." />
+    <meta property="og:title" content="Tau Translator" />
+    <meta property="og:description" content="Production-grade bidirectional translation: English ↔ TCE ↔ Tau." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.tautranslator.ai/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --bg1: #0f0f1e; --bg2: #1a1a2e; --fg: #e0e0e0; --muted:#a3a3a3;
+            --brand1:#00d4ff; --brand2:#0099ff; --accent:#00ff88; --card: rgba(255,255,255,0.06);
+            --border: rgba(255,255,255,0.12); --glass: rgba(255,255,255,0.04);
+        }
+        body {
+            margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(1200px 800px at 10% -10%, rgba(0, 212, 255, 0.15), transparent 60%),
+                        radial-gradient(1200px 800px at 90% -10%, rgba(0, 153, 255, 0.15), transparent 60%),
+                        linear-gradient(135deg, var(--bg1), var(--bg2));
+            color: var(--fg);
+        }
+        a { color: var(--brand1); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .nav {
+            position: sticky; top:0; z-index:10; backdrop-filter: blur(8px);
+            background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.05));
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+        .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:0.2px; }
+        .brand-logo { width:28px; height:28px; border-radius:8px; background: linear-gradient(45deg, var(--brand1), var(--brand2)); box-shadow: 0 0 24px rgba(0,212,255,0.4) inset; }
+        .nav-links { display:flex; gap:16px; font-size:14px; }
+        .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; border:1px solid var(--border); background: var(--glass); color: var(--fg); text-decoration:none; transition: transform 120ms ease, background 120ms ease; }
+        .btn.primary { background: linear-gradient(45deg, var(--brand1), var(--brand2)); border-color: transparent; color:#081018; font-weight:700; }
+        .btn:hover { transform: translateY(-1px); text-decoration: none; }
+
+        .hero { max-width:1200px; margin:40px auto; padding:24px; display:grid; grid-template-columns:1.1fr 0.9fr; gap:24px; }
+        .hero-card { background: var(--glass); border:1px solid var(--border); border-radius:18px; padding:28px; }
+        .hero h1 { font-size:40px; line-height:1.1; margin:0 0 10px; background: linear-gradient(45deg, var(--brand1), var(--brand2), var(--brand1)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { color: var(--muted); margin: 8px 0 18px; }
+        .hero-actions { display:flex; gap:12px; flex-wrap:wrap; }
+
+        .flow { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+        .flow .node { position:relative; text-align:center; padding:18px; background: var(--card); border:1px solid var(--border); border-radius:12px; }
+        .flow .node h3 { margin:0 0 6px; font-size:16px; color: var(--brand1); }
+        .flow .node p { margin:0; color:#bdbdbd; font-size:13px; }
+        .flow .node::after { content:"→"; position:absolute; right:-10px; top:50%; transform:translateY(-50%); color: var(--brand1); font-weight:700; }
+        .flow .node:last-child::after { display:none; }
+
+        .grid { max-width:1200px; margin:0 auto 28px; padding:0 24px; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+        .card { background: var(--glass); border:1px solid var(--border); border-radius:14px; padding:20px; }
+        .card h3 { margin:0 0 10px; color: var(--brand1); font-size:18px; }
+        .card ul { margin:0; padding-left:18px; }
+        .card li { color:#c9c9c9; margin:6px 0; }
+
+        .section { max-width:1200px; margin:0 auto 28px; padding:0 24px; }
+        .endpoints .endpoint { border-left:3px solid var(--brand1); background: var(--card); padding:12px 16px; margin:10px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:13px; color:#dfe7ff; }
+
+        .footer { max-width:1200px; margin:28px auto 40px; padding:0 24px; color:#9aa0a6; font-size:13px; text-align:center; }
+
+        @media (max-width: 960px) {
+            .hero { grid-template-columns: 1fr; }
+            .flow { grid-template-columns: repeat(2, 1fr); }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="nav">
+        <div class="nav-inner">
+            <div class="brand"><span class="brand-logo"></span> Tau Translator</div>
+            <nav class="nav-links">
+                <a class="btn" href="WHITEPAPER.html">Whitepaper</a>
+                <a class="btn" href="reference/index.html">API Docs</a>
+                <a class="btn" href="architecture/translation_pipeline.html">Architecture</a>
+                <a class="btn primary" href="#try">Try PoC</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="hero">
+        <section class="hero-card">
+            <h1>Deterministic parsing meets LLM assistance</h1>
+            <p>Production-grade bidirectional translation among English, Tau Controlled English (TCE), and Tau Language. Secure, license-compliant, and verifiable by design.</p>
+            <div class="hero-actions">
+                <a class="btn primary" href="WHITEPAPER.html">Read Whitepaper</a>
+                <a class="btn" href="reference/index.html">View API</a>
+            </div>
+        </section>
+        <section class="hero-card">
+            <div class="flow">
+                <div class="node"><h3>Plain English</h3><p>Human spec</p></div>
+                <div class="node"><h3>TCE</h3><p>Controlled English</p></div>
+                <div class="node"><h3>ILR</h3><p>Intermediate Logic</p></div>
+                <div class="node"><h3>Tau Language</h3><p>Formal spec</p></div>
+            </div>
+        </section>
+    </main>
+
+    <section class="grid">
+        <div class="card">
+            <h3>🎨 Presentation</h3>
+            <ul>
+                <li>PWA and Desktop (PyQt)</li>
+                <li>Two-pane editor with live validation</li>
+                <li>Diff, provenance, and trace views</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>🔌 API Layer</h3>
+            <ul>
+                <li>Prompt→Spec, Spec→Prompt</li>
+                <li>TCE validation and TCE→Tau</li>
+                <li>RAG retrieval of knowledge packs</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>⚙️ Parsing</h3>
+            <ul>
+                <li>Lark (canonical) with Pratt fallback</li>
+                <li>Parser adapter + repair loop</li>
+                <li>ILR transforms and checks</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="card">
+            <h3>🤖 LLM Integration</h3>
+            <ul>
+                <li>Assist-only and Generate modes</li>
+                <li>Constrained decoding and guards</li>
+                <li>Provider abstraction (local + external)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>📊 Quality</h3>
+            <ul>
+                <li>ROP error handling</li>
+                <li>TDD and property tests</li>
+                <li>Metrics, logs, and traces</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>🔒 Compliance</h3>
+            <ul>
+                <li>License-safe knowledge packs</li>
+                <li>No raw grammar embedding</li>
+                <li>Runtime-only official downloads</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="section endpoints" id="try">
+        <h2 style="color:var(--brand1); margin: 0 0 12px">Public API Endpoints</h2>
+        <div class="endpoint">POST <code>/llm/prompt-to-spec</code> — Convert English to TCE</div>
+        <div class="endpoint">POST <code>/llm/spec-to-prompt</code> — Convert TCE/Tau to English</div>
+        <div class="endpoint">POST <code>/validate/tce</code> — Validate TCE syntax</div>
+        <div class="endpoint">POST <code>/translate/tce-to-tau</code> — TCE to Tau translation</div>
+        <div class="endpoint">GET <code>/rag/retrieve</code> — Retrieve knowledge pack items</div>
+    </section>
+
+    <footer class="footer">
+        <div>© Tau Translator — Public Proof of Concept</div>
+        <div>English ↔ TCE ↔ Tau • Deterministic parsing + LLM assistance</div>
+    </footer>
+</body>
+<script>
+// Minimal scroll enhancement (non-critical)
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{e.preventDefault();document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});});
+});
+</script>
+</html>
+
+
