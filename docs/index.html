@@ -42,13 +42,16 @@
         .btn.primary { background: linear-gradient(45deg, var(--brand1), var(--brand2)); border-color: transparent; color:#081018; font-weight:700; }
         .btn:hover { transform: translateY(-1px); text-decoration: none; }
 
+        .badge { font-size: 11px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--glass); color: var(--muted); font-weight: 600; letter-spacing: 0.4px; }
+        .alpha-banner { text-align: center; padding: 8px 12px; color: #bfc6d1; background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--border); font-size: 13px; }
+
         .hero { max-width:1200px; margin:40px auto; padding:24px; display:grid; grid-template-columns:1.1fr 0.9fr; gap:24px; }
         .hero-card { background: var(--glass); border:1px solid var(--border); border-radius:18px; padding:28px; }
         .hero h1 { font-size:40px; line-height:1.1; margin:0 0 10px; background: linear-gradient(45deg, var(--brand1), var(--brand2), var(--brand1)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .hero p { color: var(--muted); margin: 8px 0 18px; }
         .hero-actions { display:flex; gap:12px; flex-wrap:wrap; }
 
-        .flow { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+        .flow { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
         .flow .node { position:relative; text-align:center; padding:18px; background: var(--card); border:1px solid var(--border); border-radius:12px; }
         .flow .node h3 { margin:0 0 6px; font-size:16px; color: var(--brand1); }
         .flow .node p { margin:0; color:#bdbdbd; font-size:13px; }
@@ -76,22 +79,23 @@
 <body>
     <header class="nav">
         <div class="nav-inner">
-            <div class="brand"><span class="brand-logo"></span> Tau Translator</div>
+            <div class="brand"><span class="brand-logo"></span> Tau Translator <span class="badge">ALPHA</span></div>
             <nav class="nav-links">
                 <a class="btn" href="home.html">Docs</a>
                 <a class="btn" href="WHITEPAPER.html">Whitepaper</a>
                 <a class="btn" href="#pricing">Pricing</a>
-                <a class="btn primary" href="translator.html">Try the Demo</a>
+                <a class="btn primary" href="translator.html">Try the Alpha</a>
             </nav>
         </div>
     </header>
+    <div class="alpha-banner">Alpha release: features are under active development. Validation is strict; feedback is welcome via <a href="https://github.com/TheDarkLightX/TauTranslator/issues/new" target="_blank" rel="noopener">GitHub Issues</a>.</div>
 
     <main class="hero">
         <section class="hero-card">
             <h1>From plain English to verifiable specifications</h1>
-            <p>Turn natural-language intent into clear, testable specs. Translate English ⇄ Controlled English ⇄ Tau Language with confidence.</p>
+            <p>Turn natural‑language intent into clear, testable specs. Translate English ⇄ Controlled English ⇄ Tau Language with confidence.</p>
             <div class="hero-actions">
-                <a class="btn primary" href="translator.html">Try the Demo</a>
+                <a class="btn primary" href="translator.html">Try the Alpha</a>
                 <a class="btn" href="WHITEPAPER.html">Read the Whitepaper</a>
             </div>
         </section>
@@ -99,7 +103,6 @@
             <div class="flow">
                 <div class="node"><h3>Plain English</h3><p>Human spec</p></div>
                 <div class="node"><h3>TCE</h3><p>Controlled English</p></div>
-                <div class="node"><h3>ILR</h3><p>Intermediate Logic</p></div>
                 <div class="node"><h3>Tau Language</h3><p>Formal spec</p></div>
             </div>
         </section>
@@ -152,7 +155,7 @@
         <div class="card">
             <h3>🧪 Try it</h3>
             <ul>
-                <li>Live demo with example prompts</li>
+                <li>Alpha with example prompts</li>
                 <li>Validate outputs instantly</li>
                 <li><a href="translator.html">Open the Translator</a></li>
             </ul>
@@ -172,7 +175,7 @@
         <h2 style="color:var(--brand1); margin: 0 0 12px">Pricing</h2>
         <div class="endpoints">
             <div class="endpoint">Beta: free for early testers. Teams & Enterprise pricing coming soon.</div>
-            <div class="endpoint">Contact: info@tautranslator.ai</div>
+            <div class="endpoint">Contact: <a href="https://github.com/TheDarkLightX/TauTranslator/issues/new" target="_blank" rel="noopener">GitHub Issues</a></div>
         </div>
     </section>
 
