@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; connect-src 'self' https://api.tautranslator.ai https://tau-translator-api.fly.dev; font-src 'self' https://cdnjs.cloudflare.com data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'" />
   <title>Tau Translator — Alpha</title>
   <style>
     :root { --bg:#0f0f1e; --card:#13132a; --fg:#e8e8e8; --muted:#a3a3a3; --b:#1f2040; --brand:#00d4ff; --ok:#00ff88; --err:#ff6b6b; }
@@ -107,7 +108,9 @@
       <div class="row">
         <div class="card">
           <label id="inLabel">Input</label>
-          <textarea id="input" placeholder="e.g., x equals 5"></textarea>
+          <div id="editor" style="height: 320px; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
+          <textarea id="input" placeholder="e.g., always (x equals 5)" style="display:none; margin-top:8px; min-height: 160px;"></textarea>
+          <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
         </div>
         <div class="card">
           <div class="cols">
@@ -128,6 +131,29 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js" crossorigin="anonymous"></script>
+  <script>
+    // Configure Monaco worker to load via blob with a CDN baseUrl
+    window.MonacoEnvironment = {
+      getWorkerUrl: function () {
+        const code = "self.MonacoEnvironment={baseUrl:'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/'};importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/base/worker/workerMain.js');";
+        const blob = new Blob([code], { type: 'text/javascript' });
+        return URL.createObjectURL(blob);
+      }
+    };
+  </script>
+  <script>
+    // Fallback: if CDN blocked by CSP/host, lazy-load AMD loader via blob
+    if(!window.require){
+      console.warn('Monaco AMD loader not present, attempting inline fallback');
+      (function(){
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';
+        s.crossOrigin = 'anonymous';
+        document.head.appendChild(s);
+      })();
+    }
+  </script>
   <script>
     const $ = (id)=>document.getElementById(id);
     const qs = new URLSearchParams(location.search);
@@ -236,6 +262,127 @@
       $('outReasons').textContent = msgs.join('\n\n');
     }
 
+    // Monaco setup
+    let editor = null;
+    let resolveMonacoReady = null;
+    let monacoReady = new Promise((resolve)=>{
+      resolveMonacoReady = resolve;
+      window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+      window.require(['vs/editor/editor.main'], function(){
+        editor = monaco.editor.create($("editor"), {
+          value: '',
+          language: 'plaintext',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          minimap: { enabled: false },
+          fontSize: 13,
+          suggest: { preview: true }
+        });
+        registerCompletionProvider();
+        hookDiagnostics();
+        resolveMonacoReady && resolveMonacoReady();
+      });
+    });
+
+    // Fallback if Monaco fails to initialize quickly
+    setTimeout(() => {
+      if (!window.require || !editor) {
+        const ta = $("input");
+        if (ta) {
+          ta.style.display = '';
+        }
+        const ed = $("editor");
+        if (ed) {
+          ed.style.display = 'none';
+        }
+        resolveMonacoReady && resolveMonacoReady();
+      }
+    }, 1500);
+
+    function getEditorText(){ return editor ? editor.getValue() : ($("input") ? $("input").value : ''); }
+
+    function getCursorOffset(){
+      if(!editor) return 0;
+      const model = editor.getModel();
+      const pos = editor.getPosition();
+      return model.getOffsetAt(pos);
+    }
+
+    // Diagnostics: call backend validation and show squiggles
+    function hookDiagnostics(){
+      if(!editor) return;
+      const model = editor.getModel();
+      const debounced = debounce(()=>{
+        const value = model.getValue();
+        (async ()=>{
+          try{
+            const res = await post('/validate/tce', { tce: value });
+            const markers = [];
+            if(!res.valid && Array.isArray(res.errors)){
+              for(const msg of res.errors){
+                markers.push(marker(1,1,String(msg), monaco.MarkerSeverity.Error));
+              }
+            }
+            monaco.editor.setModelMarkers(model, 'tce-diagnostics', markers);
+          }catch{
+            // fallback to local checks
+            const markers = [];
+            if(/:\s/.test(value)) markers.push(marker(1,1,'Avoid colons in TCE', monaco.MarkerSeverity.Warning));
+            if(!balancedParens(value)) markers.push(marker(1,1,'Unbalanced parentheses', monaco.MarkerSeverity.Error));
+            monaco.editor.setModelMarkers(model, 'tce-diagnostics', markers);
+          }
+        })();
+      }, 300);
+      editor.onDidChangeModelContent(debounced);
+    }
+
+    function balancedParens(text){
+      let c=0; for(const ch of text){ if(ch==='(') c++; else if(ch===')') c--; if(c<0) return false; } return c===0;
+    }
+    function marker(line, col, message, severity){
+      return { startLineNumber: line, startColumn: col, endLineNumber: line, endColumn: col+1, message, severity };
+    }
+
+    function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(null,args), ms); } }
+
+    async function fetchSuggestions(){
+      const body = {
+        context: {
+          full_text: getEditorText(),
+          cursor_position: getCursorOffset(),
+          language_mode: 'TCE',
+          context_type: 'logical_assertion',
+          learning_level: 'intermediate'
+        },
+        max_suggestions: 8
+      };
+      try{
+        const res = await post('/edu/suggestions', body);
+        return Array.isArray(res.suggestions) ? res.suggestions : [];
+      }catch{ return []; }
+    }
+
+    function registerCompletionProvider(){
+      monaco.languages.registerCompletionItemProvider('plaintext', {
+        triggerCharacters: [' ', '(', ')'],
+        provideCompletionItems: async (model, position) => {
+          const suggestions = await fetchSuggestions();
+          const range = new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column);
+          return {
+            suggestions: suggestions.map((s, idx)=>({
+              label: s.display || s.text,
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: s.text,
+              detail: s.description || s.category,
+              documentation: s.example || '',
+              range,
+              sortText: String(idx).padStart(4,'0')
+            }))
+          };
+        }
+      });
+    }
+
     $('run').onclick = async ()=>{
       $('run').disabled = true;
       setOutputs({ tce:'', tau:'', reasons:[], errors:[] });
@@ -243,7 +390,7 @@
         const op = $('op').value;
         const mode = $('mode').value;
         const provider = $('provider').value.trim() || undefined;
-        const input = $('input').value.trim();
+        const input = getEditorText().trim();
         if(!input){ throw new Error('Enter input.'); }
 
         if(op === 'p2s'){
@@ -253,7 +400,7 @@
           setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [] });
         } else if (op === 'validate'){
           const r = await post('/validate/tce', { tce: input });
-          setOutputs({ valid: r.valid, reasons: r.errors ? [] : [], errors: r.errors || [] });
+          setOutputs({ valid: !!r.valid, reasons: [], errors: r.errors || [] });
         } else if (op === 'tce2tau'){
           const r = await post('/translate/tce-to-tau', { tce: input });
           setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
