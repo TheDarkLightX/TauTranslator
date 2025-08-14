@@ -230,8 +230,28 @@ class EducationalAutocompleteService:
     
     def _translate_tau_to_tce(self, tau_text: str) -> Result[str]:
         """Translate TAU to TCE."""
-        # This would need implementation
-        return Failure("NOT_IMPLEMENTED", "TAU to TCE translation not yet implemented")
+        text = (tau_text or "").strip()
+        if not text:
+            return Failure("EMPTY", "No TAU text provided")
+        # Heuristic normalization: map TAU tokens to our TCE-friendly forms
+        t = text
+        # Quantifiers
+        t = t.replace("forall ", "all ")
+        t = t.replace("exists ", "ex ")
+        # Logical ops
+        t = t.replace("&&", " and ")
+        t = t.replace("||", " or ")
+        t = t.replace("!", "not ")
+        # Implication: keep -> for now since our TCE accepts it and validators recognize it
+        # Whitespace tidying
+        while "  " in t:
+            t = t.replace("  ", " ")
+        # Ensure always (...) spacing if present
+        t = t.replace("always(", "always (")
+        # Balance outer parenthesis for simple always
+        if t.lower().startswith("always ") and not t.strip().endswith(")"):
+            t = t + ")"
+        return Success(t)
     
     def _generate_context_help(
         self,

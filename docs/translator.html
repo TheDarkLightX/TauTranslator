@@ -61,6 +61,13 @@
           </select>
         </label>
         <label>
+          Language
+          <select id="lang">
+            <option value="TCE">TCE</option>
+            <option value="TAU">TAU</option>
+          </select>
+        </label>
+        <label>
           Mode
           <select id="mode">
             <option value="assist">assist</option>
@@ -344,6 +351,8 @@
       const model = editor.getModel();
       const debounced = debounce(()=>{
         const value = model.getValue();
+        const lang = ($('lang').value||'TCE').toUpperCase();
+        if(lang !== 'TCE') { monaco.editor.setModelMarkers(model, 'tce-diagnostics', []); return; }
         (async ()=>{
           try{
             const res = await post('/validate/tce', { tce: value });
@@ -376,11 +385,12 @@
     function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(null,args), ms); } }
 
     async function fetchSuggestions(){
+      const lang = ($('lang').value||'TCE');
       const body = {
         context: {
           full_text: getEditorText(),
           cursor_position: getCursorOffset(),
-          language_mode: 'TCE',
+          language_mode: lang,
           context_type: 'logical_assertion',
           learning_level: 'intermediate'
         },
@@ -421,6 +431,7 @@
         const mode = $('mode').value;
         const provider = $('provider').value.trim() || undefined;
         const input = getEditorText().trim();
+        const lang = ($('lang').value||'TCE').toUpperCase();
         if(!input){ throw new Error('Enter input.'); }
 
         if(op === 'p2s'){
@@ -442,10 +453,17 @@
           const r = await post('/translate/tce-to-tau', { tce: input });
           setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
         } else if (op === 's2p'){
-          const isTau = /(^\s*module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
+          const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
           const r = await post('/llm/spec-to-prompt', payload);
           setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '' });
+          // Bidirectional translate-selection (convenience)
+          try {
+            const tr = await post('/edu/translate-selection', { text: input, from_language: lang, to_language: (lang==='TCE'?'TAU':'TCE') });
+            if(tr && tr.translated){
+              if(lang==='TCE') $('outTau').textContent = tr.translated; else $('outTce').textContent = tr.translated;
+            }
+          } catch {}
         }
       } catch (e){
         setOutputs({ errors: [String(e && e.message || e)] });
