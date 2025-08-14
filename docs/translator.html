@@ -73,6 +73,21 @@
         </label>
         <button class="btn primary" id="run">Translate</button>
       </div>
+      <div class="controls" style="margin-top:6px">
+        <details>
+          <summary>Constraints (LMQL‑lite)</summary>
+          <label class="hint" style="display:block; margin:6px 0">Deterministic constraints for Prompt → Spec. Applied before validation with a one‑shot repair.</label>
+          <div class="cols">
+            <label><input type="checkbox" id="cRequireAlways" checked /> Require prefix "always ("</label>
+            <label><input type="checkbox" id="cRequireClose" checked /> Require closing ")"</label>
+            <label><input type="checkbox" id="cForbidColon" checked /> Forbid colon (:)</label>
+            <label>
+              Allowed connectives
+              <input id="cAllowedConns" value="and,or,->,!" />
+            </label>
+          </div>
+        </details>
+      </div>
       <div class="card" style="margin-bottom:10px">
         <label>
           Grammar source
@@ -121,6 +136,16 @@
             <div>
               <label>Tau</label>
               <div id="outTau" class="mono"></div>
+            </div>
+          </div>
+          <div class="cols" style="margin-top:10px">
+            <div>
+              <label>Prompt candidate</label>
+              <div id="outPromptCandidate" class="mono"></div>
+            </div>
+            <div>
+              <label>Analysis</label>
+              <div id="outAnalysis" class="mono"></div>
             </div>
           </div>
           <label style="margin-top:10px">Reasons / Errors</label>
@@ -251,9 +276,11 @@
       return res.json();
     }
 
-    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[] }){
+    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null }){
       $('outTce').textContent = tce || '';
       $('outTau').textContent = tau || '';
+      $('outPromptCandidate').textContent = prompt_candidate || '';
+      $('outAnalysis').textContent = analysis ? JSON.stringify(analysis) : '';
       const msgs = [];
       if(Array.isArray(reasons) && reasons.length) msgs.push('Reasons:\n- ' + reasons.join('\n- '));
       if(Array.isArray(errors) && errors.length) msgs.push('Errors:\n- ' + errors.join('\n- '));
@@ -396,6 +423,13 @@
         if(op === 'p2s'){
           const body = { prompt: input, mode };
           if(provider) body.provider = provider;
+          // Attach constraints
+          body.constraints = {
+            require_prefix: $('cRequireAlways').checked ? 'always (' : '',
+            require_closing_paren: $('cRequireClose').checked,
+            forbid_colon: $('cForbidColon').checked,
+            allowed_connectives: $('cAllowedConns').value.split(',').map(s=>s.trim()).filter(Boolean)
+          };
           const r = await post('/llm/prompt-to-spec', body);
           setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [] });
         } else if (op === 'validate'){
@@ -408,7 +442,7 @@
           const isTau = /(^\s*module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
           const r = await post('/llm/spec-to-prompt', payload);
-          setOutputs({ tce: '', tau: '', reasons: [r.explanation] });
+          setOutputs({ tce: '', tau: '', reasons: [r.explanation], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null });
         }
       } catch (e){
         setOutputs({ errors: [String(e && e.message || e)] });

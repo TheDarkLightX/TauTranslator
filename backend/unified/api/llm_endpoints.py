@@ -58,6 +58,8 @@ class PromptToSpecBody(BaseModel):
     # Optional grammar steering
     grammar_inline: dict | None = None  # { name, mime, size, content }
     grammar_ref: dict | None = None     # { id, version }
+    # Optional LMQL-lite constraints
+    constraints: dict | None = None     # { require_prefix, require_closing_paren, forbid_colon, allowed_connectives }
 
 
 @router.post("/prompt-to-spec", response_model=PromptToSpecResponse)
@@ -130,7 +132,29 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         tce = tce.replace(':', ' ')
     if not tce.endswith(')') and 'always (' in tce:
         tce = tce + ')'
+    # Apply LMQL-lite constraints if provided
     reasons = []
+    constraints = body.constraints or {}
+    req_prefix = (constraints.get('require_prefix') or '').strip()
+    if req_prefix and not tce.strip().lower().startswith(req_prefix.lower()):
+        if req_prefix.lower().startswith('always '):
+            tce = f"{req_prefix}{tce.strip()}"
+        reasons.append(f"Applied prefix constraint: {req_prefix}")
+    if constraints.get('require_closing_paren') and tce.strip().lower().startswith('always (') and not tce.strip().endswith(')'):
+        tce = tce + ')'
+        reasons.append("Closed trailing parenthesis")
+    if constraints.get('forbid_colon') and ':' in tce:
+        tce = tce.replace(':', ' ')
+        reasons.append("Removed colon per constraint")
+    allowed = constraints.get('allowed_connectives') or []
+    if isinstance(allowed, list) and allowed:
+        # normalize common synonyms toward allowed tokens
+        if '->' in allowed:
+            tce = re.sub(r"\b(implies|=>|⇒)\b", "->", tce, flags=re.IGNORECASE)
+        if 'and' in allowed:
+            tce = re.sub(r"\bAND\b", "and", tce)
+        if 'or' in allowed:
+            tce = re.sub(r"\bOR\b", "or", tce)
     tau = None
     if CNLParser is not None and TCETauTranslator is not None:
         try:
@@ -239,6 +263,27 @@ async def spec_to_prompt(body: SpecToPromptBody):
         return f"This {spec_type.upper()} expresses: {human}"
 
     explanation = _explain_spec_text(body.spec_text, body.spec_type)
-    return SpecToPromptResponse(success=True, explanation=explanation, provenance={"spec_type": body.spec_type})
+
+    # Generate a compact prompt candidate and structured analysis for UI use
+    def _prompt_candidate(text: str, spec_type: str) -> str:
+        t = " ".join(text.split())
+        # Use existing explanation minus prefix
+        base = explanation.replace(f"This {spec_type.upper()} expresses:", "").strip()
+        # Fallback to raw text if trimming fails
+        return base if base else t
+
+    def _structured_analysis(text: str) -> dict:
+        t = text.lower()
+        analysis = {
+            "temporal": bool(re.search(r"^\s*always\s*\(", text, flags=re.IGNORECASE)),
+            "implication": "->" in t or " implies " in t,
+            "quantifiers": [q for q in ["all", "ex"] if re.search(fr"\b{q}\b", t)],
+            "time_indices": list(set(re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\[t\]", text)))
+        }
+        return analysis
+
+    pc = _prompt_candidate(body.spec_text, body.spec_type)
+    an = _structured_analysis(body.spec_text)
+    return SpecToPromptResponse(success=True, explanation=explanation, provenance={"spec_type": body.spec_type}, prompt_candidate=pc, analysis=an)
 
 
