@@ -155,6 +155,38 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             tce = re.sub(r"\bAND\b", "and", tce)
         if 'or' in allowed:
             tce = re.sub(r"\bOR\b", "or", tce)
+
+    # Final DFA-like gate: ensure only allowed tokens and a balanced structure inside always(...)
+    def _gate_tokens(candidate: str) -> tuple[str, list[str]]:
+        msgs: list[str] = []
+        text = candidate.strip()
+        # Enforce always ( ... ) wrapper
+        if not text.lower().startswith('always ('):
+            text = f"always ({text})"
+            msgs.append("Wrapped in always (...) per constraint gate")
+        # Balance parentheses
+        bal = 0
+        for ch in text:
+            if ch == '(': bal += 1
+            elif ch == ')': bal -= 1
+            if bal < 0:
+                msgs.append("Parenthesis underflow; attempted normalization")
+                break
+        if bal > 0:
+            text = text + (')' * bal)
+            msgs.append("Balanced missing closing parenthesis")
+        # Whitelist simple token set (letters, digits, underscore, space, basic connectives and punctuation inside always)
+        # Replace disallowed punctuation with space
+        cleaned = re.sub(r"[^A-Za-z0-9_\s\(\)\-\>\|\&'\[\]]+", " ", text)
+        if cleaned != text:
+            msgs.append("Removed unsupported characters")
+            text = cleaned
+        # Normalize multiple spaces
+        text = re.sub(r"\s+", " ", text).strip()
+        return text, msgs
+
+    tce, gate_msgs = _gate_tokens(tce)
+    reasons.extend(gate_msgs)
     tau = None
     if CNLParser is not None and TCETauTranslator is not None:
         try:

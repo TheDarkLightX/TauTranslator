@@ -317,6 +317,7 @@
         });
         registerCompletionProvider();
         hookDiagnostics();
+        registerQuickFix();
         resolveMonacoReady && resolveMonacoReady();
       });
     });
@@ -386,9 +387,16 @@
 
     async function fetchSuggestions(){
       const lang = ($('lang').value||'TCE');
+      const full = getEditorText();
+      const prefix = full.slice(0, getCursorOffset());
+      window.__tau_cache = window.__tau_cache || { sugg: new Map() };
+      const key = `${lang}::${prefix}`;
+      if(window.__tau_cache.sugg.has(key)){
+        return window.__tau_cache.sugg.get(key);
+      }
       const body = {
         context: {
-          full_text: getEditorText(),
+          full_text: full,
           cursor_position: getCursorOffset(),
           language_mode: lang,
           context_type: 'logical_assertion',
@@ -398,7 +406,9 @@
       };
       try{
         const res = await post('/edu/suggestions', body);
-        return Array.isArray(res.suggestions) ? res.suggestions : [];
+        const arr = Array.isArray(res.suggestions) ? res.suggestions : [];
+        window.__tau_cache.sugg.set(key, arr);
+        return arr;
       }catch{ return []; }
     }
 
@@ -419,6 +429,25 @@
               sortText: String(idx).padStart(4,'0')
             }))
           };
+        }
+      });
+    }
+
+    // Quick Fix lightbulb: normalize connectives, balance parens
+    function registerQuickFix(){
+      if(!editor) return;
+      const actionId = 'tau.quickfix.normalize';
+      editor.addAction({
+        id: actionId,
+        label: 'Normalize connectives / balance parens',
+        keybindings: [],
+        contextMenuGroupId: 'navigation',
+        run: function(ed){
+          const val = ed.getValue();
+          let t = val.replace(/\bAND\b/g,'and').replace(/\bOR\b/g,'or').replace(/=>|⇒/g,'->').replace(/:\s/g,' ');
+          let bal=0; for(const ch of t){ if(ch==='(') bal++; else if(ch===')') bal--; }
+          if(bal>0) t = t + ')'.repeat(bal);
+          ed.executeEdits('quickfix', [{ range: ed.getModel().getFullModelRange(), text: t }]);
         }
       });
     }
