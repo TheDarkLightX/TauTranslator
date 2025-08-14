@@ -148,6 +148,8 @@
               <div id="outAnalysis" class="mono"></div>
             </div>
           </div>
+          <label style="margin-top:10px">Explanation</label>
+          <div id="outExplanation" class="mono"></div>
           <label style="margin-top:10px">Reasons / Errors</label>
           <div id="outReasons" class="mono"></div>
         </div>
@@ -276,11 +278,12 @@
       return res.json();
     }
 
-    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null }){
+    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='' }){
       $('outTce').textContent = tce || '';
       $('outTau').textContent = tau || '';
       $('outPromptCandidate').textContent = prompt_candidate || '';
       $('outAnalysis').textContent = analysis ? JSON.stringify(analysis) : '';
+      $('outExplanation').textContent = explanation || '';
       const msgs = [];
       if(Array.isArray(reasons) && reasons.length) msgs.push('Reasons:\n- ' + reasons.join('\n- '));
       if(Array.isArray(errors) && errors.length) msgs.push('Errors:\n- ' + errors.join('\n- '));
@@ -442,7 +445,7 @@
           const isTau = /(^\s*module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
           const r = await post('/llm/spec-to-prompt', payload);
-          setOutputs({ tce: '', tau: '', reasons: [r.explanation], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null });
+          setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '' });
         }
       } catch (e){
         setOutputs({ errors: [String(e && e.message || e)] });
