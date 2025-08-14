@@ -405,10 +405,10 @@
           const r = await post('/translate/tce-to-tau', { tce: input });
           setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
         } else if (op === 's2p'){
-          const isTau = /(^\s*module\b|\bdefine\b|;\s*$)/i.test(input);
-          const payload = isTau ? { tau: input } : { tce: input };
+          const isTau = /(^\s*module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
+          const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
           const r = await post('/llm/spec-to-prompt', payload);
-          setOutputs({ tce: '', tau: '', reasons: [r.prompt, ...(r.explanations||[])] });
+          setOutputs({ tce: '', tau: '', reasons: [r.explanation] });
         }
       } catch (e){
         setOutputs({ errors: [String(e && e.message || e)] });
