@@ -262,28 +262,135 @@ async def spec_to_prompt(body: SpecToPromptBody):
         human = re.sub(r"_+", " ", human)
         return f"This {spec_type.upper()} expresses: {human}"
 
-    explanation = _explain_spec_text(body.spec_text, body.spec_type)
+    text = body.spec_text
 
-    # Generate a compact prompt candidate and structured analysis for UI use
-    def _prompt_candidate(text: str, spec_type: str) -> str:
-        t = " ".join(text.split())
-        # Use existing explanation minus prefix
-        base = explanation.replace(f"This {spec_type.upper()} expresses:", "").strip()
-        # Fallback to raw text if trimming fails
-        return base if base else t
-
-    def _structured_analysis(text: str) -> dict:
-        t = text.lower()
-        analysis = {
+    # Fast path for single-line specs
+    if "\n" not in text.strip():
+        explanation = _explain_spec_text(text, body.spec_type)
+        def _pc_single(tx: str, st: str) -> str:
+            base = explanation.replace(f"This {st.upper()} expresses:", "").strip()
+            return base or tx
+        analysis_single = {
             "temporal": bool(re.search(r"^\s*always\s*\(", text, flags=re.IGNORECASE)),
-            "implication": "->" in t or " implies " in t,
-            "quantifiers": [q for q in ["all", "ex"] if re.search(fr"\b{q}\b", t)],
+            "implication": "->" in text or " implies " in text,
+            "quantifiers": [q for q in ["all", "ex"] if re.search(fr"\b{q}\b", text, flags=re.IGNORECASE)],
             "time_indices": list(set(re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\[t\]", text)))
         }
-        return analysis
+        return SpecToPromptResponse(
+            success=True,
+            explanation=explanation,
+            provenance={"spec_type": body.spec_type},
+            prompt_candidate=_pc_single(text, body.spec_type),
+            analysis=analysis_single,
+        )
 
-    pc = _prompt_candidate(body.spec_text, body.spec_type)
-    an = _structured_analysis(body.spec_text)
-    return SpecToPromptResponse(success=True, explanation=explanation, provenance={"spec_type": body.spec_type}, prompt_candidate=pc, analysis=an)
+    # Multiline heuristic summarizer for Tau-like specs
+    lines = [ln.rstrip() for ln in text.splitlines()]
+    # strip pure comment lines
+    non_comment = [ln for ln in lines if not re.match(r"^\s*#", ln)]
+    decl_inputs: list[str] = []
+    decl_outputs: list[str] = []
+    helpers: list[str] = []
+    title = None
+    # capture first comment line as title if present
+    for ln in lines:
+        if re.match(r"^\s*#\s*(.+)$", ln):
+            title = re.sub(r"^\s*#\s*", "", ln).strip()
+            break
+    # parse declarations and helpers
+    for ln in non_comment:
+        m_sbf = re.match(r"^\s*sbf\s+([A-Za-z_][\w]*)\s*=", ln)
+        if m_sbf:
+            name = m_sbf.group(1)
+            if name.lower().startswith('i'):
+                decl_inputs.append(name)
+            elif name.lower().startswith('o'):
+                decl_outputs.append(name)
+            continue
+        m_help = re.match(r"^\s*([A-Za-z_][\w]*)\s*\([^)]*\)\s*:=", ln)
+        if m_help:
+            helpers.append(m_help.group(1))
+
+    # extract r ( ... ) block robustly (balanced parentheses scan)
+    joined = "\n".join(non_comment)
+    r_idx = re.search(r"\br\s*\(", joined)
+    r_block = ""
+    if r_idx:
+        start_paren = joined.find('(', r_idx.start())
+        depth = 0
+        for i in range(start_paren, len(joined)):
+            ch = joined[i]
+            if ch == '(':
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+                if depth == 0:
+                    r_block = joined[start_paren+1:i]
+                    break
+    # analyze equations inside r-block
+    eq_count = 0
+    outputs_in_eq: list[str] = []
+    uses_prev_time = False
+    if r_block:
+        uses_prev_time = ('[t-1]' in r_block)
+        # split by '&&' boundaries but keep expressions intact otherwise
+        parts = re.split(r"&&\s*\n?", r_block)
+        for seg in parts:
+            m_eq = re.search(r"^\s*([A-Za-z_][\w]*)\s*\[t\]\s*=", seg)
+            if m_eq:
+                eq_count += 1
+                outputs_in_eq.append(m_eq.group(1))
+
+    # detect timer/observables patterns
+    timer_bits = any(x in outputs_in_eq for x in ['o6','o7','o8'])
+    has_full3 = 'full3' in r_block if r_block else False
+    has_xor2 = 'xor2' in r_block if r_block else False
+
+    # compose explanation
+    bullets: list[str] = []
+    if title:
+        bullets.append(f"Title: {title}.")
+    if decl_inputs:
+        bullets.append(f"Inputs: {', '.join(sorted(set(decl_inputs)))}.")
+    if decl_outputs:
+        bullets.append(f"Outputs: {', '.join(sorted(set(decl_outputs)))}.")
+    if helpers:
+        bullets.append(f"Helper predicates: {', '.join(sorted(set(helpers)))}.")
+    if r_block:
+        bullets.append(f"Transition relations: {eq_count} output equations in r(...). Uses previous time index: {'yes' if uses_prev_time else 'no'}.")
+    if timer_bits or has_full3:
+        bullets.append("3-bit timer and gating detected (o6,o7,o8 with full3/xor2).")
+    if has_xor2:
+        bullets.append("Avoids XOR at syntax level; uses helper xor2(a,b).")
+    # add general description
+    bullets.append("Boolean state machine over time: outputs at [t] depend on current inputs and previous outputs [t-1].")
+    explanation = " ".join(bullets)
+
+    # structured analysis for UI chips
+    analysis = {
+        "temporal": ('[t]' in text) or ('always' in text.lower()),
+        "implication": ('->' in text) or (' implies ' in text.lower()),
+        "quantifiers": [],
+        "time_indices": sorted(list(set(re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\[t(?:-1)?\]", text)))),
+        "sections": [s for s in ["declarations", "helpers", "relations"] if (decl_inputs or decl_outputs) or helpers or r_block],
+        "equations": eq_count,
+        "uses_prev_time": uses_prev_time,
+        "helpers_present": {"full3": has_full3, "xor2": has_xor2},
+    }
+
+    # prompt candidate as concise one-liner
+    pc = "Deflationary agent kernel with inputs " + \
+         (", ".join(sorted(set(decl_inputs))) or "(none)") + \
+         ", outputs " + (", ".join(sorted(set(decl_outputs))) or "(none)") + \
+         "; r(...) defines " + str(eq_count) + " temporal equations using [t] and [t-1]; helpers: " + \
+         (", ".join(sorted(set(helpers))) or "none") + "."
+
+    return SpecToPromptResponse(
+        success=True,
+        explanation=explanation,
+        provenance={"spec_type": body.spec_type},
+        prompt_candidate=pc,
+        analysis=analysis,
+    )
 
 
