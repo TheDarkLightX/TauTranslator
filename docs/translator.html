@@ -358,6 +358,9 @@
       if(!v){ throw new Error('Set API base URL first.'); }
       return v.replace(/\/$/, '');
     }
+    function ensureApiBaseDefault(){
+      const el=$('apiBase'); if(el && !el.value.trim()){ el.value='https://api.tautranslator.ai'; }
+    }
 
     // Grammar UI state
     let grammarInline = null; // { name, type, size, content }
@@ -543,6 +546,11 @@
       if(e.key==='2'){ e.preventDefault(); copyText(($('outTau').value||'')); }
       if(e.key==='3'){ e.preventDefault(); copyText(($('outExplanation').value||'')); }
       if(e.key==='4'){ e.preventDefault(); copyText(($('outRefined').textContent||'')); }
+    });
+    // Allow Enter-to-send in chat input
+    window.addEventListener('keydown', (e)=>{
+      const inChat = document.activeElement && document.activeElement.id==='chatInput';
+      if(inChat && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); chatSend(); }
     });
     // Client-side Q/A state
     let QA = { answers: {} };
@@ -976,7 +984,7 @@
     }
     // Chat logic (client-side thread)
     let __chatThread = [];
-    function openChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='0'; restoreChat(); }
+    function openChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='0'; restoreChat(); showToast('Assistant opened'); }
     function closeChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='-420px'; }
     function renderChat(){ const box=$('chatMessages'); if(!box) return; box.innerHTML = __chatThread.map(m=>{
       const who = m.role==='user'? '#00d4ff' : '#a3ffa3';
@@ -984,6 +992,8 @@
       return `<div style="padding:8px;border:1px solid rgba(255,255,255,0.12);border-radius:8px"><div style="color:${who};font-weight:600">${m.role}</div><div>${(m.content||'').replace(/</g,'&lt;')}</div>${extra}</div>`;
     }).join(''); box.scrollTop = box.scrollHeight; saveChat(); }
     function chatSend(){ const inp=$('chatInput'); if(!inp) return; const text=(inp.value||'').trim(); if(!text) return; __chatThread.push({role:'user', content:text}); renderChat(); inp.value='';
+      ensureApiBaseDefault();
+      const sendBtn=document.getElementById('chatSend'); if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='Sending…'; }
       // build payload
       const messages = __chatThread.map(m=>({role:m.role, content:m.content}));
       post('/llm/chat', { threadId:null, messages, mode:'assist' }).then(r=>{
@@ -992,7 +1002,8 @@
         // Also update outputs if present
         if(r.tce || r.tau){ setOutputs({ tce: r.tce||'', tau: r.tau||'', reasons: r.reasons||[], success:true }); }
         renderChat();
-      }).catch(err=>{ __chatThread.push({role:'assistant', content:`Error: ${String(err)}`}); renderChat(); });
+      }).catch(err=>{ __chatThread.push({role:'assistant', content:`Error: ${String(err && err.message || err)}`}); renderChat(); showToast('Assistant request failed'); })
+      .finally(()=>{ if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='Send'; } });
     }
     function chatStop(){ /* no-op: backend not streaming yet */ showToast('Stop (not streaming)'); }
     function chatExplainSelection(){ if(!editor) return; const model=editor.getModel(); if(!model) return; const sel=editor.getSelection(); if(!sel) return; const text=model.getValueInRange(sel).trim(); if(!text){ showToast('No selection'); return; }
