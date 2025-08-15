@@ -344,6 +344,57 @@
     const savedByok = localStorage.getItem('tau_byok_openrouter') || '';
     $('byok').value = qs.get('byok') || savedByok;
 
+    // Register custom Tau/TCE language and theme
+    function registerTauLanguage(monaco){
+      try{
+        monaco.languages.register({ id: 'tauLang' });
+        monaco.languages.setMonarchTokensProvider('tauLang', {
+          ignoreCase: true,
+          brackets: [ ['(',')'], ['[',']'] ],
+          tokenizer: {
+            root: [
+              [/#[^\n]*/, 'comment'],
+              [/\b(always)\b/, 'keyword'],
+              [/\b(all|ex)\b/, 'keyword.quantifier'],
+              [/\b(not)\b|!/, 'operator.not'],
+              [/\b(and|or)\b|(&&|\|\|)/, 'operator.logic'],
+              [/->/, 'operator.implies'],
+              [/\b(int|bool|string|real)\b/, 'type'],
+              [/\b(true|false)\b/, 'boolean'],
+              [/\b\d+\b/, 'number'],
+              [/\[[tT](?:-1)?\]/, 'time.index'],
+              // predicates/functions: name(
+              [/([A-Za-z_][\w]*)(\s*)(?=\()/, ['predicate', 'white']],
+              // identifiers
+              [/\b[A-Za-z_][\w]*\b/, 'identifier'],
+              [/\(|\)|\[|\]/, '@brackets']
+            ]
+          }
+        });
+        monaco.editor.defineTheme('tauTheme', {
+          base: 'vs-dark', inherit: true,
+          rules: [
+            { token: 'keyword', foreground: '00d4ff', fontStyle: 'bold' },
+            { token: 'keyword.quantifier', foreground: '66e1ff', fontStyle: 'bold' },
+            { token: 'operator.implies', foreground: 'ffcc66' },
+            { token: 'operator.logic', foreground: 'ffcc66' },
+            { token: 'operator.not', foreground: 'ffcc66' },
+            { token: 'type', foreground: 'c586c0' },
+            { token: 'boolean', foreground: '4ec9b0', fontStyle: 'bold' },
+            { token: 'predicate', foreground: 'dcdcaa' },
+            { token: 'identifier', foreground: 'e8e8e8' },
+            { token: 'time.index', foreground: '9cdcfe', fontStyle: 'italic' },
+            { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+            { token: 'number', foreground: 'b5cea8' }
+          ],
+          colors: {}
+        });
+      }catch(e){ console.warn('tauLang registration failed', e); }
+    }
+  </script>
+  <script>
+    const qs2 = new URLSearchParams(location.search);
+    // Save API and BYOK
     $('saveApi').onclick = ()=>{
       localStorage.setItem('tau_api_base', $('apiBase').value.trim());
       alert('Saved API base.');
@@ -635,9 +686,12 @@
       resolveMonacoReady = resolve;
       window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
       window.require(['vs/editor/editor.main'], function(){
+        // Register language + theme
+        registerTauLanguage(monaco);
+        monaco.editor.setTheme('tauTheme');
         editor = monaco.editor.create($("editor"), {
           value: '',
-          language: 'plaintext',
+          language: 'tauLang',
           theme: 'vs-dark',
           automaticLayout: true,
           minimap: { enabled: false },
@@ -648,7 +702,7 @@
         if(outEl){
           editorOut = monaco.editor.create(outEl, {
             value: '',
-            language: 'plaintext',
+            language: 'tauLang',
             theme: 'vs-dark',
             automaticLayout: true,
             readOnly: true,
@@ -887,7 +941,14 @@
       else if(mode==='tce'){ v = $('outTce').value || ''; }
       else if(mode==='explanation'){ v = $('outExplanation').value || ''; }
       else if(mode==='module'){ v = $('outModule').value || ''; }
-      if(editorOut){ editorOut.setValue(v||''); }
+      if(editorOut){
+        editorOut.setValue(v||'');
+        // switch language for explanation vs code
+        try{
+          const lang = (mode==='explanation') ? 'markdown' : 'tauLang';
+          monaco.editor.setModelLanguage(editorOut.getModel(), lang);
+        }catch{}
+      }
     }
     (function wireSimple(){
       const cb = $('simpleMode'); const sel = $('simpleType');
