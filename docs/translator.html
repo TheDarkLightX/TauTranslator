@@ -36,7 +36,7 @@
     <div class="bar">
       <h1>Translator Alpha</h1>
       <div class="right">
-        <div id="barStacks" style="display:none">
+        <div id="barStacks" style="display:flex">
           <div class="stack">
             <small>API</small>
             <input id="apiBase" placeholder="https://api.tautranslator.ai" />
@@ -49,8 +49,7 @@
           </div>
         </div>
         <button class="btn" id="openAdvanced">Settings</button>
-        <button class="btn" id="openSimple">Simple</button>
-        <button class="btn primary" id="toggleChat">Assistant</button>
+        <button class="btn primary" id="toggleChat">Assist</button>
       </div>
     </div>
     <div class="card">
@@ -178,6 +177,9 @@
           <div id="editor" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
           <textarea id="input" placeholder="e.g., always (x equals 5)" style="display:none; margin-top:8px; min-height: 160px;"></textarea>
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
+          <div id="inputBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn primary" id="simpleTranslate">Translate</button>
+          </div>
         </div>
         <div class="card">
           <div id="simpleOutWrap" style="display:none">
@@ -243,7 +245,7 @@
               <div id="outPromptSuggestions" class="mono"></div>
             </div>
           </div>
-          <div class="cols" style="margin-top:10px">
+          <div class="cols" id="refinedBlock" style="margin-top:10px">
             <div>
               <label>Refined prompt
                 <button class="btn" id="copyRefined" style="margin-left:6px">Copy</button>
@@ -256,6 +258,7 @@
               <div id="outRefinedOptions" class="mono"></div>
             </div>
           </div>
+          <div id="extrasBlock">
           <label style="margin-top:10px">Explanation
             <button class="btn" id="copyExplanation" style="margin-left:6px">Copy</button>
           </label>
@@ -275,6 +278,7 @@
               <button class="btn" id="exportModule">Export .tau</button>
             </label>
             <textarea id="outModule" class="mono" readonly style="min-height: 60vh"></textarea>
+          </div>
           </div>
         </div>
       </div>
@@ -529,7 +533,8 @@
         if(editor){ editor.setValue(txt); showToast('Inserted into editor'); }
       }
       if(id==='openAdvanced'){ const cb=$('simpleMode'); if(cb){ cb.checked=false; document.getElementById('barStacks').style.display=''; applySimple(); } }
-      if(id==='openSimple'){ const cb=$('simpleMode'); if(cb){ cb.checked=true; document.getElementById('barStacks').style.display='none'; applySimple(); } }
+      // remove openSimple; default already simple
+      if(id==='simpleTranslate'){ simpleTranslate(); }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
@@ -887,6 +892,11 @@
     }
     (function wireSimple(){
       const cb = $('simpleMode'); const sel = $('simpleType');
+      function currentSimpleMode(){
+        const barSel = document.getElementById('simpleTypeBar');
+        if(barSel && barSel.value) return barSel.value;
+        return (sel && sel.value) || 'tau';
+      }
       function applySimple(){
         const on = cb && cb.checked;
         const wrap = $('simpleOutWrap'); if(wrap){ wrap.style.display = on ? '' : 'none'; }
@@ -894,6 +904,8 @@
         const ct = $('controlsTop'); if(ct){ ct.style.display = on ? 'none' : 'flex'; }
         const ca = $('controlsAdv'); if(ca){ ca.style.display = on ? 'none' : 'flex'; }
         const gc = $('grammarCard'); if(gc){ gc.style.display = on ? 'none' : 'block'; }
+        const ex = $('extrasBlock'); if(ex){ ex.style.display = on ? 'none' : 'block'; }
+        const rf = $('refinedBlock'); if(rf){ rf.style.display = on ? 'none' : 'grid'; }
         updateSimpleOut();
       }
       if(cb){ cb.addEventListener('change', applySimple); }
@@ -954,6 +966,14 @@
         $('run').disabled = false;
       }
     };
+    async function simpleTranslate(){
+      const prompt = editor ? editor.getValue().trim() : ($('input') ? $('input').value.trim() : '');
+      if(!prompt){ showToast('Enter input'); return; }
+      try{
+        const r = await post('/llm/prompt-to-spec', { prompt, mode:'assist' });
+        setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [] });
+      }catch(e){ showToast('Translate failed'); }
+    }
     // Chat logic (client-side thread)
     let __chatThread = [];
     function openChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='0'; restoreChat(); }
