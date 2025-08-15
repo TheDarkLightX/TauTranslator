@@ -188,17 +188,9 @@
               <button class="btn" id="exportSimple">Export</button>
             </label>
             <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-            <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap">
-              <label style="font-size:12px;color:#a3a3a3">Output
-                <select id="simpleTypeBar">
-                  <option value="tau">Tau</option>
-                  <option value="tce">TCE</option>
-                  <option value="explanation">Explanation</option>
-                  <option value="module">Module</option>
-                </select>
-              </label>
-              <button class="btn" id="simpleValidate">Validate</button>
-              <button class="btn" id="simpleInsert">Insert to editor</button>
+            <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="btn" id="copySimple">Copy</button>
+              <button class="btn" id="exportSimple">Export</button>
             </div>
           </div>
           <div id="advancedOutputs" style="">
@@ -521,20 +513,7 @@
         const ext = mode==='tce' ? 'tce' : (mode==='tau' || mode==='module') ? 'tau' : 'txt';
         downloadFile(`output.${ext}`, v);
       }
-      if(id==='simpleValidate'){
-        const mode = ($('simpleType').value||'tau');
-        const txt = editorOut ? editorOut.getValue() : ''; if(!txt){ showToast('Nothing to validate'); return; }
-        if(mode==='tce'){
-          post('/validate/tce', { tce: txt }).then(r=>{ showToast(`Valid: ${r.valid===true}`); }).catch(err=> showToast('Validate failed'));
-        } else {
-          showToast('Validation available for TCE only');
-        }
-      }
-      if(id==='simpleInsert'){
-        const mode = ($('simpleType').value||'tau');
-        const txt = editorOut ? editorOut.getValue() : ''; if(!txt){ showToast('Nothing to insert'); return; }
-        if(editor){ editor.setValue(txt); showToast('Inserted into editor'); }
-      }
+      // removed validate/insert in minimal view
       if(id==='openAdvanced'){ const cb=$('simpleMode'); if(cb){ cb.checked=false; document.getElementById('barStacks').style.display=''; applySimple(); } }
       // remove openSimple; default already simple
       if(id==='simpleTranslate'){ simpleTranslate(); }
@@ -900,11 +879,7 @@
     }
     (function wireSimple(){
       const cb = $('simpleMode'); const sel = $('simpleType');
-      function currentSimpleMode(){
-        const barSel = document.getElementById('simpleTypeBar');
-        if(barSel && barSel.value) return barSel.value;
-        return (sel && sel.value) || 'tau';
-      }
+      function currentSimpleMode(){ return 'tau'; }
       function applySimple(){
         const on = cb && cb.checked;
         const wrap = $('simpleOutWrap'); if(wrap){ wrap.style.display = on ? '' : 'none'; }
@@ -918,7 +893,6 @@
       }
       if(cb){ cb.addEventListener('change', applySimple); }
       if(sel){ sel.addEventListener('change', ()=>{ updateSimpleOut(); }); }
-      const selBar = document.getElementById('simpleTypeBar'); if(selBar){ selBar.addEventListener('change', ()=> updateSimpleOut()); }
       // Keep simpleOut in sync when outputs change
       window.__updateSimpleOut = updateSimpleOut;
       // Initialize default simple view active
