@@ -76,7 +76,8 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     top = retrieve_top_k(pack, body.prompt, k=4).unwrap()
 
     # First try deterministic optimizer (PNF-ILGO+ Phase 1)
-    opt = optimize_prompt_to_tce(body.prompt, constraints=body.constraints or {})
+    # Feature-flagged FDL optimizer (safe rollback via env var)
+    opt = optimize_prompt_to_tce(body.prompt, constraints=body.constraints or {}, use_fdl=None)
     opt_tce = None
     opt_analysis = {}
     opt_questions: list[str] = []

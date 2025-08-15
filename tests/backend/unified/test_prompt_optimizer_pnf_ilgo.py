@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.unified.domain.prompt_optimizer_pnf_ilgo import optimize_prompt_to_tce
+from backend.unified.domain.prompt_optimizer_pnf_ilgo import optimize_prompt_to_tce, build_default_basis, encode_bitset, glb_with_constraints
 from backend.unified.core.result_enhanced import Success
 
 
@@ -33,5 +33,23 @@ def test_optimizer_ambiguity_questions_present():
     out = res.unwrap()
     # likely missing condition/intent: questions should be proposed
     assert out.questions or out.ambiguity >= 0.0
+
+
+def test_fdl_bitset_glb_projection():
+    basis = build_default_basis(["maintenance"], ["all x"], ["[t-1]"])
+    feats = {"intent": "causal", "guards": ["maintenance"], "quantifiers": ["all x"], "temporal": []}
+    x = encode_bitset(basis, feats)
+    # constraint: forbid guard and quantifier bits
+    forbid = 0
+    for bmap in (basis.guard_bits, basis.quant_bits):
+        for _, pos in bmap.items():
+            forbid |= 1 << pos
+    allow = ~forbid  # mask allows intent/time only
+    y = glb_with_constraints(x, allow)
+    # GLB should keep intent only
+    kept_intent = (y & (1 << basis.intent_bits["causal"])) != 0
+    kept_guard = any((y & (1 << pos)) != 0 for pos in basis.guard_bits.values())
+    kept_quant = any((y & (1 << pos)) != 0 for pos in basis.quant_bits.values())
+    assert kept_intent and not kept_guard and not kept_quant
 
 

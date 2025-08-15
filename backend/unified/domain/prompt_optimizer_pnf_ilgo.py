@@ -22,6 +22,7 @@ weighted edit distance, TF.js reranker (client), and canonical parser
 validation.
 """
 
+import os
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -219,10 +220,16 @@ def _gate(candidate: str) -> Tuple[str, List[str]]:
     return text, msgs
 
 
+def _fdl_enabled_from_env() -> bool:
+    v = os.getenv("TAU_OPTIMIZER_USE_FDL", "0").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
 def optimize_prompt_to_tce(
     prompt: str,
     constraints: Optional[Dict[str, Any]] = None,
     ambiguity_threshold: float = 0.25,
+    use_fdl: Optional[bool] = None,
 ) -> Result[OptimizerOutput]:
     """Optimize English prompt into TCE using deterministic synthesis.
 
@@ -234,7 +241,24 @@ def optimize_prompt_to_tce(
         constraints = constraints or {}
         s, reasons = _fst_normalize(prompt)
         feats = _extract_typed(s)
-        tce, proj_msgs = _project_to_tce(feats)
+        # Optional FDL projection (feature-flagged for safe rollback)
+        use_fdl_flag = _fdl_enabled_from_env() if use_fdl is None else bool(use_fdl)
+        if use_fdl_flag:
+            reasons.append("FDL projection enabled")
+            # Build a basis from observed features (guards/quantifiers/time)
+            basis = build_default_basis(
+                guards=list(set(feats.get("guards") or [])),
+                quants=list(set(feats.get("quantifiers") or [])),
+                times=list(set(feats.get("temporal") or [])),
+            )
+            bits = encode_bitset(basis, feats)
+            # For Phase 1: allow all bits; future: derive constraint mask from policy
+            allow_mask = (1 << 63) - 1  # effectively a wide all-ones mask for Python int
+            bits = glb_with_constraints(bits, allow_mask)
+            # No direct textual form from bits yet; still synthesize via current projector
+            tce, proj_msgs = _project_to_tce(feats)
+        else:
+            tce, proj_msgs = _project_to_tce(feats)
         reasons.extend(proj_msgs)
         # optional constraints
         if constraints.get('forbid_colon') and ':' in tce:
@@ -246,7 +270,7 @@ def optimize_prompt_to_tce(
         tce, gate_msgs = _gate(tce)
         reasons.extend(gate_msgs)
 
-        # ambiguity heuristics
+        # ambiguity heuristics (FDL-aware generation of questions when enabled)
         intents_detected = [k for k in [feats.get('intent')] if k]
         roles_missing = int(feats.get('condition') is None) + int(feats.get('action') is None)
         paths = max(1, len(intents_detected)) + roles_missing
@@ -259,8 +283,17 @@ def optimize_prompt_to_tce(
                 questions.append("What is the action (e.g., order_shipped)?")
             if not feats.get('intent'):
                 questions.append("Is this an invariant or a causal rule (if X then Y)?")
-            if not feats.get('guards'):
-                questions.append("Is there a guard/exception (e.g., unless maintenance)?")
+            if use_fdl_flag:
+                # Map join-irreducibles to questions (guards/quantifiers/temporal)
+                for g in sorted(set(feats.get('guards') or [])):
+                    questions.append(f"Confirm guard applies: not {g}?")
+                for q in sorted(set(feats.get('quantifiers') or [])):
+                    questions.append(f"Confirm quantifier: {q}?")
+                for t in sorted(set(feats.get('temporal') or [])):
+                    questions.append(f"Confirm temporal reference: {t}?")
+            else:
+                if not feats.get('guards'):
+                    questions.append("Is there a guard/exception (e.g., unless maintenance)?")
 
         out = OptimizerOutput(
             tce=tce,
@@ -277,5 +310,55 @@ def optimize_prompt_to_tce(
         return Success(out)
     except Exception as e:  # pragma: no cover
         return Failure(f"Optimizer failed: {e}")
+
+
+# ===== FDL (Finite Distributive Lattice) bitset core (Phase 2 scaffold) =====
+
+@dataclass(frozen=True)
+class ILGOBasis:
+    """Join-irreducible basis for ILGO lattice as bit positions.
+
+    intent_bits: mapping of specific intent irreducibles
+    guard_bits: mapping of guard predicates
+    quant_bits: mapping of quantifiers like 'all x', 'ex x'
+    time_bits: mapping of temporal irreducibles (ordered chain)
+    """
+    intent_bits: Dict[str, int]
+    guard_bits: Dict[str, int]
+    quant_bits: Dict[str, int]
+    time_bits: Dict[str, int]
+
+
+def build_default_basis(guards: List[str], quants: List[str], times: List[str]) -> ILGOBasis:
+    bit = 0
+    intent_bits = {}
+    for k in ["invariant", "causal", "equivalence", "temporal"]:
+        intent_bits[k] = bit; bit += 1
+    guard_bits = {g: (i+bit) for i, g in enumerate(sorted(set(guards)))}
+    bit += len(guard_bits)
+    quant_bits = {q: (i+bit) for i, q in enumerate(sorted(set(quants)))}
+    bit += len(quant_bits)
+    time_bits = {t: (i+bit) for i, t in enumerate(sorted(set(times), key=lambda s: (len(s), s)))}
+    return ILGOBasis(intent_bits=intent_bits, guard_bits=guard_bits, quant_bits=quant_bits, time_bits=time_bits)
+
+
+def encode_bitset(basis: ILGOBasis, feats: Dict[str, Any]) -> int:
+    mask = 0
+    intent = feats.get("intent")
+    if intent and intent in basis.intent_bits:
+        mask |= 1 << basis.intent_bits[intent]
+    for g in feats.get("guards") or []:
+        if g in basis.guard_bits: mask |= 1 << basis.guard_bits[g]
+    for q in feats.get("quantifiers") or []:
+        if q in basis.quant_bits: mask |= 1 << basis.quant_bits[q]
+    for t in feats.get("temporal") or []:
+        if t in basis.time_bits: mask |= 1 << basis.time_bits[t]
+    return mask
+
+
+def glb_with_constraints(bitset: int, constraint_mask: int) -> int:
+    """Greatest lower bound under constraints is simply intersection (AND)."""
+    return bitset & constraint_mask
+
 
 
