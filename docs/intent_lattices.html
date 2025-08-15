@@ -136,6 +136,23 @@
             <div class="concept-card"><h3>💬 Smart Clarification</h3><p>Information-theoretic questions that maximally reduce ambiguity</p></div>
             <div class="concept-card"><h3>✅ Formal Output</h3><p>Unambiguous controlled English and logic-ready specifications</p></div>
         </div>
+
+        <div class="example-box">
+            <h3>Current Implementation (as shipped)</h3>
+            <ul>
+                <li><strong>FDL bitset GLB (feature-flagged)</strong>: join-irreducible facets encoded as bits; GLB via bitwise AND. Toggle with <code>TAU_OPTIMIZER_USE_FDL=1</code>.
+                    <br/><em>Code</em>: <code>backend/unified/domain/prompt_optimizer_pnf_ilgo.py</code></li>
+                <li><strong>GS/NSO clean-room synthesis</strong>: build GS IR and pretty-print to controlled English (no Tau assets). Toggle with <code>TAU_OPTIMIZER_USE_GS=1</code>.
+                    <br/><em>Code</em>: <code>backend/unified/domain/gs_ir.py</code></li>
+                <li><strong>Endpoint integration</strong>: Optimizer runs before LLM; constraints gate tokens; clarifications surfaced in suggestions.
+                    <br/><em>Code</em>: <code>backend/unified/api/llm_endpoints.py</code></li>
+                <li><strong>A/B comparison tool</strong>: legacy vs FDL paths on sample prompts.
+                    <br/><em>Tool</em>: <code>tools/compare_optimizers.py</code> (local TestClient)</li>
+                <li><strong>Observed (local sim)</strong>: FDL reduced avg latency and clarifications with identical validity across 8 prompts.</li>
+                <li><strong>License-safety</strong>: Tau printing remains a <em>user-installed adapter</em>; this page and code target semantics only.</li>
+            </ul>
+            <p style="margin:8px 0 0 0;">See also: the interactive translator at <a href="translator.html">translator.html</a>.</p>
+        </div>
     </div>
 </body>
 </html>

@@ -10,6 +10,7 @@ nav:
       - Translation Pipeline: architecture/translation_pipeline.md
       - Grammar Engine: architecture/grammar_engine.md
   - API Reference: reference/index.md
+  - Intent Detection & Analysis: intent_lattices.html
 theme:
   name: material
   features:
