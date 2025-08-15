@@ -14,6 +14,7 @@ from .simple_tce import translate_tce_to_tau_simple, validate_tce_simple
 import os, importlib.util
 from ..infrastructure.llm_providers import get_default_provider, get_provider, LLMRequest
 import re
+from ..domain.prompt_optimizer_pnf_ilgo import optimize_prompt_to_tce
 def _load_class_from_path(module_name: str, file_path: str, class_name: str):
     try:
         spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -74,7 +75,22 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     pack = pack_result.unwrap()
     top = retrieve_top_k(pack, body.prompt, k=4).unwrap()
 
-    # Use provider to generate a TCE-like candidate from the prompt
+    # First try deterministic optimizer (PNF-ILGO+ Phase 1)
+    opt = optimize_prompt_to_tce(body.prompt, constraints=body.constraints or {})
+    opt_tce = None
+    opt_analysis = {}
+    opt_questions: list[str] = []
+    opt_reasons: list[str] = []
+    opt_intent = None
+    if isinstance(opt, Success):
+        out = opt.unwrap()
+        opt_tce = out.tce
+        opt_analysis = out.analysis
+        opt_questions = out.questions
+        opt_reasons = out.reasons
+        opt_intent = out.intent
+    
+    # Use provider to generate a TCE-like candidate from the prompt (assist)
     # Provider selection; BYOK via header X-OpenRouter-Key if present
     openrouter_key = request.headers.get('X-OpenRouter-Key')
     provider = get_provider(openrouter_key, body.provider)
@@ -186,7 +202,8 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         "object_token": object_token,
     }
 
-    tce = _sanitize_to_tce(raw, body.prompt)
+    # Prefer deterministic optimizer if available and valid-looking
+    tce = opt_tce or _sanitize_to_tce(raw, body.prompt)
     # Minimal repair rules
     if ':' in tce:
         tce = tce.replace(':', ' ')
@@ -194,6 +211,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         tce = tce + ')'
     # Apply LMQL-lite constraints if provided
     reasons = []
+    reasons.extend(opt_reasons)
     constraints = body.constraints or {}
     req_prefix = (constraints.get('require_prefix') or '').strip()
     if req_prefix and not tce.strip().lower().startswith(req_prefix.lower()):
@@ -280,16 +298,16 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             pass
 
     return PromptToSpecResponse(
-        success=tau is not None or not reasons,
+        success=tau is not None or (tce is not None),
         tce=tce,
         tau=tau,
         reasons=reasons,
         provenance={"mode": body.mode, "grammar_id": body.grammar_id, "version": body.grammar_version, "retrieval": top},
-        intent=intent,
-        prompt_suggestions=suggestions,
-        nlp_analysis=nlp_analysis,
-        refined_prompt=refined_prompt,
-        refined_options=refined_options
+        intent= opt_intent or intent,
+        prompt_suggestions=suggestions + ([f"Clarify: {q}" for q in opt_questions] if opt_questions else []),
+        nlp_analysis={**(nlp_analysis or {}), **(opt_analysis or {})},
+        refined_prompt=refined_prompt or opt_tce,
+        refined_options=(refined_options or [])
     )
 
 
