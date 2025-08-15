@@ -101,6 +101,14 @@
             <label><input type="checkbox" id="expTfRank" /> Use TF.js model (if available)</label>
           </div>
         </details>
+        <details>
+          <summary>Session</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="rememberQA" /> Remember answers (local)</label>
+            <button class="btn" id="clearSession">Clear session</button>
+          </div>
+          <small>Stores intent/refined prompt/options locally only. No data is sent to the server.</small>
+        </details>
       </div>
       <div class="card" style="margin-bottom:10px">
         <label>
@@ -290,6 +298,13 @@
       const cb2 = document.getElementById('expTfRank'); if(cb2){ cb2.checked = v2; cb2.addEventListener('change', ()=>{
         localStorage.setItem('tau_exp_rank_tf', cb2.checked ? '1':'0');
       }); }
+      const rqa = localStorage.getItem('tau_remember_qa') === '1';
+      const cb3 = document.getElementById('rememberQA'); if(cb3){ cb3.checked = rqa; cb3.addEventListener('change', ()=>{
+        localStorage.setItem('tau_remember_qa', cb3.checked ? '1':'0');
+      }); }
+      const clr = document.getElementById('clearSession'); if(clr){ clr.addEventListener('click', ()=>{
+        localStorage.removeItem('tau_session'); showToast('Session cleared');
+      }); }
     }
     loadExperimental();
     function onGrammarModeChange(){
@@ -355,6 +370,12 @@
       $('outPromptSuggestions').textContent = Array.isArray(prompt_suggestions) && prompt_suggestions.length ? '- ' + prompt_suggestions.join('\n- ') : '';
       $('outRefined').textContent = refined_prompt || '';
       $('outRefinedOptions').textContent = Array.isArray(refined_options) && refined_options.length ? '- ' + refined_options.join('\n- ') : '';
+      // Persist minimal Q/A state locally if enabled
+      const remember = (localStorage.getItem('tau_remember_qa') === '1');
+      if(remember){
+        const sess = { intent, refined_prompt, refined_options, prompt_suggestions, when: Date.now() };
+        localStorage.setItem('tau_session', JSON.stringify(sess));
+      }
       const ragDiv = $('ragPanel'); if(ragDiv){
         if(rag && Array.isArray(rag)){
           ragDiv.textContent = rag.map((c,i)=>`#${i+1} ${c.name} (score: ${typeof c.score==='number'?c.score.toFixed(4):'n/a'})\nSummary: ${c.summary}\nExamples: ${Array.isArray(c.examples)?c.examples.join(', '):''}`).join('\n\n');
