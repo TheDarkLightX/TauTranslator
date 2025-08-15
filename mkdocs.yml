@@ -4,6 +4,7 @@ repo_url: https://github.com/your-org/TauTranslatorOmega
 repo_name: TauTranslatorOmega
 nav:
   - Home: home.md
+  - Whitepaper: WHITEPAPER.html
   - Translator: translator.html
   - TCE: tce.md
   - Architecture:
