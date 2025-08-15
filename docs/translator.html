@@ -109,6 +109,16 @@
           </div>
           <small>Stores intent/refined prompt/options locally only. No data is sent to the server.</small>
         </details>
+        <details open>
+          <summary>Clarifications (client-side)</summary>
+          <div id="clarifyPanel" class="card" style="margin-top:6px"></div>
+          <div class="controls">
+            <button class="btn" id="genQuestions">Generate Questions</button>
+            <button class="btn" id="applyAnswers">Apply Answers</button>
+            <button class="btn" id="genFullSpec">Generate Full Spec (draft)</button>
+          </div>
+          <small>Questions are derived from detected gaps (intent, guard, condition, quantifiers). Answers remain in your browser.</small>
+        </details>
       </div>
       <div class="card" style="margin-bottom:10px">
         <label>
@@ -212,6 +222,13 @@
           </div>
           <label style="margin-top:10px">Reasons / Errors</label>
           <div id="outReasons" class="mono"></div>
+          <div class="card" style="margin-top:12px">
+            <label>Tau Module (draft)
+              <button class="btn" id="copyModule" style="margin-left:6px">Copy</button>
+              <button class="btn" id="exportModule">Export .tau</button>
+            </label>
+            <textarea id="outModule" class="mono" readonly style="min-height: 160px"></textarea>
+          </div>
         </div>
       </div>
       <div class="hint">Note: This page calls your configured API. Ensure CORS allows your domain.</div>
@@ -399,10 +416,15 @@
       if(id==='copyTau'){ copyText(($('outTau').value||'')); }
       if(id==='copyExplanation'){ copyText(($('outExplanation').value||'')); }
       if(id==='copyRefined'){ copyText(($('outRefined').textContent||'')); }
+      if(id==='copyModule'){ copyText(($('outModule').value||'')); }
       if(id==='exportTce'){ const v=$('outTce').value||''; if(v) downloadFile('output.tce', v); }
       if(id==='exportTau'){ const v=$('outTau').value||''; if(v) downloadFile('output.tau', v); }
+      if(id==='exportModule'){ const v=$('outModule').value||''; if(v) downloadFile('module.tau', v); }
       if(id==='applyRefined'){ const v=$('outRefined').textContent||''; if(editor && v){ editor.setValue(v); showToast('Refined prompt applied'); } }
       if(id==='copyCurl'){ const c=buildCurl(); if(c) copyText(c); }
+      if(id==='genQuestions'){ generateQuestions(); }
+      if(id==='applyAnswers'){ applyAnswers(); }
+      if(id==='genFullSpec'){ generateFullSpecDraft(); }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
@@ -412,6 +434,89 @@
       if(e.key==='3'){ e.preventDefault(); copyText(($('outExplanation').value||'')); }
       if(e.key==='4'){ e.preventDefault(); copyText(($('outRefined').textContent||'')); }
     });
+    // Client-side Q/A state
+    let QA = { answers: {} };
+    function generateQuestions(){
+      const panel = $('clarifyPanel'); if(!panel) return;
+      const raw = $('outAnalysis').textContent.trim();
+      let analysis = {};
+      try{ analysis = raw ? JSON.parse(raw) : {}; }catch{}
+      // Also use NLP analysis if available via last Prompt→Spec call stored in session
+      let sess = null; try{ sess = JSON.parse(localStorage.getItem('tau_session')||'{}'); }catch{}
+      // Build questions based on detected gaps
+      const qs = [];
+      // Condition
+      if(!$('outRefined').textContent.includes('condition')){
+        qs.push({id:'condition', label:'Condition (e.g., payment_approved, sensor>threshold)', placeholder:'condition'});
+      }
+      // Action
+      if(!$('outRefined').textContent.includes('action')){
+        qs.push({id:'action', label:'Action (e.g., order_shipped, lock_engaged)', placeholder:'action'});
+      }
+      // Guard
+      if(($('outIntent').textContent||'').toLowerCase().includes('invariant') && ($('outRefined').textContent.includes('guard')|| $('outPromptSuggestions').textContent.toLowerCase().includes('guard'))){
+        qs.push({id:'guard', label:'Guard predicate (optional, e.g., maintenance_guard)', placeholder:'guard'});
+      }
+      // Quantified variable
+      if(/\b(all|ex)\b/.test($('outRefined').textContent) || /Quantify/.test($('outPromptSuggestions').textContent)){
+        qs.push({id:'var', label:'Quantified variable name (e.g., x)', placeholder:'x'});
+      }
+      // Render inputs
+      panel.innerHTML = qs.map(q=>`<label>${q.label}<input id="qa_${q.id}" placeholder="${q.placeholder}" /></label>`).join('');
+      // Pre-fill from session if present
+      qs.forEach(q=>{ const v = (sess && sess.answers && sess.answers[q.id]) || ''; const el=$(`qa_${q.id}`); if(el&&v) el.value = v; });
+    }
+    function applyAnswers(){
+      const remember = (localStorage.getItem('tau_remember_qa') === '1');
+      const ids = ['condition','action','guard','var'];
+      const ans = {};
+      ids.forEach(id=>{ const el=$(`qa_${id}`); if(el && el.value.trim()) ans[id]=el.value.trim(); });
+      QA.answers = ans;
+      if(remember){ try{
+        const sess = JSON.parse(localStorage.getItem('tau_session')||'{}');
+        sess.answers = ans; localStorage.setItem('tau_session', JSON.stringify(sess));
+      }catch{} }
+      // Synthesize refined prompt from template options
+      let template = $('outRefined').textContent || '';
+      if(!template){
+        const opts = ($('outRefinedOptions').textContent||'').split('\n- ').map(s=>s.trim()).filter(Boolean);
+        template = opts.length ? opts[0] : 'always (condition -> action)';
+      }
+      let rp = template;
+      if(ans.condition) rp = rp.replace(/\bcondition\b/g, ans.condition);
+      if(ans.action) rp = rp.replace(/\baction\b/g, ans.action);
+      if(ans.guard) rp = rp.replace(/\bguard\b/g, ans.guard);
+      if(ans.var) rp = rp.replace(/\bx\b/g, ans.var);
+      $('outRefined').textContent = rp;
+      if(editor){ editor.setValue(rp); showToast('Answers applied to refined prompt'); }
+    }
+    function generateFullSpecDraft(){
+      const rp = $('outRefined').textContent || '';
+      if(!rp){ showToast('No refined prompt'); return; }
+      // Extract signal tokens from refined prompt
+      const tokens = Array.from(new Set((rp.match(/[A-Za-z_][A-Za-z0-9_]*/g)||[])));
+      const reserved = new Set(['always','all','ex','not','and','or']);
+      const names = tokens.filter(t=>!reserved.has(t.toLowerCase()));
+      const ans = QA.answers || {};
+      const action = ans.action || (names[0]||'action');
+      const guard = ans.guard;
+      const inputs = new Set(); const outputs = new Set();
+      // Heuristics: action as output; guard/condition as inputs
+      outputs.add(action);
+      if(ans.condition){
+        // split a bit on operators
+        (ans.condition.match(/[A-Za-z_][A-Za-z0-9_]*/g)||[]).forEach(x=>inputs.add(x));
+      }
+      if(guard){ inputs.add(guard); }
+      names.forEach(n=>{ if(!outputs.has(n)) inputs.add(n); });
+      const declInputs = Array.from(inputs).map(n=>`sbf ${n} = ifile("inputs/${n}.in").`).join('\n');
+      const declOutputs = Array.from(outputs).map(n=>`sbf ${n} = ofile("outputs/${n}.out").`).join('\n');
+      const header = `# Generated Tau Module (draft)\n# Assumptions:\n# - Signals default to boolean unless otherwise specified\n# - File bindings are placeholders; edit as needed\n`;
+      const invariants = `\n# Invariants\n${rp}.\n`;
+      const module = `${header}\n# Inputs\n${declInputs}\n\n# Outputs\n${declOutputs}\n${invariants}`;
+      $('outModule').value = module;
+      showToast('Draft module generated');
+    }
 
     // Monaco setup
     let editor = null;
