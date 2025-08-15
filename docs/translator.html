@@ -98,6 +98,7 @@
           <summary>Experimental</summary>
           <div class="cols">
             <label><input type="checkbox" id="expRank" /> On-device ranking for suggestions</label>
+            <label><input type="checkbox" id="expTfRank" /> Use TF.js model (if available)</label>
           </div>
         </details>
       </div>
@@ -249,6 +250,10 @@
       const v = localStorage.getItem('tau_exp_rank') === '1';
       const cb = document.getElementById('expRank'); if(cb){ cb.checked = v; cb.addEventListener('change', ()=>{
         localStorage.setItem('tau_exp_rank', cb.checked ? '1':'0');
+      }); }
+      const v2 = localStorage.getItem('tau_exp_rank_tf') === '1';
+      const cb2 = document.getElementById('expTfRank'); if(cb2){ cb2.checked = v2; cb2.addEventListener('change', ()=>{
+        localStorage.setItem('tau_exp_rank_tf', cb2.checked ? '1':'0');
       }); }
     }
     loadExperimental();
@@ -460,6 +465,10 @@
     }
 
     function rankSuggestions(items, ctx){
+      const useTf = (localStorage.getItem('tau_exp_rank_tf') === '1');
+      if(useTf){
+        return rankSuggestionsTf(items, ctx);
+      }
       // Lightweight feature-based scoring. Higher is better.
       function scoreText(t){
         let score = 0;
@@ -478,6 +487,63 @@
         return score;
       }
       const withScores = items.map(it=>({it, score: scoreText(it.text||'')}));
+      withScores.sort((a,b)=>b.score - a.score);
+      return withScores.map(x=>x.it);
+    }
+
+    // TF.js ranker (Experimental)
+    let __tau_tf_model = null;
+    async function ensureTf(){
+      if(window.tf) return true;
+      return new Promise((resolve)=>{
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js';
+        s.crossOrigin = 'anonymous';
+        s.onload = ()=>resolve(true);
+        s.onerror = ()=>resolve(false);
+        document.head.appendChild(s);
+      });
+    }
+    async function ensureTfModel(){
+      if(__tau_tf_model) return __tau_tf_model;
+      const ok = await ensureTf();
+      if(!ok || !window.tf) return null;
+      const tf = window.tf;
+      // Build a tiny single-layer model with manual weights approximating the heuristic
+      // Features: [has_always, has_arrow, has_quant, balanced, len_mid, len_short, prefix_hit]
+      const model = tf.sequential();
+      model.add(tf.layers.dense({inputShape:[7], units:1, useBias:true}));
+      // Set manual weights
+      const w = tf.tensor2d([[1.0],[0.8],[0.4],[0.5],[0.2],[-0.5],[0.2]]); // shape [7,1]
+      const b = tf.tensor1d([0.0]);
+      model.layers[0].setWeights([w, b]);
+      __tau_tf_model = model;
+      return model;
+    }
+    function featureVector(t, ctx){
+      const L = t.length;
+      // booleans as 0/1
+      const hasAlways = /\balways\b/.test(t) ? 1 : 0;
+      const hasArrow = t.includes('->') ? 1 : 0;
+      const hasQuant = /\b(all|ex)\b/.test(t) ? 1 : 0;
+      let bal=0, ok=true; for(const ch of t){ if(ch==='(') bal++; else if(ch===')') bal--; if(bal<0){ ok=false; break; } }
+      const balanced = (ok && bal===0) ? 1 : 0;
+      const lenMid = (L>=6 && L<=160) ? 1 : 0;
+      const lenShort = (L<6) ? 1 : 0;
+      const lastToken = (ctx.prefix.split(/\s+/).pop()||'').toLowerCase();
+      const prefixHit = (lastToken && t.toLowerCase().includes(lastToken)) ? 1 : 0;
+      return [hasAlways, hasArrow, hasQuant, balanced, lenMid, lenShort, prefixHit];
+    }
+    async function rankSuggestionsTf(items, ctx){
+      const model = await ensureTfModel();
+      if(!model){ return items; }
+      const tf = window.tf;
+      const feats = items.map(it=>featureVector(it.text||'', ctx));
+      const x = tf.tensor2d(feats);
+      const y = model.predict(x);
+      const scores = Array.from(y.dataSync());
+      x.dispose(); if(y.dispose) y.dispose();
+      const withScores = items.map((it, i)=>({it, score: scores[i]}));
       withScores.sort((a,b)=>b.score - a.score);
       return withScores.map(x=>x.it);
     }
