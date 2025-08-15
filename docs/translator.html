@@ -157,6 +157,10 @@
           </div>
           <label style="margin-top:10px">Explanation</label>
           <div id="outExplanation" class="mono"></div>
+          <details style="margin-top:10px">
+            <summary>Context (RAG)</summary>
+            <div id="ragPanel" class="mono"></div>
+          </details>
           <label style="margin-top:10px">Reasons / Errors</label>
           <div id="outReasons" class="mono"></div>
         </div>
@@ -285,12 +289,17 @@
       return res.json();
     }
 
-    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='' }){
+    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null }){
       $('outTce').textContent = tce || '';
       $('outTau').textContent = tau || '';
       $('outPromptCandidate').textContent = prompt_candidate || '';
       $('outAnalysis').textContent = analysis ? JSON.stringify(analysis) : '';
       $('outExplanation').textContent = explanation || '';
+      const ragDiv = $('ragPanel'); if(ragDiv){
+        if(rag && Array.isArray(rag)){
+          ragDiv.textContent = rag.map((c,i)=>`#${i+1} ${c.name}\nSummary: ${c.summary}\nExamples: ${Array.isArray(c.examples)?c.examples.join(', '):''}`).join('\n\n');
+        } else { ragDiv.textContent = ''; }
+      }
       const msgs = [];
       if(Array.isArray(reasons) && reasons.length) msgs.push('Reasons:\n- ' + reasons.join('\n- '));
       if(Array.isArray(errors) && errors.length) msgs.push('Errors:\n- ' + errors.join('\n- '));
@@ -485,7 +494,8 @@
           const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
           const r = await post('/llm/spec-to-prompt', payload);
-          setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '' });
+          const rag = (r && r.provenance && Array.isArray(r.provenance.retrieval)) ? r.provenance.retrieval : null;
+          setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '', rag, verification: r.verification || null });
           // Bidirectional translate-selection (convenience)
           try {
             const tr = await post('/edu/translate-selection', { text: input, from_language: lang, to_language: (lang==='TCE'?'TAU':'TCE') });

@@ -417,12 +417,19 @@ async def spec_to_prompt(body: SpecToPromptBody):
          "; r(...) defines " + str(eq_count) + " temporal equations using [t] and [t-1]; helpers: " + \
          (", ".join(sorted(set(helpers))) or "none") + "."
 
+    verification = {
+        "equations": analysis.get("equations"),
+        "uses_prev_time": analysis.get("uses_prev_time"),
+        "helpers_present": analysis.get("helpers_present"),
+        "time_indices_count": len(analysis.get("time_indices", [])),
+    }
     return SpecToPromptResponse(
         success=True,
         explanation=explanation,
         provenance={"spec_type": body.spec_type},
         prompt_candidate=pc,
         analysis=analysis,
+        verification=verification,
     )
 
 

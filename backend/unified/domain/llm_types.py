@@ -40,5 +40,7 @@ class SpecToPromptResponse:
     # Optional NL prompt paraphrase and structured analysis for UI chips
     prompt_candidate: Optional[str] = None
     analysis: Dict[str, Any] = None  # e.g., {"temporal": True, "implication": True, "quantifiers": ["all"], "time_indices": ["o1","i1"]}
+    # Optional verification metadata for faithful explanations
+    verification: Optional[Dict[str, Any]] = None  # e.g., {"equations":19, "helpers_present":{"full3":true}}
 
 
