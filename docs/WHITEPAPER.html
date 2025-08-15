@@ -76,6 +76,18 @@
     </div>
 
     <div class="card">
+      <h2>Public API (PoC)</h2>
+      <p>Use the public endpoints to explore the translator and build prototypes. Responses are structured and include reasons and validation signals.</p>
+      <ul>
+        <li><strong>POST</strong> <code>/llm/prompt-to-spec</code> — English → controlled spec (assist or generate)</li>
+        <li><strong>POST</strong> <code>/llm/spec-to-prompt</code> — Formal/controlled spec → plain English explanation</li>
+        <li><strong>POST</strong> <code>/validate/tce</code> — Validate a controlled‑spec statement</li>
+        <li><strong>POST</strong> <code>/translate/tce-to-tau</code> — Controlled spec → formal target (when available)</li>
+      </ul>
+      <p>Intended for evaluation and early integrations during the public alpha.</p>
+    </div>
+
+    <div class="card">
       <h2>Roadmap</h2>
       <ul>
         <li>Version‑space clarifications and counterexample‑guided queries.</li>
