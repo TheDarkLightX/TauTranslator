@@ -115,6 +115,13 @@
           </div>
           <small>Stores intent/refined prompt/options locally only. No data is sent to the server.</small>
         </details>
+        <details>
+          <summary>Privacy</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="localOnly" /> Local only (never send data over network)</label>
+          </div>
+          <small>When enabled, Prompt→Spec runs entirely in your browser with a simple deterministic optimizer. Some features may be limited.</small>
+        </details>
         
         <details open>
           <summary>Clarifications (client-side)</summary>
@@ -421,6 +428,12 @@
       const clr = document.getElementById('clearSession'); if(clr){ clr.addEventListener('click', ()=>{
         localStorage.removeItem('tau_session'); showToast('Session cleared');
       }); }
+      // Privacy: local only toggle
+      const lo = document.getElementById('localOnly'); if(lo){
+        const saved = localStorage.getItem('tau_local_only') === '1';
+        lo.checked = saved;
+        lo.addEventListener('change', ()=>{ localStorage.setItem('tau_local_only', lo.checked ? '1' : '0'); });
+      }
     }
     loadExperimental();
     function onGrammarModeChange(){
@@ -448,6 +461,10 @@
     loadGrammarState();
 
     async function post(path, body){
+      const localOnly = (localStorage.getItem('tau_local_only') === '1');
+      if(localOnly){
+        return postLocal(path, body);
+      }
       const url = apiBase() + path;
       const headers = { 'Content-Type':'application/json' };
       const byok = $('byok').value.trim();
@@ -472,8 +489,61 @@
       // Track last call for copy cURL
       window.__tau_last_call = { url, path, headers: {...headers}, body: JSON.parse(JSON.stringify(body)) };
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
-      if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
+      if(!res.ok){
+        // Fallback to local optimizer if enabled at runtime
+        const localNow = (localStorage.getItem('tau_local_only') === '1');
+        if(localNow){ return postLocal(path, body); }
+        throw new Error(`HTTP ${res.status}`);
+      }
       return res.json();
+    }
+
+    // Local fallback: simple deterministic Prompt→Spec in browser
+    function slugifyWords(text){
+      const words = (text.toLowerCase().match(/[a-z0-9]+/g)||[]).filter(w=>!['the','a','an','to','and','or','of','for','in','on','over','under','with','without','if','then','when','whenever','must','should','never','not','cannot'].includes(w));
+      return words.join('_') || 'predicate';
+    }
+    function localOptimizePromptToSpec(prompt, constraints){
+      const low = prompt.trim();
+      let tce = '';
+      const hasIf = /\bif\b/i.test(low);
+      const hasThen = /\bthen\b/i.test(low);
+      const hasNever = /\bnever\b|\bcannot\b|\bmust not\b/i.test(low);
+      if(hasIf){
+        // crude split on if/then
+        let cond = low.split(/\bif\b/i)[1] || low; cond = cond.trim();
+        let lhs = cond;
+        let rhs = '';
+        if(hasThen){ const parts = cond.split(/\bthen\b/i); lhs = (parts[0]||'').trim(); rhs = (parts[1]||'').trim(); }
+        const lhsPred = slugifyWords(lhs);
+        const rhsPred = rhs ? slugifyWords(rhs) : 'action';
+        tce = `always (${lhsPred} -> ${rhsPred})`;
+      } else if(hasNever){
+        const pred = slugifyWords(low.replace(/\bnever\b|\bcannot\b|\bmust not\b/ig,''));
+        tce = `always (not ${pred})`;
+      } else {
+        const pred = slugifyWords(low);
+        tce = `always (${pred})`;
+      }
+      // minimal constraints
+      if(constraints && constraints.forbid_colon){ tce = tce.replace(/:/g,' '); }
+      if(constraints && constraints.require_prefix && !tce.toLowerCase().startsWith(constraints.require_prefix.toLowerCase())){
+        tce = `${constraints.require_prefix}${tce}`;
+      }
+      if(constraints && constraints.require_closing_paren && /always \(/i.test(tce) && !/\)$/.test(tce)){ tce += ')'; }
+      return { tce, tau: null, reasons: ['Local optimizer'], success: true, errors: [] };
+    }
+    async function postLocal(path, body){
+      if(path==='/llm/prompt-to-spec'){
+        return localOptimizePromptToSpec(String(body.prompt||''), body.constraints||{});
+      }
+      if(path==='/validate/tce'){
+        const tce = String((body&&body.tce)||'');
+        const valid = /^\s*always\s*\(/i.test(tce) && balancedParens(tce);
+        return { valid, errors: valid?[]:['Local validator: expected always(...) and balanced parentheses'] };
+      }
+      // unsupported locally
+      return { success:false, reasons:['Local mode: endpoint not supported'], errors:['Local only'] };
     }
 
     function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null, intent='', prompt_suggestions=[], refined_prompt='', refined_options=[] }){
