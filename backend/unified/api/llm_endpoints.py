@@ -126,6 +126,20 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         # Fallback to user prompt
         return f"always ({user})"
 
+    # NLP-lite intent detection and prompt refinement suggestions
+    # Extract simple intents: allow/deny, condition/guard, temporal always
+    low = body.prompt.lower()
+    intent = None
+    suggestions: list[str] = []
+    if any(w in low for w in ["always", "whenever", "at all times"]):
+        intent = "invariant"
+    if any(w in low for w in ["unless", "except if", "except when"]):
+        suggestions.append("Use a guard expression: always (action -> guard)")
+    if any(w in low for w in ["if ", "when ", "whenever "]):
+        suggestions.append("Use implication: always (condition -> action)")
+    if any(w in low for w in ["for all", "each", "every "]):
+        suggestions.append("Quantify explicitly: always (all x (condition(x) -> action(x)))")
+
     tce = _sanitize_to_tce(raw, body.prompt)
     # Minimal repair rules
     if ':' in tce:
@@ -224,7 +238,9 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         tce=tce,
         tau=tau,
         reasons=reasons,
-        provenance={"mode": body.mode, "grammar_id": body.grammar_id, "version": body.grammar_version, "retrieval": top}
+        provenance={"mode": body.mode, "grammar_id": body.grammar_id, "version": body.grammar_version, "retrieval": top},
+        intent=intent,
+        prompt_suggestions=suggestions
     )
 
 

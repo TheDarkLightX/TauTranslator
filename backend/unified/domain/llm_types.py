@@ -5,7 +5,7 @@ Follows ROP with unified Result type.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 
 
@@ -24,6 +24,9 @@ class PromptToSpecResponse:
     tau: Optional[str]
     reasons: List[str]
     provenance: Dict[str, Any]
+    # Optional high-level intent and better prompt suggestions
+    intent: Optional[str] = None
+    prompt_suggestions: List[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

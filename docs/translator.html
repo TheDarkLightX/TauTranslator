@@ -162,6 +162,16 @@
               <div id="outAnalysis" class="mono"></div>
             </div>
           </div>
+          <div class="cols" style="margin-top:10px">
+            <div>
+              <label>Detected intent</label>
+              <div id="outIntent" class="mono"></div>
+            </div>
+            <div>
+              <label>Prompt suggestions</label>
+              <div id="outPromptSuggestions" class="mono"></div>
+            </div>
+          </div>
           <label style="margin-top:10px">Explanation</label>
           <div id="outExplanation" class="mono"></div>
           <details style="margin-top:10px">
@@ -308,12 +318,14 @@
       return res.json();
     }
 
-    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null }){
+    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null, intent='', prompt_suggestions=[] }){
       $('outTce').textContent = tce || '';
       $('outTau').textContent = tau || '';
       $('outPromptCandidate').textContent = prompt_candidate || '';
       $('outAnalysis').textContent = analysis ? JSON.stringify(analysis) : '';
       $('outExplanation').textContent = explanation || '';
+      $('outIntent').textContent = intent || '';
+      $('outPromptSuggestions').textContent = Array.isArray(prompt_suggestions) && prompt_suggestions.length ? '- ' + prompt_suggestions.join('\n- ') : '';
       const ragDiv = $('ragPanel'); if(ragDiv){
         if(rag && Array.isArray(rag)){
           ragDiv.textContent = rag.map((c,i)=>`#${i+1} ${c.name} (score: ${typeof c.score==='number'?c.score.toFixed(4):'n/a'})\nSummary: ${c.summary}\nExamples: ${Array.isArray(c.examples)?c.examples.join(', '):''}`).join('\n\n');
@@ -589,7 +601,7 @@
             allowed_connectives: $('cAllowedConns').value.split(',').map(s=>s.trim()).filter(Boolean)
           };
           const r = await post('/llm/prompt-to-spec', body);
-          setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [] });
+          setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [], intent: r.intent || '', prompt_suggestions: r.prompt_suggestions || [] });
         } else if (op === 'validate'){
           const r = await post('/validate/tce', { tce: input });
           setOutputs({ valid: !!r.valid, reasons: [], errors: r.errors || [] });
