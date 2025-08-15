@@ -94,6 +94,12 @@
             </label>
           </div>
         </details>
+        <details>
+          <summary>Experimental</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="expRank" /> On-device ranking for suggestions</label>
+          </div>
+        </details>
       </div>
       <div class="card" style="margin-bottom:10px">
         <label>
@@ -238,6 +244,14 @@
       const attachCb = document.getElementById('attachInline'); if(attachCb) attachCb.checked = attach;
       onGrammarModeChange();
     }
+    // Experimental settings
+    function loadExperimental(){
+      const v = localStorage.getItem('tau_exp_rank') === '1';
+      const cb = document.getElementById('expRank'); if(cb){ cb.checked = v; cb.addEventListener('change', ()=>{
+        localStorage.setItem('tau_exp_rank', cb.checked ? '1':'0');
+      }); }
+    }
+    loadExperimental();
     function onGrammarModeChange(){
       const m = $('grammarMode').value;
       $('uploadRow').style.display = (m === 'upload') ? '' : 'none';
@@ -416,8 +430,11 @@
       try{
         const res = await post('/edu/suggestions', body);
         const arr = Array.isArray(res.suggestions) ? res.suggestions : [];
+        // On-device ranking (experimental)
+        const enableRank = (localStorage.getItem('tau_exp_rank') === '1');
+        const ranked = enableRank ? rankSuggestions(arr, {prefix, lang}) : arr;
         window.__tau_cache.sugg.set(key, arr);
-        return arr;
+        return ranked;
       }catch{ return []; }
     }
 
@@ -440,6 +457,29 @@
           };
         }
       });
+    }
+
+    function rankSuggestions(items, ctx){
+      // Lightweight feature-based scoring. Higher is better.
+      function scoreText(t){
+        let score = 0;
+        const L = t.length;
+        if(/\balways\b/.test(t)) score += 1.0;
+        if(t.includes('->')) score += 0.8;
+        if(/\b(all|ex)\b/.test(t)) score += 0.4;
+        // Parenthesis balance bonus
+        let bal=0, ok=true; for(const ch of t){ if(ch==='(') bal++; else if(ch===')') bal--; if(bal<0){ ok=false; break; } }
+        if(ok && bal===0) score += 0.5;
+        // Length preference: penalize extremes
+        if(L < 6) score -= 0.5; else if(L > 160) score -= 0.5; else score += 0.2;
+        // Prefix hint
+        const lastToken = (ctx.prefix.split(/\s+/).pop()||'').toLowerCase();
+        if(lastToken && t.toLowerCase().includes(lastToken)) score += 0.2;
+        return score;
+      }
+      const withScores = items.map(it=>({it, score: scoreText(it.text||'')}));
+      withScores.sort((a,b)=>b.score - a.score);
+      return withScores.map(x=>x.it);
     }
 
     // Quick Fix lightbulb: normalize connectives, balance parens
