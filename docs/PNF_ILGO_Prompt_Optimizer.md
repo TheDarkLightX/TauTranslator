@@ -1,6 +1,6 @@
 ## PNF‑ILGO+: Prompt Normal Form with Intent Lattice and Guarded Operators
 
-Author: Tau Translator Team — Alpha
+Author: Dana Edwards
 
 ### Purpose
 Transform ambiguous English prompts into precise Tau Controlled English (TCE) deterministically. PNF‑ILGO+ combines symbolic constraints with small learned/ranking components to minimize user burden while ensuring grammar validity and explainability.
