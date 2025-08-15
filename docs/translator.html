@@ -83,7 +83,7 @@
           Provider (optional)
           <input id="provider" placeholder="openai|local|..." />
         </label>
-        <button class="btn primary" id="run">Translate</button>
+        <button class="btn primary" id="run" style="display:none">Translate</button>
       </div>
       <div class="controls" id="controlsAdv" style="margin-top:6px">
         <details>
@@ -171,27 +171,26 @@
         </div>
         <div class="card">
           <div id="advancedOutputs" style="">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <strong>Output</strong>
-            <button class="btn" id="tabTce">TCE</button>
-            <button class="btn" id="tabTau">Tau</button>
-            <button class="btn" id="tabModule">Module</button>
-            <span id="intentChip" class="chip" style="display:none; margin-left:8px"></span>
-          </div>
-          <div class="cols">
-            <div>
-              <label>Output — TCE
-                <button class="btn" id="copyTce" style="margin-left:6px">Copy</button>
-              </label>
-              <textarea id="outTce" class="mono" readonly style="min-height: 60vh"></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <strong>Output</strong>
+              <div id="outTabs" style="display:flex;gap:6px">
+                <button class="btn" id="outTabTau">Tau</button>
+                <button class="btn" id="outTabTce">TCE</button>
+                <button class="btn" id="outTabExpl">Expl</button>
+                <button class="btn" id="outTabModule">Module</button>
+              </div>
+              <span id="intentChip" class="chip" style="display:none; margin-left:8px"></span>
+              <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+                <button class="btn" id="applyPromptCandidate" style="display:none">Apply</button>
+                <button class="btn" id="copyOut">Copy</button>
+              </div>
             </div>
-            <div>
-              <label>Output — Tau
-                <button class="btn" id="copyTau" style="margin-left:6px">Copy</button>
-              </label>
-              <textarea id="outTau" class="mono" readonly style="min-height: 60vh; display:none"></textarea>
-            </div>
-          </div>
+            <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
+            <!-- Hidden backing stores for outputs to feed Monaco -->
+            <textarea id="outTce" style="display:none"></textarea>
+            <textarea id="outTau" style="display:none"></textarea>
+            <textarea id="outExplanation" style="display:none"></textarea>
+            <textarea id="outModule" style="display:none"></textarea>
           </div>
           <div class="cols" style="margin-top:10px">
             <div>
@@ -551,9 +550,12 @@
       if(id==='chatExplainSel'){ chatExplainSelection(); }
       if(id==='chatInsertTce'){ const t = $('outTce').value||''; if(editor && t){ editor.setValue(t); showToast('Inserted TCE'); } }
       if(id==='chatInsertTau'){ const t = $('outTau').value||''; if(t){ $('outModule').value = (t.includes('module')? t : `# Tau (inline)\n${t}`); showToast('Tau copied to module box'); } }
-      if(id==='tabTce'){ $('outTce').style.display=''; $('outTau').style.display='none'; document.getElementById('outModule').scrollIntoView({block:'nearest'}); }
-      if(id==='tabTau'){ $('outTce').style.display='none'; $('outTau').style.display=''; document.getElementById('outTau').scrollIntoView({block:'nearest'}); }
-      if(id==='tabModule'){ const mod=$('outModule'); if(mod){ mod.scrollIntoView({behavior:'smooth'}); showToast('Jumped to Tau Module'); } }
+      // New unified tabs for output Monaco
+      if(id==='outTabTau'){ window.__outView='tau'; updateEditorOut(); showToast('Output: Tau'); }
+      if(id==='outTabTce'){ window.__outView='tce'; updateEditorOut(); showToast('Output: TCE'); }
+      if(id==='outTabExpl'){ window.__outView='expl'; updateEditorOut(); showToast('Output: Explanation'); }
+      if(id==='outTabModule'){ window.__outView='module'; updateEditorOut(); showToast('Output: Module'); }
+      if(id==='copyOut'){ const txt = editorOut ? editorOut.getValue() : ''; if(txt) copyText(txt); }
       if(id==='runMid'){ const b=$('run'); if(b && !b.disabled){ b.click(); } }
       // simple mode actions removed
       if(id==='applyPromptCandidate'){
@@ -694,6 +696,20 @@
             minimap: { enabled: false },
             fontSize: 13
           });
+          // Tabbed output controller
+          window.__outView = 'tau';
+          window.updateEditorOut = function(){
+            try{
+              let v=''; let lang='tauLang';
+              if(window.__outView==='tau'){ v = ($('outTau').value||$('outTce').value||''); lang='tauLang'; }
+              else if(window.__outView==='tce'){ v = $('outTce').value||''; lang='tauLang'; }
+              else if(window.__outView==='expl'){ v = $('outExplanation').value||''; lang='markdown'; }
+              else if(window.__outView==='module'){ v = $('outModule').value||''; lang='tauLang'; }
+              editorOut.setValue(v||'');
+              monaco.editor.setModelLanguage(editorOut.getModel(), lang);
+            }catch{}
+          }
+          window.updateEditorOut();
         }
         registerCompletionProvider();
         hookDiagnostics();
