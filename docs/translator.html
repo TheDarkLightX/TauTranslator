@@ -188,9 +188,17 @@
               <button class="btn" id="exportSimple">Export</button>
             </label>
             <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-            <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-              <button class="btn" id="copySimple">Copy</button>
-              <button class="btn" id="exportSimple">Export</button>
+            <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center">
+              <div id="simpleTabs" style="display:flex;gap:6px">
+                <button class="btn" id="simpleTabTau">Tau</button>
+                <button class="btn" id="simpleTabTce">TCE</button>
+                <button class="btn" id="simpleTabExpl">Expl</button>
+                <button class="btn" id="simpleTabModule">Module</button>
+              </div>
+              <div>
+                <button class="btn" id="copySimple">Copy</button>
+                <button class="btn" id="exportSimple">Export</button>
+              </div>
             </div>
           </div>
           <div id="advancedOutputs" style="">
@@ -517,6 +525,10 @@
       if(id==='openAdvanced'){ const cb=$('simpleMode'); if(cb){ cb.checked=false; document.getElementById('barStacks').style.display=''; applySimple(); } }
       // remove openSimple; default already simple
       if(id==='simpleTranslate'){ simpleTranslate(); }
+      if(id==='simpleTabTau'){ __simpleModeView='tau'; updateSimpleOut(); showToast('Output: Tau'); }
+      if(id==='simpleTabTce'){ __simpleModeView='tce'; updateSimpleOut(); showToast('Output: TCE'); }
+      if(id==='simpleTabExpl'){ __simpleModeView='explanation'; updateSimpleOut(); showToast('Output: Explanation'); }
+      if(id==='simpleTabModule'){ __simpleModeView='module'; updateSimpleOut(); showToast('Output: Module'); }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
@@ -879,7 +891,8 @@
     }
     (function wireSimple(){
       const cb = $('simpleMode'); const sel = $('simpleType');
-      function currentSimpleMode(){ return 'tau'; }
+      let __simpleModeView = 'tau';
+      function currentSimpleMode(){ return __simpleModeView; }
       function applySimple(){
         const on = cb && cb.checked;
         const wrap = $('simpleOutWrap'); if(wrap){ wrap.style.display = on ? '' : 'none'; }
@@ -897,6 +910,8 @@
       window.__updateSimpleOut = updateSimpleOut;
       // Initialize default simple view active
       applySimple();
+      __simpleModeView='tau';
+      updateSimpleOut();
     })();
 
     $('run').onclick = async ()=>{
