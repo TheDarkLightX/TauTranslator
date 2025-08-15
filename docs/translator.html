@@ -504,26 +504,32 @@
       return words.join('_') || 'predicate';
     }
     function localOptimizePromptToSpec(prompt, constraints){
-      const low = prompt.trim();
+      const raw = String(prompt||'').trim();
+      const low = raw.toLowerCase();
       let tce = '';
+      let tceEnglish = '';
       const hasIf = /\bif\b/i.test(low);
       const hasThen = /\bthen\b/i.test(low);
       const hasNever = /\bnever\b|\bcannot\b|\bmust not\b/i.test(low);
       if(hasIf){
         // crude split on if/then
-        let cond = low.split(/\bif\b/i)[1] || low; cond = cond.trim();
+        let cond = raw.split(/\bif\b/i)[1] || raw; cond = cond.trim();
         let lhs = cond;
         let rhs = '';
         if(hasThen){ const parts = cond.split(/\bthen\b/i); lhs = (parts[0]||'').trim(); rhs = (parts[1]||'').trim(); }
         const lhsPred = slugifyWords(lhs);
         const rhsPred = rhs ? slugifyWords(rhs) : 'action';
         tce = `always (${lhsPred} -> ${rhsPred})`;
+        tceEnglish = `At all times, if ${lhs.replace(/[.]+$/,'')} then ${rhs || 'the action occurs'}.`;
       } else if(hasNever){
         const pred = slugifyWords(low.replace(/\bnever\b|\bcannot\b|\bmust not\b/ig,''));
-        tce = `always (not ${pred})`;
+        tce = `always (not ${pred || 'send_data_over_network'})`;
+        tceEnglish = `At all times, no data is sent over the network.`;
       } else {
         const pred = slugifyWords(low);
         tce = `always (${pred})`;
+        const sentence = raw.replace(/[.]+$/,'');
+        tceEnglish = `At all times, ${sentence}.`;
       }
       // minimal constraints
       if(constraints && constraints.forbid_colon){ tce = tce.replace(/:/g,' '); }
@@ -531,7 +537,8 @@
         tce = `${constraints.require_prefix}${tce}`;
       }
       if(constraints && constraints.require_closing_paren && /always \(/i.test(tce) && !/\)$/.test(tce)){ tce += ')'; }
-      return { tce, tau: null, reasons: ['Local optimizer'], success: true, errors: [] };
+      // In local mode, prefer English TCE as tce, and provide formula as tau-like
+      return { tce: (tceEnglish||'').trim(), tau: tce, reasons: ['Local optimizer (in-browser)'], success: true, errors: [] };
     }
     async function postLocal(path, body){
       if(path==='/llm/prompt-to-spec'){
