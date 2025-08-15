@@ -9,12 +9,26 @@ Endpoint:
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
-try:
-    from backend.unified.english_to_tau_translator import EnglishToTauTranslator
-except ImportError as exc:  # fallback for src-layout execution inside container
-    raise RuntimeError("Failed to import EnglishToTauTranslator. Did you install the project as a package?") from exc
+from importlib import import_module
+from typing import Any, Optional
 
-translator = EnglishToTauTranslator()
+translator: Optional[Any] = None
+
+def _get_translator() -> Optional[Any]:
+    """Lazily import and instantiate the English→Tau translator.
+
+    Returns None if unavailable so the API can still start (health, LLM endpoints).
+    """
+    global translator
+    if translator is not None:
+        return translator
+    try:
+        module = import_module("backend.unified.english_to_tau_translator")
+        translator_class = getattr(module, "EnglishToTauTranslator")
+        translator = translator_class()
+        return translator
+    except Exception:
+        return None
 # Enable CORS for PWA frontend
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -35,8 +49,14 @@ app.add_middleware(
 # Mount v2 functional endpoints
 from backend.api.endpoints.translation_endpoints import router as translation_router
 from backend.unified.api.llm_endpoints import router as llm_router
+from backend.unified.api.edu_endpoints import router as edu_router
+from backend.unified.api.tce_endpoints import router as tce_router
+from backend.unified.api.llm_chat import router as chat_router
 app.include_router(translation_router)
 app.include_router(llm_router)
+app.include_router(edu_router)
+app.include_router(tce_router)
+app.include_router(chat_router)
 
 
 class TranslationResponse(BaseModel):
@@ -62,7 +82,10 @@ async def translate(sentence: str = Query(..., min_length=3, max_length=500)) ->
 
     Returns JSON with `success`, `tau` (may be empty if failed) and intermediate `tce` text.
     """
-    success, tau_code, tce = translator.translate_english_to_tau(sentence)
+    active_translator = _get_translator()
+    if active_translator is None:
+        raise HTTPException(status_code=503, detail="Translator engine unavailable on this deployment")
+    success, tau_code, tce = active_translator.translate_english_to_tau(sentence)
     if not success:
         raise HTTPException(status_code=422, detail="Translation failed for this sentence")
     return TranslationResponse(success=success, tau=tau_code, tce=tce)

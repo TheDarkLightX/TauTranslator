@@ -1,0 +1,38 @@
+## Vending Machine FSM - Interactive REPL Script
+## Enter these commands one by one into the Tau REPL.
+
+## 1. Define I/O Streams to use the console.
+sbf i1 = console.
+sbf o1 = console.
+sbf o2 = console.
+
+## 2. Define Symbolic Constants.
+idle             := 0.
+accepting_coins  := 1.
+dispensing_item  := 2.
+returning_change := 3.
+no_event         := 0.
+insert_coin      := 1.
+select_item      := 2.
+cancel           := 3.
+do_nothing       := 0.
+dispense_soda    := 1.
+return_coins     := 2.
+
+## 3. Define FSM logic, one rule at a time.
+o1[0] = idle && o2[0] = do_nothing.
+always ( (o1[t-1] = idle && i1[t] = insert_coin) -> (o1[t] = accepting_coins) ).
+always ( (o1[t-1] = accepting_coins && i1[t] = select_item) -> (o1[t] = dispensing_item) ).
+always ( (o1[t-1] = accepting_coins && i1[t] = cancel) -> (o1[t] = returning_change) ).
+always ( (o1[t] = idle) -> (o2[t] = do_nothing) ).
+always ( (o1[t] = accepting_coins) -> (o2[t] = do_nothing) ).
+always ( (o1[t] = dispensing_item) -> (o2[t] = dispense_soda) ).
+always ( (o1[t] = returning_change) -> (o2[t] = return_coins) ).
+always ( (o1[t-1] = idle && i1[t] != insert_coin) -> (o1[t] = idle) ).
+always ( (o1[t-1] = dispensing_item) -> (o1[t] = idle) ).
+always ( (o1[t-1] = returning_change) -> (o1[t] = idle) ).
+
+## 4. Run the simulation.
+## The REPL will now wait for your input for the 'i1' stream.
+## Try typing '1' and pressing Enter to simulate inserting a coin.
+run o1[t] && o2[t].

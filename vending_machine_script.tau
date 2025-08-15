@@ -1,0 +1,29 @@
+## Vending Machine FSM - Recurrence Relation Style
+
+## 1. Define Input Streams
+sbf i1 = ifile("~/TauTranslator/vending_inputs_b1.txt")
+sbf i2 = ifile("~/TauTranslator/vending_inputs_b0.txt")
+
+## 2. Define Recurrence Relations for State and Action bits
+# Note: In Tau BF syntax, & or juxtaposition is AND, | is OR, ' is NOT.
+# o1,o2 = State Bits (MSB, LSB); o3,o4 = Action Bits (MSB, LSB)
+# State: idle:00, accepting:01, dispensing:10, returning:11
+# Input: none:00, coin:01, select:10, cancel:11
+# Action: nothing:00, dispense:01, return:10
+
+o1[t] := o1[t-1]' o2[t-1] i1[t].
+o2[t] := (o1[t-1]' o2[t-1]' i1[t]' i2[t]) | (o1[t-1]' o2[t-1] (i1[t]' | i2[t])).
+o3[t] := o1[t] o2[t].
+o4[t] := o1[t] o2[t]'.
+
+## 3. Define Initial Conditions
+o1[0] := 0.
+o2[0] := 0.
+o3[0] := 0.
+o4[0] := 0.
+
+## 4. Run the simulation
+r T.
+
+## 3. Quit the REPL
+q

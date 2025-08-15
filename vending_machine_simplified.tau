@@ -1,0 +1,39 @@
+idle[0]()=T
+accepting_coins[0]()=F
+dispensing_item[0]()=F
+returning_change[0]()=F
+action_insert_coin[0]()=T
+action_select_item[0]()=F
+action_cancel[0]()=F
+
+# Step 1 logic
+idle_and_not_insert_coin_0 = idle[0]() && (!(action_insert_coin[0]()))
+idle[1]() = dispensing_item[0]() || returning_change[0]() || idle_and_not_insert_coin_0
+
+select_or_cancel_0 = action_select_item[0]() || action_cancel[0]()
+accepting_and_not_select_cancel_0 = accepting_coins[0]() && (!(select_or_cancel_0))
+idle_and_insert_coin_0 = idle[0]() && action_insert_coin[0]()
+accepting_coins[1]() = idle_and_insert_coin_0 || accepting_and_not_select_cancel_0
+
+dispensing_item[1]() = accepting_coins[0]() && action_select_item[0]()
+returning_change[1]() = accepting_coins[0]() && action_cancel[0]()
+
+# Step 2 inputs
+action_insert_coin[1]()=F
+action_select_item[1]()=T
+action_cancel[1]()=F
+
+# Step 2 logic
+idle_and_not_insert_coin_1 = idle[1]() && (!(action_insert_coin[1]()))
+idle[2]() = dispensing_item[1]() || returning_change[1]() || idle_and_not_insert_coin_1
+
+select_or_cancel_1 = action_select_item[1]() || action_cancel[1]()
+accepting_and_not_select_cancel_1 = accepting_coins[1]() && (!(select_or_cancel_1))
+idle_and_insert_coin_1 = idle[1]() && action_insert_coin[1]()
+accepting_coins[2]() = idle_and_insert_coin_1 || accepting_and_not_select_cancel_1
+
+dispensing_item[2]() = accepting_coins[1]() && action_select_item[1]()
+returning_change[2]() = accepting_coins[1]() && action_cancel[1]()
+
+goal_state() = dispensing_item[2]()
+solve goal_state()

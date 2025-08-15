@@ -1,0 +1,15 @@
+## Vending Machine FSM Definitions
+## This file contains only the definitions for the FSM.
+## The main logic is executed via the --evaluate flag.
+idle := 0.
+accepting_coins := 1.
+dispensing_item := 2.
+returning_change := 3.
+no_event := 0.
+insert_coin := 1.
+select_item := 2.
+cancel := 3.
+do_nothing := 0.
+dispense_soda := 1.
+return_coins := 2.
+

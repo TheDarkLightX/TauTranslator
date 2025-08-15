@@ -24,6 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 llm = ["lmql>=0.6", "aiohttp>=3.8", "huggingface-hub>=0.20"]
+nlp = ["spacy>=3.7"]
 cache = ["redis>=4.5"]
 api = ["fastapi>=0.100", "uvicorn[standard]>=0.20"]
 dev = [

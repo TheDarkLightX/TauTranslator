@@ -1,0 +1,13 @@
+sbf i1 = ifile('~/TauTranslator/vending_inputs_b1_short.txt')
+sbf i2 = ifile('~/TauTranslator/vending_inputs_b0_short.txt')
+sbf s1 = ofile('/tmp/vending_state_b1.txt')
+sbf s0 = ofile('/tmp/vending_state_b0.txt')
+sbf a1 = ofile('/tmp/vending_action_b1.txt')
+sbf a0 = ofile('/tmp/vending_action_b0.txt')
+s1[0]:=0
+s0[0]:=0
+a1[0]:=0
+a0[0]:=0
+all t((s1[t]<->s1[t-1]'s0[t-1]i1[t])&&(s0[t]<->(s1[t-1]'i1[t]')|(s1[t-1]'s0[t-1]i1[t]i2[t]'))&&(a1[t]<->s1[t-1]'s0[t-1]i1[t]i2[t]')&&(a0[t]<->s1[t-1]'s0[t-1]i1[t]i2[t]))
+r T.
+q.

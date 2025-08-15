@@ -79,7 +79,7 @@ class BidirectionalTranslationEngine(ConfigurableEngine):
         self.nlp_service = NLPTranslationService()
         self.ilr_service = ILRGenerationService()
         self.tau_service = TauTranslationService()
-        self.tau_to_english_service = TauToEnglishService(use_ast_parser=False)
+        self.tau_to_english_service = TauToEnglishService()
     
     def _initialize_tce_parser(self) -> None:
         """Initialize TCE parser if available (≤10 lines)."""

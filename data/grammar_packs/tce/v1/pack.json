@@ -1,0 +1,34 @@
+{
+  "grammar_id": "tce",
+  "version": "v1",
+  "lexicon": [
+    "always",
+    "sometimes",
+    "forall",
+    "exists",
+    "equals",
+    "is greater than"
+  ],
+  "rules": [
+    {
+      "name": "quantified_expr",
+      "summary": "Quantified property over variables using forall/exists.",
+      "examples": [
+        "forall x : P(x)",
+        "exists y : Q(y)"
+      ]
+    },
+    {
+      "name": "comparison",
+      "summary": "Comparison between two terms using equals/relational operators.",
+      "examples": [
+        "x equals 5",
+        "x is greater than 5"
+      ]
+    }
+  ],
+  "provenance": {
+    "source": "derived",
+    "safety": "no raw grammar embedded"
+  }
+}

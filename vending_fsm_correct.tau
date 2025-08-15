@@ -1,0 +1,29 @@
+## Vending Machine FSM - Corrected Script
+
+# Input Streams
+sbf i1 = ifile("~/TauTranslator/vending_inputs_b1_short.txt")
+sbf i2 = ifile("~/TauTranslator/vending_inputs_b0_short.txt")
+
+# Output Streams
+sbf o1 = ofile("/tmp/vending_state_b1.txt")
+sbf o2 = ofile("/tmp/vending_state_b0.txt")
+sbf o3 = ofile("/tmp/vending_action_b1.txt")
+sbf o4 = ofile("/tmp/vending_action_b0.txt")
+
+# State Logic (Corrected & Minimized)
+o1[t] := o1[t-1]'o2[t-1]i1[t]
+o2[t] := (o1[t-1]'i1[t]') | (o1[t-1]'o2[t-1]i1[t]i2[t]')
+
+# Action Logic (Corrected & Minimized)
+o3[t] := o1[t-1]'o2[t-1]i1[t]i2[t]'
+o4[t] := o1[t-1]'o2[t-1]i1[t]i2[t]
+
+# Initial Conditions
+o1[0] := 0
+o2[0] := 0
+o3[0] := 0
+o4[0] := 0
+
+# Run and Quit Commands
+r T.
+q.

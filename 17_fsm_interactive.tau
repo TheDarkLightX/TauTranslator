@@ -1,0 +1,41 @@
+# Vending Machine FSM - Interactive Specification
+# This spec uses temporal streams and console I/O for a live, interactive simulation.
+
+# === STATE AND I/O STREAM DEFINITIONS ===
+
+# Input streams from the console
+sbf coin, button, cancel = console
+
+# Internal state streams (2 bits for 4 states)
+sbf s0, s1
+
+# Output streams to the console
+sbf dispense, return_coin, ready = console
+
+# === STATE LOGIC (TEMPORAL RECURRENCE) ===
+# Defines how the state evolves from one timestep to the next.
+
+# s1 s0 | State
+# ----- | -------
+# 0  0  | Idle
+# 0  1  | Vending
+# 1  0  | HasCoin
+# 1  1  | ReturningCoin (transient)
+
+# Next value for state bit s0
+s0[t+1] := (s1[t]' & s0[t]' & coin[t] & button[t]') | (s1[t] & s0[t]' & coin[t]' & button[t] & cancel[t]')
+
+# Next value for state bit s1
+s1[t+1] := (s1[t]' & s0[t]' & coin[t] & button[t]') | (s1[t] & s0[t]' & coin[t]' & button[t]' & cancel[t]') | (s1[t] & s0[t]' & coin[t]' & button[t]' & cancel[t])
+
+# === OUTPUT LOGIC ===
+# Defines the machine's output based on the current state.
+
+dispense[t] := s1[t]' & s0[t]
+return_coin[t] := s1[t] & s0[t]
+ready[t] := s1[t]' & s0[t]'
+
+# === INITIAL STATE ===
+# The machine starts in the Idle state (0,0) at time 0.
+s0[0] = 0
+s1[0] = 0

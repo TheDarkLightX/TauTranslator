@@ -8,8 +8,8 @@ from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass
 
-# Re-export Result types from the `returns` library
-from returns.result import Result, Success, Failure
+# Use unified Result for ROP across backend
+from .result_enhanced import Result, Success, Failure
 
 
 # Core Domain Types
@@ -70,6 +70,13 @@ TOutput = TypeVar('TOutput')
 # Import functional helpers from the `returns` library
 from returns.result import safe
 
+
+
+@dataclass(frozen=True)
+class TranslationEvent:
+    """Represents an event in the translation lifecycle."""
+    event_type: str
+    payload: Dict[str, Any]
 
 
 @dataclass(frozen=True)

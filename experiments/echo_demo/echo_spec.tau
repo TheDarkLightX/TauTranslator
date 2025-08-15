@@ -1,0 +1,23 @@
+# Echo Demo Specification in Tau Language
+# Streams: One input (i1) and one output (o1)
+# Behavior: At every time step t, the output equals the input.
+
+# 1. Stream Declarations
+#    Both streams use the default 'tau' Boolean algebra type.
+tau i1 = console.
+tau o1 = console.
+
+# 2. Helper Predicate
+#    Ensures a value is a single Boolean bit (0 or 1).
+bit(x) := (x = 0) | (x = 1).
+
+# 3. Main Specification
+#    The predicate enforces that inputs and outputs are bits and
+#    that the output always mirrors the current input.
+#    The entire formula is wrapped in a single parenthesised body
+#    to satisfy Tau's hard syntax rules.
+always (
+    bit(i1[t]) &&
+    bit(o1[t]) &&
+    (o1[t] = i1[t])
+). 

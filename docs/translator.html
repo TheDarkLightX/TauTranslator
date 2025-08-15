@@ -29,6 +29,7 @@
     .stack { display:flex; align-items:center; gap:8px; }
     small { color: var(--muted); }
     .hint-box { background: rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.2); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--muted); }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16); color: var(--muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -113,21 +114,7 @@
           </div>
           <small>Stores intent/refined prompt/options locally only. No data is sent to the server.</small>
         </details>
-        <details>
-          <summary>View</summary>
-          <div class="cols">
-            <label><input type="checkbox" id="simpleMode" checked /> Simple view (DeepL-like)</label>
-            <label>
-              Output type
-              <select id="simpleType">
-                <option value="tau">Tau</option>
-                <option value="tce">TCE</option>
-                <option value="explanation">Explanation</option>
-                <option value="module">Module</option>
-              </select>
-            </label>
-          </div>
-        </details>
+        
         <details open>
           <summary>Clarifications (client-side)</summary>
           <div id="clarifyPanel" class="card" style="margin-top:6px"></div>
@@ -172,54 +159,35 @@
         </div>
       </div>
       <div class="row">
+        <div id="midAction" style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; position:sticky; top:0; padding:6px 0; background:transparent; z-index:5">
+          <button class="btn primary" id="runMid">Translate</button>
+        </div>
         <div class="card">
           <label id="inLabel">Input</label>
           <div id="editor" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
           <textarea id="input" placeholder="e.g., always (x equals 5)" style="display:none; margin-top:8px; min-height: 160px;"></textarea>
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
-          <div id="inputBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-            <button class="btn primary" id="simpleTranslate">Translate</button>
-          </div>
+          
         </div>
         <div class="card">
-          <div id="simpleOutWrap" style="display:none">
-            <label>Output
-              <button class="btn" id="copySimple" style="margin-left:6px">Copy</button>
-              <button class="btn" id="exportSimple">Export</button>
-            </label>
-            <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-            <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center">
-              <div id="simpleTabs" style="display:flex;gap:6px">
-                <button class="btn" id="simpleTabTau">Tau</button>
-                <button class="btn" id="simpleTabTce">TCE</button>
-                <button class="btn" id="simpleTabExpl">Expl</button>
-                <button class="btn" id="simpleTabModule">Module</button>
-              </div>
-              <div>
-                <button class="btn" id="copySimple">Copy</button>
-                <button class="btn" id="exportSimple">Export</button>
-              </div>
-            </div>
-          </div>
           <div id="advancedOutputs" style="">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <strong>Output</strong>
             <button class="btn" id="tabTce">TCE</button>
             <button class="btn" id="tabTau">Tau</button>
             <button class="btn" id="tabModule">Module</button>
+            <span id="intentChip" class="chip" style="display:none; margin-left:8px"></span>
           </div>
           <div class="cols">
             <div>
               <label>Output — TCE
                 <button class="btn" id="copyTce" style="margin-left:6px">Copy</button>
-                <button class="btn" id="exportTce">Export .tce</button>
               </label>
               <textarea id="outTce" class="mono" readonly style="min-height: 60vh"></textarea>
             </div>
             <div>
               <label>Output — Tau
                 <button class="btn" id="copyTau" style="margin-left:6px">Copy</button>
-                <button class="btn" id="exportTau">Export .tau</button>
               </label>
               <textarea id="outTau" class="mono" readonly style="min-height: 60vh; display:none"></textarea>
             </div>
@@ -227,7 +195,9 @@
           </div>
           <div class="cols" style="margin-top:10px">
             <div>
-              <label>Prompt candidate</label>
+              <label>Prompt candidate
+                <button class="btn" id="applyPromptCandidate" style="margin-left:6px; display:none">Apply</button>
+              </label>
               <div id="outPromptCandidate" class="mono"></div>
             </div>
             <div>
@@ -275,7 +245,6 @@
           <div class="card" style="margin-top:12px">
             <label>Tau Module (draft)
               <button class="btn" id="copyModule" style="margin-left:6px">Copy</button>
-              <button class="btn" id="exportModule">Export .tau</button>
             </label>
             <textarea id="outModule" class="mono" readonly style="min-height: 60vh"></textarea>
           </div>
@@ -511,11 +480,33 @@
       $('outTau').value = tau || '';
       $('outPromptCandidate').textContent = prompt_candidate || '';
       $('outAnalysis').textContent = analysis ? JSON.stringify(analysis) : '';
-      $('outExplanation').value = explanation || '';
+      // Compose Expl view content (markdown-like) to show intent, prompt candidate, suggestions, and analysis
+      (function composeExplanation(){
+        let md = '';
+        if(explanation && explanation.trim()){
+          md += explanation.trim();
+        }
+        if(intent){
+          md += (md ? '\n\n' : '') + `Detected intent: ${intent}`;
+        }
+        if(prompt_candidate){
+          md += (md ? '\n\n' : '') + 'Prompt candidate:\n```\n' + prompt_candidate + '\n```';
+        }
+        if(Array.isArray(prompt_suggestions) && prompt_suggestions.length){
+          md += (md ? '\n\n' : '') + 'Prompt suggestions:' + '\n- ' + prompt_suggestions.join('\n- ');
+        }
+        if(analysis){
+          try{ md += (md ? '\n\n' : '') + 'Analysis (structured):\n```json\n' + JSON.stringify(analysis, null, 2) + '\n```'; }catch{}
+        }
+        $('outExplanation').value = md;
+      })();
       $('outIntent').textContent = intent || '';
       $('outPromptSuggestions').textContent = Array.isArray(prompt_suggestions) && prompt_suggestions.length ? '- ' + prompt_suggestions.join('\n- ') : '';
       $('outRefined').textContent = refined_prompt || '';
       $('outRefinedOptions').textContent = Array.isArray(refined_options) && refined_options.length ? '- ' + refined_options.join('\n- ') : '';
+      // Header chips/actions
+      const chip = $('intentChip'); if(chip){ chip.textContent = intent ? `Intent: ${intent}` : ''; chip.style.display = intent ? '' : 'none'; }
+      const applyBtn = $('applyPromptCandidate'); if(applyBtn){ applyBtn.style.display = prompt_candidate ? '' : 'none'; applyBtn.dataset.prompt = prompt_candidate || ''; }
       // Persist minimal Q/A state locally if enabled
       const remember = (localStorage.getItem('tau_remember_qa') === '1');
       if(remember){
@@ -533,7 +524,7 @@
       if(typeof valid === 'boolean') msgs.push(`Valid: ${valid ? 'true' : 'false'}`);
       if(typeof success === 'boolean') msgs.push(`Success: ${success ? 'true' : 'false'}`);
       $('outReasons').textContent = msgs.join('\n\n');
-      if(window.__updateSimpleOut) window.__updateSimpleOut();
+      // no simple mode
     }
     function showToast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; }, 1200); }
     function copyText(txt){ if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>showToast('Copied')); } else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('Copied'); }catch{} document.body.removeChild(ta);} }
@@ -547,9 +538,7 @@
       if(id==='copyExplanation'){ copyText(($('outExplanation').value||'')); }
       if(id==='copyRefined'){ copyText(($('outRefined').textContent||'')); }
       if(id==='copyModule'){ copyText(($('outModule').value||'')); }
-      if(id==='exportTce'){ const v=$('outTce').value||''; if(v) downloadFile('output.tce', v); }
-      if(id==='exportTau'){ const v=$('outTau').value||''; if(v) downloadFile('output.tau', v); }
-      if(id==='exportModule'){ const v=$('outModule').value||''; if(v) downloadFile('module.tau', v); }
+      // export actions removed (Copy only)
       if(id==='applyRefined'){ const v=$('outRefined').textContent||''; if(editor && v){ editor.setValue(v); showToast('Refined prompt applied'); } }
       if(id==='copyCurl'){ const c=buildCurl(); if(c) copyText(c); }
       if(id==='genQuestions'){ generateQuestions(); }
@@ -565,21 +554,12 @@
       if(id==='tabTce'){ $('outTce').style.display=''; $('outTau').style.display='none'; document.getElementById('outModule').scrollIntoView({block:'nearest'}); }
       if(id==='tabTau'){ $('outTce').style.display='none'; $('outTau').style.display=''; document.getElementById('outTau').scrollIntoView({block:'nearest'}); }
       if(id==='tabModule'){ const mod=$('outModule'); if(mod){ mod.scrollIntoView({behavior:'smooth'}); showToast('Jumped to Tau Module'); } }
-      if(id==='copySimple'){ const txt = editorOut ? editorOut.getValue() : ''; copyText(txt); }
-      if(id==='exportSimple'){
-        const mode = ($('simpleType').value||'tau');
-        const v = editorOut ? editorOut.getValue() : ''; if(!v) return;
-        const ext = mode==='tce' ? 'tce' : (mode==='tau' || mode==='module') ? 'tau' : 'txt';
-        downloadFile(`output.${ext}`, v);
+      if(id==='runMid'){ const b=$('run'); if(b && !b.disabled){ b.click(); } }
+      // simple mode actions removed
+      if(id==='applyPromptCandidate'){
+        const v = e.target && e.target.dataset && e.target.dataset.prompt ? e.target.dataset.prompt : '';
+        if(v && editor){ editor.setValue(v); showToast('Applied prompt candidate'); }
       }
-      // removed validate/insert in minimal view
-      if(id==='openAdvanced'){ const cb=$('simpleMode'); if(cb){ cb.checked=false; document.getElementById('barStacks').style.display=''; applySimple(); } }
-      // remove openSimple; default already simple
-      if(id==='simpleTranslate'){ simpleTranslate(); }
-      if(id==='simpleTabTau'){ __simpleModeView='tau'; updateSimpleOut(); showToast('Output: Tau'); }
-      if(id==='simpleTabTce'){ __simpleModeView='tce'; updateSimpleOut(); showToast('Output: TCE'); }
-      if(id==='simpleTabExpl'){ __simpleModeView='explanation'; updateSimpleOut(); showToast('Output: Explanation'); }
-      if(id==='simpleTabModule'){ __simpleModeView='module'; updateSimpleOut(); showToast('Output: Module'); }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
@@ -588,6 +568,11 @@
       if(e.key==='2'){ e.preventDefault(); copyText(($('outTau').value||'')); }
       if(e.key==='3'){ e.preventDefault(); copyText(($('outExplanation').value||'')); }
       if(e.key==='4'){ e.preventDefault(); copyText(($('outRefined').textContent||'')); }
+    });
+    // Keyboard shortcut: Ctrl/Cmd+Enter to Translate (global)
+    window.addEventListener('keydown', (e)=>{
+      const inChat = document.activeElement && document.activeElement.id==='chatInput';
+      if((e.ctrlKey||e.metaKey) && e.key==='Enter' && !inChat){ e.preventDefault(); const b=$('run'); if(b && !b.disabled){ b.click(); } }
     });
     // Allow Enter-to-send in chat input
     window.addEventListener('keydown', (e)=>{
@@ -934,46 +919,7 @@
       });
     }
 
-    function updateSimpleOut(){
-      const mode = currentSimpleMode();
-      let v = '';
-      if(mode==='tau'){ v = $('outTau').value || $('outTce').value || ''; }
-      else if(mode==='tce'){ v = $('outTce').value || ''; }
-      else if(mode==='explanation'){ v = $('outExplanation').value || ''; }
-      else if(mode==='module'){ v = $('outModule').value || ''; }
-      if(editorOut){
-        editorOut.setValue(v||'');
-        // switch language for explanation vs code
-        try{
-          const lang = (mode==='explanation') ? 'markdown' : 'tauLang';
-          monaco.editor.setModelLanguage(editorOut.getModel(), lang);
-        }catch{}
-      }
-    }
-    (function wireSimple(){
-      const cb = $('simpleMode'); const sel = $('simpleType');
-      let __simpleModeView = 'tau';
-      function currentSimpleMode(){ return __simpleModeView; }
-      function applySimple(){
-        const on = cb && cb.checked;
-        const wrap = $('simpleOutWrap'); if(wrap){ wrap.style.display = on ? '' : 'none'; }
-        const adv = $('advancedOutputs'); if(adv){ adv.style.display = on ? 'none' : ''; }
-        const ct = $('controlsTop'); if(ct){ ct.style.display = on ? 'none' : 'flex'; }
-        const ca = $('controlsAdv'); if(ca){ ca.style.display = on ? 'none' : 'flex'; }
-        const gc = $('grammarCard'); if(gc){ gc.style.display = on ? 'none' : 'block'; }
-        const ex = $('extrasBlock'); if(ex){ ex.style.display = on ? 'none' : 'block'; }
-        const rf = $('refinedBlock'); if(rf){ rf.style.display = on ? 'none' : 'grid'; }
-        updateSimpleOut();
-      }
-      if(cb){ cb.addEventListener('change', applySimple); }
-      if(sel){ sel.addEventListener('change', ()=>{ updateSimpleOut(); }); }
-      // Keep simpleOut in sync when outputs change
-      window.__updateSimpleOut = updateSimpleOut;
-      // Initialize default simple view active
-      applySimple();
-      __simpleModeView='tau';
-      updateSimpleOut();
-    })();
+    // Removed simple mode; always show advanced outputs
 
     $('run').onclick = async ()=>{
       $('run').disabled = true;
@@ -1024,14 +970,7 @@
         $('run').disabled = false;
       }
     };
-    async function simpleTranslate(){
-      const prompt = editor ? editor.getValue().trim() : ($('input') ? $('input').value.trim() : '');
-      if(!prompt){ showToast('Enter input'); return; }
-      try{
-        const r = await post('/llm/prompt-to-spec', { prompt, mode:'assist' });
-        setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [] });
-      }catch(e){ showToast('Translate failed'); }
-    }
+    // no simpleTranslate; use main Translate button
     // Chat logic (client-side thread)
     let __chatThread = [];
     function openChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='0'; restoreChat(); showToast('Assistant opened'); }

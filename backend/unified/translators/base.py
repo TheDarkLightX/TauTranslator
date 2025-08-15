@@ -26,6 +26,7 @@ class TranslationDirection(Enum):
     NL_TO_TCE = "nl_to_tce"  # Natural Language to TCE
     TCE_TO_TAU = "tce_to_tau"  # TCE to Tau
     TCE_TO_NL = "tce_to_nl"  # TCE to Natural Language
+    TAU_TO_NL = "tau_to_nl"  # Tau to Natural Language
 
 
 @dataclass

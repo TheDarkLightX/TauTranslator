@@ -14,6 +14,28 @@ E = TypeVar('E')
 
 class Result(ABC, Generic[T]):
     """Base Result type supporting monadic operations."""
+    # Support both Result[T] and Result[T, E] annotations at runtime
+    # to maintain backward compatibility with existing type hints.
+    def __class_getitem__(cls, params):  # type: ignore[override]
+        # Allow 1- or 2-parameter forms without raising typing errors
+        # e.g., Result[T] or Result[T, E]. We ignore type params at runtime.
+        if isinstance(params, tuple):
+            if len(params) in (1, 2):
+                return cls
+        else:
+            return cls
+        return cls
+
+    # Compatibility helpers inspired by `returns` API
+    @abstractmethod
+    def unwrap(self) -> T:
+        """Return the inner value or raise for Failure."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def failure(self) -> Any:
+        """Return underlying error payload for Failure, or raise for Success."""
+        raise NotImplementedError
     
     @abstractmethod
     def is_success(self) -> bool:
@@ -111,13 +133,52 @@ class Success(Result[T], Generic[T]):
         """Convert to Some."""
         return self.value
 
+    # Compatibility helpers
+    def unwrap(self) -> T:
+        return self.value
 
-@dataclass(frozen=True)
+    def failure(self) -> Any:  # pragma: no cover - not expected for Success
+        raise ValueError("Called failure() on Success")
+
+
+@dataclass(frozen=True, init=False)
 class Failure(Result[Any]):
     """Represents a failed operation result."""
     error_code: str
     message: str
     details: Optional[dict] = None
+    
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        """
+        Backward-compatible constructor:
+        - Failure(code, message, details=None)
+        - Failure(message_str)
+        - Failure(domain_error_obj) → will stringify
+        """
+        # Structured form via kwargs
+        if 'error_code' in kwargs or 'message' in kwargs:
+            error_code = kwargs.get('error_code', 'ERROR')
+            message = kwargs.get('message', '')
+            details = kwargs.get('details')
+        else:
+            # Positional handling
+            if len(args) == 1:
+                # Single string or object → treat as message
+                error_code = 'ERROR'
+                message = str(args[0])
+                details = None
+            elif len(args) >= 2:
+                error_code = str(args[0])
+                message = str(args[1])
+                details = args[2] if len(args) >= 3 else None
+            else:
+                error_code = 'ERROR'
+                message = ''
+                details = None
+
+        object.__setattr__(self, 'error_code', error_code)
+        object.__setattr__(self, 'message', message)
+        object.__setattr__(self, 'details', details)
     
     def is_success(self) -> bool:
         return False
@@ -157,6 +218,15 @@ class Failure(Result[Any]):
     def to_optional(self) -> None:
         """Convert to None."""
         return None
+
+    # Compatibility helpers
+    def unwrap(self) -> Any:  # pragma: no cover - will raise
+        raise ValueError(f"Tried to unwrap Failure[{self.error_code}]: {self.message}")
+
+    def failure(self) -> Any:
+        """Return a structured error payload when possible."""
+        # Prefer details when it looks like a domain error; otherwise return message
+        return self.details or {"code": self.error_code, "message": self.message}
 
 
 # Utility functions for Result creation
@@ -198,6 +268,9 @@ def try_catch(func: Callable[[], T], error_code: str = "EXCEPTION") -> Result[T]
         return Success(func())
     except Exception as e:
         return Failure(error_code, str(e))
+
+# Backward-compatibility typing alias used by some tests as Result[T, E]
+TypingResult = Result
 
 
 # Function composition utilities

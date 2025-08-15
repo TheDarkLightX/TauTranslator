@@ -1,0 +1,51 @@
+# VCS and editor
+.git
+.gitignore
+.vscode/
+.idea/
+
+# Python caches and venvs
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Node/JS
+node_modules/
+**/node_modules/
+pwa/node_modules/
+pwa/build/
+pwa/dist/
+
+# Large/generated content not needed at runtime
+site/
+docs/
+reports/
+sessions/
+logs/
+backups/
+archive/
+experiments/
+examples/
+internal_docs/
+Internal_standards/
+scripts/
+desktop/
+ui/
+
+# Tests and local artifacts
+tests/
+pytest*.log
+*.log
+
+# Project files not needed inside image
+.github/
+CNAME
+mkdocs.yml
+README*.md
+
+

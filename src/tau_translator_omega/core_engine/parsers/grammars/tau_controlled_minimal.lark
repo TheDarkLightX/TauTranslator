@@ -1,0 +1,4 @@
+%import common.WS
+%ignore WS
+
+start: "a"

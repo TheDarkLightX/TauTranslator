@@ -1,0 +1,6 @@
+# Test the 'n' command with a simple Well-Formed Formula (WFF)
+# without any custom definitions.
+
+n 1 = 1 .
+
+q.

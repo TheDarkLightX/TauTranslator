@@ -1,0 +1,10 @@
+# Test the REPL's ability to simplify a concrete expression.
+
+# Define a function 'f' with an argument 'x'.
+f(x) := x + 1 .
+
+# Ask the REPL to process the expression f[5].
+# We are no longer testing for equality, but observing the tool's behavior.
+f[5] .
+
+q.

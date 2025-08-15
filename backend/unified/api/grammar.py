@@ -21,6 +21,7 @@ from ..core.responses import create_success_response, create_error_response
 from ..core.config import settings
 from returns.result import Result, Success, Failure
 from ..core.error_handling import AppError
+from ..core.result_enhanced import success, failure
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

@@ -246,8 +246,7 @@ class NaturalLanguageToTCETranslator:
     
     def _format_as_tce(self, text: str) -> str:
         """Format text as proper TCE."""
-        # Ensure ends with period
-        if not text.endswith('.'):
-            text += '.'
-        
-        return text
+        # The TCE grammar does not use sentence-terminating periods.
+        # This was a source of parsing errors.
+        # We also strip any lingering whitespace.
+        return text.strip()

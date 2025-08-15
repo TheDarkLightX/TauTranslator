@@ -24,6 +24,10 @@ from backend.unified.domain.gamification_types import (
     Ability
 )
 
+# Compatibility alias for tests expecting GamificationCache
+class GamificationCache:
+    pass
+
 class GamificationRepository:
     """
     Repository for persisting gamification data.

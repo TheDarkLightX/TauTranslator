@@ -12,8 +12,9 @@ from datetime import datetime
 
 from .domain_types import (
     UserId, SessionId, ApiKey, PatternId, GrammarId,
-    FilePath, DirectoryPath, Result, Success, Failure, AppError
+    FilePath, DirectoryPath, AppError
 )
+from .result_enhanced import Result, Success, Failure
 
 
 class IPatternRepository(ABC):

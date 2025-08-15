@@ -111,15 +111,24 @@ A: Multiple local and cloud providers via a pluggable interface. You choose what
 All endpoints return structured, deterministic envelopes and never include secrets or raw licensed content.
 
 ### Getting Started
-1) Try the live demo on the public site.
-2) Connect your preferred provider (or run locally) and validate a few examples.
+1) Try the Alpha on the public site.
+2) Draft a few examples in English and TCE, then validate.
 3) Pilot with one team and one document type; instrument results.
 4) Roll out with governance (Assist‑Only first; enable Generate where appropriate).
 
-### Contact
-For early access, partnerships, and enterprise pilots: info@tautranslator.ai
+### Alpha Status
+- Public Alpha focused on: English → TCE, TCE validation, TCE → Tau, and explanation back to English.
+- Strict validation by design; some prompts may require minor repairs (punctuation, phrasing).
+- You can learn TCE quickly: see “What is TCE?” at [tce.md](tce.md).
 
-## Tau Translator Whitepaper (Public PoC Blueprint)
+### Compatibility and BYOK
+- Compatible with OpenRouter‑style providers for LLM assistance.
+- BYOK (bring your own key) is optional for users to control costs and model choice.
+- We never embed raw licensed grammar; suggestions are grounded by license‑safe knowledge.
+
+### Contact and Feedback
+- Until email is set up, please open issues or ideas here: https://github.com/TheDarkLightX/TauTranslator/issues/new
+
 
 ### Abstract
 Tau Translator is a production-grade system for bidirectional translation among plain English, Tau Controlled English (TCE), and Tau Language. It combines deterministic parsing and validation with LLM-assisted generation to deliver a secure, license-compliant, and verifiable pipeline. The system adopts Railway Oriented Programming (ROP) for robust error handling, Test-Driven Development (TDD) for quality, and Clean Architecture for maintainability. This whitepaper doubles as a GitHub blueprint for a public proof-of-concept (PoC) without source disclosure, guiding API contracts, UX, evaluation metrics, and a compliance-first operation model.

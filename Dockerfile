@@ -3,7 +3,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PORT=8080
+    PORT=8080 \
+    PYTHONPATH="/app/src:/app"
 
 WORKDIR /app
 
@@ -15,6 +16,9 @@ COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt uvicorn
 
 COPY . .
+
+# Install the project so src packages import correctly and data files are included
+RUN pip install . && python -c "import pkgutil, sys; print('installed packages ok')"
 
 EXPOSE 8080
 

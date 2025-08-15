@@ -14,7 +14,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from backend.unified.ilr_pipeline_simple import ILRPipelineSimple
+from backend.unified.translators.bidirectional_engine import BidirectionalTranslationEngine, TranslationDirection
 from backend.unified.english_to_tau_integrated import IntegratedEnglishToTauTranslator
 
 
@@ -23,7 +23,7 @@ class FullSentenceBidirectionalTest:
     
     def __init__(self):
         self.nl_to_tau = IntegratedEnglishToTauTranslator()
-        self.ilr_pipeline = ILRPipelineSimple()
+        self.bidirectional_engine = BidirectionalTranslationEngine()
     
     def test_full_sentence_translation(self, sentence: str, category: str):
         """Test full sentence translation to Tau and back."""
@@ -51,9 +51,20 @@ class FullSentenceBidirectionalTest:
                 'final_english': ''
             }
         
-        # Step 2: Tau → English (simulate reverse translation)
-        print(f"\n🔄 Tau → English Translation (Simulated):")
-        reverse_english = self._tau_to_english_simulation(tau_code, tce_intermediate)
+        # Step 2: Tau → English (real reverse translation)
+        print(f"\n🔄 Tau → English Translation (Live Engine):")
+        reverse_english_result = self.bidirectional_engine.translate(
+            text=tau_code, 
+            direction=TranslationDirection.TAU_TO_ENGLISH
+        )
+        
+        if reverse_english_result.success:
+            reverse_english = reverse_english_result.translation
+            print(f"  ✅ Success: {tau_code}")
+            print(f"  📝 Reconstructed: {reverse_english}")
+        else:
+            reverse_english = f"[Reverse translation failed: {reverse_english_result.error_message}]"
+            print(f"  ❌ Failed to translate from Tau: {reverse_english_result.error_message}")
         print(f"  📝 Reconstructed: {reverse_english}")
         
         # Step 3: Compare roundtrip quality
@@ -73,43 +84,6 @@ class FullSentenceBidirectionalTest:
             'roundtrip_success': semantic_match
         }
     
-    def _tau_to_english_simulation(self, tau_code: str, tce: str) -> str:
-        """Simulate Tau → English translation using pattern matching."""
-        # Use TCE as intermediate form for reverse translation
-        if not tau_code:
-            return "[Translation failed]"
-        
-        # Basic patterns for Tau → English
-        english = tau_code
-        
-        # Boolean operators
-        english = english.replace('&', ' and ')
-        english = english.replace('|', ' or ')
-        english = english.replace("'", ' not ')
-        english = english.replace('~', ' not ')
-        english = english.replace('^', ' xor ')
-        
-        # Comparison operators
-        english = english.replace(' = ', ' equals ')
-        english = english.replace(' > ', ' is greater than ')
-        english = english.replace(' < ', ' is less than ')
-        english = english.replace(' >= ', ' is at least ')
-        english = english.replace(' <= ', ' is at most ')
-        english = english.replace(' != ', ' is not equal to ')
-        
-        # Remove extra parentheses and normalize
-        english = english.replace('(', '').replace(')', '')
-        english = ' '.join(english.split())  # Normalize whitespace
-        
-        # Use TCE for better reconstruction if available
-        if tce and len(tce) > len(english):
-            tce_english = tce.replace('.', '')
-            # Convert TCE operators back to natural language
-            tce_english = tce_english.replace(' = ', ' equals ')
-            tce_english = tce_english.replace(' > ', ' is greater than ')
-            tce_english = tce_english.replace(' < ', ' is less than ')
-            return tce_english
-        
         return english
     
     def _analyze_semantic_match(self, original: str, reconstructed: str) -> bool:

@@ -1,0 +1,10 @@
+# Test parenthesizing the WFF for the 'n' command.
+
+# Define a function 'f' with an argument 'x'.
+f(x) := x + 1 .
+
+# Call the function and test equality, with the WFF in parentheses.
+# This is our new hypothesis for the correct syntax.
+n (f[5] = 6) .
+
+q.

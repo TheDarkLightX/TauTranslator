@@ -1,0 +1,11 @@
+# This script demonstrates the most basic non-temporal evaluation in Tau.
+
+# Define a simple boolean formula named 'my_formula'.
+# It represents the expression: (true AND false) OR (NOT true)
+my_formula:= (1 & 0) | 1' .
+
+# Use the 'n' command to normalize (evaluate) the formula.
+n my_formula .
+
+# Exit the interpreter.
+q.

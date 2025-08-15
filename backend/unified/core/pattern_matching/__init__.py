@@ -9,6 +9,9 @@ Uses Aho-Corasick algorithm for optimal O(n + m) complexity on multiple patterns
 Author: DarkLightX / Dana Edwards
 """
 
+# Import types first to avoid circular references in some test environments
+from .types import MatchResult
+
 from .fsa_engine import (
     # Core FSA components
     FiniteStateAutomaton,
@@ -23,7 +26,6 @@ from .fsa_engine import (
     get_pattern_matcher,
 )
 
-from .types import MatchResult
 
 # Optimized Aho-Corasick implementation
 from .fsa_engine_optimized import (

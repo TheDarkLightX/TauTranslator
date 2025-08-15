@@ -1,0 +1,20 @@
+idle[0]()=T
+accepting_coins[0]()=F
+dispensing_item[0]()=F
+returning_change[0]()=F
+action_insert_coin[0]()=T
+action_select_item[0]()=F
+action_cancel[0]()=F
+idle[1]()=(dispensing_item[0]()||returning_change[0]())||(idle[0]()&&(!(action_insert_coin[0]()))) 
+accepting_coins[1]()=(idle[0]()&&action_insert_coin[0]())||(accepting_coins[0]()&&(!((action_select_item[0]()||action_cancel[0]()))))
+dispensing_item[1]()=accepting_coins[0]()&&action_select_item[0]()
+returning_change[1]()=accepting_coins[0]()&&action_cancel[0]()
+action_insert_coin[1]()=F
+action_select_item[1]()=T
+action_cancel[1]()=F
+idle[2]()=(dispensing_item[1]()||returning_change[1]())||(idle[1]()&&(!(action_insert_coin[1]()))) 
+accepting_coins[2]()=(idle[1]()&&action_insert_coin[1]())||(accepting_coins[1]()&&(!((action_select_item[1]()||action_cancel[1]()))))
+dispensing_item[2]()=accepting_coins[1]()&&action_select_item[1]()
+returning_change[2]()=accepting_coins[1]()&&action_cancel[1]()
+goal_state()=dispensing_item[2]()
+solve goal_state()

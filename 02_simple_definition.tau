@@ -1,0 +1,9 @@
+# A simple definition using the syntax found in the official demos.
+
+# Define a function 'f' that adds 1 to its input.
+f(x) := x + 1 .
+
+# Evaluate the function with an input of 5 by checking if f(5) equals 6.
+n f(5) = 6 .
+
+q.

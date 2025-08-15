@@ -174,15 +174,16 @@ if __name__ == '__main__':
         url='https://github.com/DarkLightX/TauTranslator',
         
         # Package configuration
-        packages=find_packages(exclude=['tests', 'tests.*', 'venv', 'venv.*']),
+        packages=find_packages(where='src', exclude=['tests', 'tests.*', 'venv', 'venv.*']),
+        package_dir={'': 'src'},
 
 
         
         # Include non-Python files
         include_package_data=True,
         package_data={
-            '': ['*.json', '*.yaml', '*.lark', '*.md'],
-            'tau_translator': ['ui/*.py', 'pwa/*'],
+            '': ['*.json', '*.yaml', '*.md'],
+            'tau_translator_omega': ['**/*.json', '**/*.md', '**/*.lark'],
         },
         
         # Scripts

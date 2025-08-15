@@ -1,0 +1,91 @@
+# Vending Machine FSM - Pure Function Validation Spec
+# This spec refactors the temporal FSM logic into pure functions
+# for batch-mode validation, following the user's canonical patterns.
+
+# === STATE ENCODING ===
+# s1 s0 | State
+# ----- | -------
+# 0  0  | Idle
+# 0  1  | Vending
+# 1  0  | HasCoin
+# 1  1  | (Unused)
+
+# === PURE STATE TRANSITION FUNCTIONS ===
+# Calculates the next state bit based on current state and inputs.
+
+# Next value for state bit s0
+next_s0(s1, s0, coin, button, cancel) := (s1' & s0' & coin & button') | (s1 & s0' & coin' & button & cancel')
+
+# Next value for state bit s1
+next_s1(s1, s0, coin, button, cancel) := (s1' & s0' & coin & button') | (s1 & s0' & coin' & button' & cancel')
+
+# === PURE OUTPUT FUNCTIONS ===
+# Calculates the output bits based on current state.
+
+# dispense output
+out_dispense(s1, s0) := s1' & s0
+
+# return_coin output
+out_return(s1, s0) := s1 & s0
+
+# ready output (for simplicity, let's say it's ready in Idle state)
+out_ready(s1, s0) := s1' & s0'
+
+
+# === COMPREHENSIVE BATCH VALIDATION ===
+# We will simulate a sequence of operations using sat tests.
+
+# --- Test 1: Initial State --- 
+# Verify outputs in the initial Idle state (s1=0, s0=0)
+sat out_dispense(0, 0) = 0
+sat out_return(0, 0) = 0
+sat out_ready(0, 0) = 1
+
+# --- Test 2: Insert Coin --- 
+# From Idle (0,0), input coin=1. Expected next state: HasCoin (1,0)
+sat next_s1(0, 0, 1, 0, 0) = 1
+sat next_s0(0, 0, 1, 0, 0) = 0
+
+# --- Test 3: HasCoin State --- 
+# Verify outputs in HasCoin state (1,0)
+sat out_dispense(1, 0) = 0
+sat out_return(1, 0) = 0
+sat out_ready(1, 0) = 0
+
+# --- Test 4: Press Button --- 
+# From HasCoin (1,0), input button=1. Expected next state: Vending (0,1)
+sat next_s1(1, 0, 0, 1, 0) = 0
+sat next_s0(1, 0, 0, 1, 0) = 1
+
+# --- Test 5: Vending State --- 
+# Verify outputs in Vending state (0,1)
+sat out_dispense(0, 1) = 1
+sat out_return(0, 1) = 0
+sat out_ready(0, 1) = 0
+
+# --- Test 6: Return to Idle --- 
+# The Vending state is transient and should automatically return to Idle (0,0).
+# We model this by checking the transition from Vending with no new inputs.
+sat next_s1(0, 1, 0, 0, 0) = 0
+sat next_s0(0, 1, 0, 0, 0) = 0
+
+# --- Test 7: Cancel Transaction ---
+# From HasCoin (1,0), input cancel=1. Expected next state: Idle (0,0) with coin returned.
+# Note: The coin return is an output of the *next* state, which we can't directly model here.
+# We will verify the state transition and the output logic separately.
+sat next_s1(1, 0, 0, 0, 1) = 0
+sat next_s0(1, 0, 0, 0, 1) = 0
+# We can also imagine a transient 'ReturningCoin' state (1,1) for this.
+# Let's test the output function for that hypothetical state.
+sat out_return(1, 1) = 1
+
+# === FINAL VALIDATION CHECK ===
+# A composite check to ensure the core logic holds.
+
+# Helper for idle state definition (must be defined before use)
+state_idle(s1, s0) := s1' & s0'
+
+# If in Idle state and a coin is inserted, the machine is ready for vending.
+# Use simple, single-character parameters as per Tau syntax rules.
+ready_for_vend(i, c) := i & c
+sat ready_for_vend(state_idle(0,0), 1) = 1

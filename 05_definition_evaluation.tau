@@ -1,0 +1,8 @@
+# Define a function 'f' that adds 1 to its input.
+f(x) := x + 1 .
+
+# Evaluate the function directly, without the 'n' command.
+# Based on our latest findings, this should work.
+f(5) = 6 .
+
+q.

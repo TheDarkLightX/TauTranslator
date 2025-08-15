@@ -14,7 +14,8 @@ from typing import Dict, Any, Optional
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
-from ...core.domain_types import FilePath, Result, Success, Failure
+from ...core.domain_types import FilePath
+from ...core.result_enhanced import Result, Success, Failure
 from ...core.interfaces import IPatternRepository, IEventBus
 
 

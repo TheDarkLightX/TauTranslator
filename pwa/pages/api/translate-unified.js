@@ -189,9 +189,12 @@ async function tryBackendTranslation(requestBody) {
       }
     }
 
-    // Try public endpoint
+    // Choose endpoint based on advanced parameters
+    const needsV2 = Boolean(requestBody.grammarFilename) || (requestBody.engineKey && requestBody.engineKey !== 'auto');
+    const path = needsV2 ? '/v2/translate' : '/translate';
+
     const response = await axios.post(
-      `${backend.url}/translate`,
+      `${backend.url}${path}`,
       requestBody,
       { 
         timeout: 5000,

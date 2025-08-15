@@ -160,7 +160,14 @@ class TranslationService {
   /**
    * Try translation via Python backend
    */
-  async tryBackendTranslation({ sourceText, sourceLang, targetLang, apiKey }) {
+  async tryBackendTranslation({
+    sourceText,
+    sourceLang,
+    targetLang,
+    apiKey = null,
+    grammarFilename = null,
+    engineKey = 'auto'
+  }) {
     const backend = await this.checkBackendAvailability();
     
     if (!backend.available) {
@@ -168,7 +175,9 @@ class TranslationService {
     }
 
     try {
-      const endpoint = apiKey ? '/translate/secure' : '/translate';
+      // Prefer new v2 endpoint when advanced features are requested
+      const needsV2 = grammarFilename !== null || engineKey !== 'auto';
+      const endpoint = needsV2 ? '/v2/translate' : apiKey ? '/translate/secure' : '/translate';
       const headers = {
         'Content-Type': 'application/json',
         ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
@@ -179,7 +188,9 @@ class TranslationService {
         {
           sourceText,
           sourceLangKey: sourceLang,
-          targetLangKey: targetLang
+          targetLangKey: targetLang,
+          ...(grammarFilename && { grammarFilename }),
+          ...(engineKey && { engineKey })
         },
         { headers, timeout: 5000 }
       );
@@ -197,6 +208,50 @@ class TranslationService {
       console.error('Backend translation error:', error.message);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Upload a grammar file to the backend and make it active (if desired).
+   */
+  async uploadGrammar(file, autoActivate = true) {
+    const backend = await this.checkBackendAvailability();
+    if (!backend.available) {
+      throw new Error('Backend not available');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(`${backend.url}/v2/grammars`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    if (autoActivate && response.data?.filename) {
+      // Activate via translate call with grammarFilename
+      await this.tryBackendTranslation({
+        sourceText: '',
+        sourceLang: 'PLAIN_ENGLISH',
+        targetLang: 'TAU',
+        grammarFilename: response.data.filename
+      });
+    }
+
+    return response.data;
+  }
+
+  /**
+   * List currently loaded grammars from backend.
+   */
+  async listGrammars() {
+    const backend = await this.checkBackendAvailability();
+    if (!backend.available) {
+      return { active: null, loaded: {} };
+    }
+
+    const response = await axios.get(`${backend.url}/v2/grammars`);
+    return response.data;
   }
 
   /**

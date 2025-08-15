@@ -1,0 +1,9 @@
+# Test the semantics of the equality (=) and inequality (!=) operators.
+
+# Test 1: Equality. Based on previous results, we expect this to be False.
+n 1 = 1 .
+
+# Test 2: Inequality. This will help us understand the tool's logic.
+n 1 != 1 .
+
+q.

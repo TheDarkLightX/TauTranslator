@@ -255,19 +255,32 @@ class PatternTranslationEngine(TranslationEngine):
         return self._repository.get_supported_directions()
     
     def translate(self, text: str, direction: TranslationDirection, **kwargs) -> TranslationResult:
-        """
-        Note: This is a pure function (no side effects).
-        Translate text synchronously."""
-        async def _translate():
-            return await self.translate_async(
-                SourceText(text), direction, **kwargs
-            )
-        
-        result = AsyncSyncBridge.run(_translate())
-        
-        return result.fold(
-            on_success=lambda res: res,
-            on_failure=lambda err: self._create_error_result(text, direction, err)
+        """Translate text synchronously without relying on asyncio."""
+        start_time = time.time()
+
+        # Validate input
+        validation_result = self._validator.validate(text)
+        if isinstance(validation_result, Failure):
+            return self._create_error_result(text, direction, validation_result)
+
+        # Resolve pattern set
+        pattern_set_result = self._repository.get_pattern_set(direction)
+        if isinstance(pattern_set_result, Failure):
+            return self._create_error_result(text, direction, pattern_set_result)
+
+        validated_text = validation_result.unwrap()
+        pattern_set = pattern_set_result.unwrap()
+
+        # Apply patterns
+        applied_text_result = self._applicator.apply_patterns(validated_text, pattern_set)
+        if isinstance(applied_text_result, Failure):
+            return self._create_error_result(text, direction, applied_text_result)
+
+        applied_text = applied_text_result.unwrap()
+        cleaned_text = self._cleaner.clean(applied_text, direction)
+
+        return self._create_success_result(
+            SourceText(text), TargetText(cleaned_text), direction, start_time
         )
     
     async def translate_async(
@@ -370,3 +383,25 @@ class PatternTranslationEngine(TranslationEngine):
             error_message=f"{app_error.code}: {app_error.message}",
             metadata={}
         )
+
+# Backwards-compatibility alias expected by the registry
+class PatternTranslator:
+    """Adapter to match TranslatorProtocol expected by the registry.
+
+    Provides translate(source, source_lang, target_lang) -> Result[str].
+    """
+
+    def __init__(self) -> None:
+        self._engine = PatternTranslationEngine()
+
+    def translate(self, source: str, source_lang: str, target_lang: str):
+        # Choose direction based on requested target language
+        target = (target_lang or "").upper()
+        direction = TranslationDirection.TO_TAU if target == "TAU" else TranslationDirection.TO_TCE
+        try:
+            trans = self._engine.translate(source, direction)
+            if trans.success:
+                return Success(trans.translated_text)
+            return Failure("TRANSLATION_FAILED", trans.error_message or "Unknown error")
+        except Exception as e:
+            return Failure("TRANSLATION_EXCEPTION", str(e))

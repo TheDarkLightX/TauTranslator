@@ -16,7 +16,10 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from backend.unified.translators.base import TranslationDirection
-from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
+try:
+    from src.tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
+except Exception:
+    from tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
 from tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator
 
 logging.basicConfig(level=logging.INFO)

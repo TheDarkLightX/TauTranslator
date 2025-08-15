@@ -1,0 +1,17 @@
+# Vending Machine FSM - Canonical Specification for Verification
+
+# Initial State (t=0): The machine is idle.
+is_idle[0]():=T.
+is_accepting_coins[0]():=F.
+
+# Input Action (t=0): A coin is inserted.
+action_insert_coin[0]():=T.
+
+# Transition Logic: Define the state for t=1 based on t=0.
+is_accepting_coins[1]() := is_idle[0]() & action_insert_coin[0]().
+
+# Goal State: The desired state at t=1 is 'accepting_coins'.
+valid_transition() := is_accepting_coins[1]().
+
+# Solve: Verify that the goal state is reachable.
+solve valid_transition().

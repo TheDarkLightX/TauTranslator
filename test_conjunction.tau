@@ -1,0 +1,4 @@
+p():=T
+q():=T
+r():=p() and q()
+solve r()
