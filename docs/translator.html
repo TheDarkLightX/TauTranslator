@@ -110,6 +110,21 @@
           </div>
           <small>Stores intent/refined prompt/options locally only. No data is sent to the server.</small>
         </details>
+        <details>
+          <summary>View</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="simpleMode" /> Simple view (DeepL-like)</label>
+            <label>
+              Output type
+              <select id="simpleType">
+                <option value="tau">Tau</option>
+                <option value="tce">TCE</option>
+                <option value="explanation">Explanation</option>
+                <option value="module">Module</option>
+              </select>
+            </label>
+          </div>
+        </details>
         <details open>
           <summary>Clarifications (client-side)</summary>
           <div id="clarifyPanel" class="card" style="margin-top:6px"></div>
@@ -161,6 +176,19 @@
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
         </div>
         <div class="card">
+          <div id="simpleOutWrap" style="display:none">
+            <label>Output
+              <button class="btn" id="copySimple" style="margin-left:6px">Copy</button>
+              <button class="btn" id="exportSimple">Export</button>
+            </label>
+            <textarea id="simpleOut" class="mono" readonly style="min-height: 60vh"></textarea>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <strong>Output</strong>
+            <button class="btn" id="tabTce">TCE</button>
+            <button class="btn" id="tabTau">Tau</button>
+            <button class="btn" id="tabModule">Module</button>
+          </div>
           <div class="cols">
             <div>
               <label>Output — TCE
@@ -174,7 +202,7 @@
                 <button class="btn" id="copyTau" style="margin-left:6px">Copy</button>
                 <button class="btn" id="exportTau">Export .tau</button>
               </label>
-              <textarea id="outTau" class="mono" readonly style="min-height: 60vh"></textarea>
+              <textarea id="outTau" class="mono" readonly style="min-height: 60vh; display:none"></textarea>
             </div>
           </div>
           <div class="cols" style="margin-top:10px">
@@ -429,6 +457,7 @@
       if(typeof valid === 'boolean') msgs.push(`Valid: ${valid ? 'true' : 'false'}`);
       if(typeof success === 'boolean') msgs.push(`Success: ${success ? 'true' : 'false'}`);
       $('outReasons').textContent = msgs.join('\n\n');
+      if(window.__updateSimpleOut) window.__updateSimpleOut();
     }
     function showToast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; }, 1200); }
     function copyText(txt){ if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>showToast('Copied')); } else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('Copied'); }catch{} document.body.removeChild(ta);} }
@@ -457,6 +486,16 @@
       if(id==='chatExplainSel'){ chatExplainSelection(); }
       if(id==='chatInsertTce'){ const t = $('outTce').value||''; if(editor && t){ editor.setValue(t); showToast('Inserted TCE'); } }
       if(id==='chatInsertTau'){ const t = $('outTau').value||''; if(t){ $('outModule').value = (t.includes('module')? t : `# Tau (inline)\n${t}`); showToast('Tau copied to module box'); } }
+      if(id==='tabTce'){ $('outTce').style.display=''; $('outTau').style.display='none'; document.getElementById('outModule').scrollIntoView({block:'nearest'}); }
+      if(id==='tabTau'){ $('outTce').style.display='none'; $('outTau').style.display=''; document.getElementById('outTau').scrollIntoView({block:'nearest'}); }
+      if(id==='tabModule'){ const mod=$('outModule'); if(mod){ mod.scrollIntoView({behavior:'smooth'}); showToast('Jumped to Tau Module'); } }
+      if(id==='copySimple'){ copyText(($('simpleOut').value||'')); }
+      if(id==='exportSimple'){
+        const mode = ($('simpleType').value||'tau');
+        const v = $('simpleOut').value||''; if(!v) return;
+        const ext = mode==='tce' ? 'tce' : (mode==='tau' || mode==='module') ? 'tau' : 'txt';
+        downloadFile(`output.${ext}`, v);
+      }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
