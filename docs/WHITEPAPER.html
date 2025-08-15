@@ -20,7 +20,7 @@
   <div class="wrap">
     <div class="card">
       <h1>Tau Translator — Product Whitepaper (Public Alpha)</h1>
-      <p>This page summarizes the value, architecture, and methods used by Tau Translator. It is a readable HTML version of our whitepaper; no proprietary Tau assets are embedded.</p>
+      <p>This page summarizes the value, approach, and safeguards behind Tau Translator. It is a readable HTML version of our whitepaper; no proprietary assets are embedded and no internal code details are disclosed.</p>
       <p>
         <a class="btn" href="translator.html">Try Translator</a>
         <a class="btn" href="intent_lattices.html">Intent Lattices (FDL)</a>
@@ -49,48 +49,37 @@
     <div class="card">
       <h2>Architecture (High‑Level)</h2>
       <ul>
-        <li>Presentation: PWA + Desktop (PyQt).</li>
-        <li>API: FastAPI endpoints for Prompt→Spec, Spec→Prompt, validation, translation.</li>
-        <li>Domain: IR, validators, policy; clean‑room GS/NSO IR.</li>
-        <li>Providers: local & external via an abstraction; BYOK supported.</li>
+        <li>Presentation: modern web app and optional desktop client.</li>
+        <li>Services: prompt analysis, specification synthesis, validation.</li>
+        <li>Semantics: clean‑room GS/NSO intermediate representation (license‑safe).</li>
+        <li>Providers: configurable; user‑managed keys supported.</li>
       </ul>
     </div>
 
     <div class="card">
       <h2>Intent Detection & Analysis (What’s New)</h2>
-      <p>We model ambiguity as a <strong>finite distributive lattice (FDL)</strong> over join‑irreducible facets (intent, guards, quantifiers, temporal). Candidates are bitsets; GLB via bitwise AND yields the “certain core.” Information‑gain clarifications operate on irreducibles. A clean‑room <strong>GS/NSO IR</strong> synthesizes controlled English. See the explainer: <a href="intent_lattices.html">Distributive Intent Lattices</a>.</p>
+      <p>We model ambiguity as a <strong>finite distributive lattice (FDL)</strong> over facets (intent, guards, quantifiers, temporal). We compute a “certain core” and ask targeted questions to resolve the rest. A clean‑room <strong>GS/NSO</strong> semantic layer synthesizes unambiguous controlled English. See the explainer: <a href="intent_lattices.html">Distributive Intent Lattices</a>.</p>
       <ul>
-        <li><strong>FDL bitset projection</strong> (feature‑flag: <code>TAU_OPTIMIZER_USE_FDL=1</code>) — implemented.</li>
-        <li><strong>GS/NSO clean‑room synthesis</strong> (feature‑flag: <code>TAU_OPTIMIZER_USE_GS=1</code>) — implemented.</li>
-        <li>Clarifications surfaced as “Clarify:” suggestions in the UI — implemented.</li>
+        <li>Deterministic projection to a “certain core.”</li>
+        <li>Information‑theoretic clarifications to minimize questions.</li>
+        <li>License‑clean semantic synthesis to controlled English.</li>
       </ul>
-      <p><em>Code</em>: <code>backend/unified/domain/prompt_optimizer_pnf_ilgo.py</code>, <code>backend/unified/domain/gs_ir.py</code></p>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Security & Privacy</h2>
-        <ul>
-          <li>Deterministic validation; redaction; rate limits; CSP/CORS; audit logs.</li>
-          <li>No secrets in responses; BYOK for providers.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h2>Public API (PoC)</h2>
-        <ul>
-          <li>POST /llm/prompt-to-spec</li>
-          <li>POST /llm/spec-to-prompt</li>
-          <li>POST /validate/tce</li>
-          <li>POST /translate/tce-to-tau</li>
-        </ul>
-      </div>
+    <div class="card">
+      <h2>Security & Privacy</h2>
+      <ul>
+        <li>Deterministic validation before acceptance; transparent reasons.</li>
+        <li>Data minimization and redaction; user‑managed keys where applicable.</li>
+        <li>Defense‑in‑depth for the public alpha (rate limits, CSP/CORS, auditability).</li>
+      </ul>
     </div>
 
     <div class="card">
       <h2>Roadmap</h2>
       <ul>
         <li>Version‑space clarifications and counterexample‑guided queries.</li>
-        <li>Operator‑tree minimal‑edit normalization (tree‑edit distance).</li>
+        <li>Operator‑aware normalization for canonical controlled English.</li>
         <li>Expanded knowledge packs and provenance UI.</li>
       </ul>
     </div>
