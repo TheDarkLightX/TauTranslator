@@ -50,6 +50,7 @@
           </div>
         </div>
         <button class="btn" id="openAdvanced">Settings</button>
+        <a class="btn" id="openIntentDoc" href="intent_lattices.html" target="_blank" rel="noopener">Intent</a>
         <button class="btn primary" id="toggleChat">Assist</button>
       </div>
     </div>
@@ -118,6 +119,7 @@
         <details open>
           <summary>Clarifications (client-side)</summary>
           <div id="clarifyPanel" class="card" style="margin-top:6px"></div>
+          <div id="clarifyHints" class="card" style="margin-top:6px"></div>
           <div class="controls">
             <button class="btn" id="genQuestions">Generate Questions</button>
             <button class="btn" id="applyAnswers">Apply Answers</button>
@@ -506,6 +508,18 @@
       // Header chips/actions
       const chip = $('intentChip'); if(chip){ chip.textContent = intent ? `Intent: ${intent}` : ''; chip.style.display = intent ? '' : 'none'; }
       const applyBtn = $('applyPromptCandidate'); if(applyBtn){ applyBtn.style.display = prompt_candidate ? '' : 'none'; applyBtn.dataset.prompt = prompt_candidate || ''; }
+      // Render backend clarifications ("Clarify: ...")
+      try {
+        const hintsDiv = $('clarifyHints');
+        if (hintsDiv) {
+          const clar = Array.isArray(prompt_suggestions) ? prompt_suggestions.filter(s=>/^\s*Clarify:\s*/i.test(s)) : [];
+          if (clar.length) {
+            hintsDiv.innerHTML = '<strong>Clarifications suggested</strong><ul style="margin:8px 0 0 16px">' + clar.map(s=>'<li>'+s.replace(/^\s*Clarify:\s*/i,'')+'</li>').join('') + '</ul>';
+          } else {
+            hintsDiv.innerHTML = '';
+          }
+        }
+      } catch {}
       // Persist minimal Q/A state locally if enabled
       const remember = (localStorage.getItem('tau_remember_qa') === '1');
       if(remember){
