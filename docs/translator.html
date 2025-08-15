@@ -297,7 +297,7 @@
       $('outExplanation').textContent = explanation || '';
       const ragDiv = $('ragPanel'); if(ragDiv){
         if(rag && Array.isArray(rag)){
-          ragDiv.textContent = rag.map((c,i)=>`#${i+1} ${c.name}\nSummary: ${c.summary}\nExamples: ${Array.isArray(c.examples)?c.examples.join(', '):''}`).join('\n\n');
+          ragDiv.textContent = rag.map((c,i)=>`#${i+1} ${c.name} (score: ${typeof c.score==='number'?c.score.toFixed(4):'n/a'})\nSummary: ${c.summary}\nExamples: ${Array.isArray(c.examples)?c.examples.join(', '):''}`).join('\n\n');
         } else { ragDiv.textContent = ''; }
       }
       const msgs = [];
