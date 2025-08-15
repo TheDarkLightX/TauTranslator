@@ -113,7 +113,7 @@
         <details>
           <summary>View</summary>
           <div class="cols">
-            <label><input type="checkbox" id="simpleMode" /> Simple view (DeepL-like)</label>
+            <label><input type="checkbox" id="simpleMode" checked /> Simple view (DeepL-like)</label>
             <label>
               Output type
               <select id="simpleType">
@@ -182,7 +182,12 @@
               <button class="btn" id="exportSimple">Export</button>
             </label>
             <textarea id="simpleOut" class="mono" readonly style="min-height: 60vh"></textarea>
+            <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="simpleValidate">Validate</button>
+              <button class="btn" id="simpleInsert">Insert to editor</button>
+            </div>
           </div>
+          <div id="advancedOutputs" style="">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <strong>Output</strong>
             <button class="btn" id="tabTce">TCE</button>
@@ -204,6 +209,7 @@
               </label>
               <textarea id="outTau" class="mono" readonly style="min-height: 60vh; display:none"></textarea>
             </div>
+          </div>
           </div>
           <div class="cols" style="margin-top:10px">
             <div>
@@ -495,6 +501,20 @@
         const v = $('simpleOut').value||''; if(!v) return;
         const ext = mode==='tce' ? 'tce' : (mode==='tau' || mode==='module') ? 'tau' : 'txt';
         downloadFile(`output.${ext}`, v);
+      }
+      if(id==='simpleValidate'){
+        const mode = ($('simpleType').value||'tau');
+        const txt = $('simpleOut').value||''; if(!txt){ showToast('Nothing to validate'); return; }
+        if(mode==='tce'){
+          post('/validate/tce', { tce: txt }).then(r=>{ showToast(`Valid: ${r.valid===true}`); }).catch(err=> showToast('Validate failed'));
+        } else {
+          showToast('Validation available for TCE only');
+        }
+      }
+      if(id==='simpleInsert'){
+        const mode = ($('simpleType').value||'tau');
+        const txt = $('simpleOut').value||''; if(!txt){ showToast('Nothing to insert'); return; }
+        if(editor){ editor.setValue(txt); showToast('Inserted into editor'); }
       }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
