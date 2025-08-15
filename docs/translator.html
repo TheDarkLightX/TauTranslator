@@ -144,12 +144,18 @@
         <div class="card">
           <div class="cols">
             <div>
-              <label>TCE</label>
-              <div id="outTce" class="mono"></div>
+              <label>Output — TCE
+                <button class="btn" id="copyTce" style="margin-left:6px">Copy</button>
+                <button class="btn" id="exportTce">Export .tce</button>
+              </label>
+              <textarea id="outTce" class="mono" readonly style="min-height: 100px"></textarea>
             </div>
             <div>
-              <label>Tau</label>
-              <div id="outTau" class="mono"></div>
+              <label>Output — Tau
+                <button class="btn" id="copyTau" style="margin-left:6px">Copy</button>
+                <button class="btn" id="exportTau">Export .tau</button>
+              </label>
+              <textarea id="outTau" class="mono" readonly style="min-height: 100px"></textarea>
             </div>
           </div>
           <div class="cols" style="margin-top:10px">
@@ -174,7 +180,10 @@
           </div>
           <div class="cols" style="margin-top:10px">
             <div>
-              <label>Refined prompt</label>
+              <label>Refined prompt
+                <button class="btn" id="copyRefined" style="margin-left:6px">Copy</button>
+                <button class="btn" id="applyRefined">Apply</button>
+              </label>
               <div id="outRefined" class="mono"></div>
             </div>
             <div>
@@ -182,12 +191,17 @@
               <div id="outRefinedOptions" class="mono"></div>
             </div>
           </div>
-          <label style="margin-top:10px">Explanation</label>
-          <div id="outExplanation" class="mono"></div>
+          <label style="margin-top:10px">Explanation
+            <button class="btn" id="copyExplanation" style="margin-left:6px">Copy</button>
+          </label>
+          <textarea id="outExplanation" class="mono" readonly style="min-height: 100px"></textarea>
           <details style="margin-top:10px">
             <summary>Context (RAG)</summary>
             <div id="ragPanel" class="mono"></div>
           </details>
+          <div class="controls" style="margin-top:10px">
+            <button class="btn" id="copyCurl">Copy cURL (last)</button>
+          </div>
           <label style="margin-top:10px">Reasons / Errors</label>
           <div id="outReasons" class="mono"></div>
         </div>
@@ -195,6 +209,7 @@
       <div class="hint">Note: This page calls your configured API. Ensure CORS allows your domain.</div>
     </div>
   </div>
+  <div id="toast" style="position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:8px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s ease">Copied</div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js" crossorigin="anonymous"></script>
   <script>
@@ -323,17 +338,19 @@
           body.grammar_ref = { id: parts[0], version: (parts[1]||'').replace(/^v/,'') };
         }
       }
+      // Track last call for copy cURL
+      window.__tau_last_call = { url, path, headers: {...headers}, body: JSON.parse(JSON.stringify(body)) };
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
       if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
       return res.json();
     }
 
     function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null, intent='', prompt_suggestions=[], refined_prompt='', refined_options=[] }){
-      $('outTce').textContent = tce || '';
-      $('outTau').textContent = tau || '';
+      $('outTce').value = tce || '';
+      $('outTau').value = tau || '';
       $('outPromptCandidate').textContent = prompt_candidate || '';
       $('outAnalysis').textContent = analysis ? JSON.stringify(analysis) : '';
-      $('outExplanation').textContent = explanation || '';
+      $('outExplanation').value = explanation || '';
       $('outIntent').textContent = intent || '';
       $('outPromptSuggestions').textContent = Array.isArray(prompt_suggestions) && prompt_suggestions.length ? '- ' + prompt_suggestions.join('\n- ') : '';
       $('outRefined').textContent = refined_prompt || '';
@@ -350,6 +367,30 @@
       if(typeof success === 'boolean') msgs.push(`Success: ${success ? 'true' : 'false'}`);
       $('outReasons').textContent = msgs.join('\n\n');
     }
+    function showToast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; }, 1200); }
+    function copyText(txt){ if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>showToast('Copied')); } else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('Copied'); }catch{} document.body.removeChild(ta);} }
+    function downloadFile(name, text){ const blob=new Blob([text],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+    function buildCurl(){ const last = window.__tau_last_call; if(!last) return ''; const parts=[`curl -sS -X POST ${last.url}`]; parts.push(`-H 'Content-Type: application/json'`); if(last.headers['X-OpenRouter-Key']){ parts.push(`-H 'X-OpenRouter-Key: ${last.headers['X-OpenRouter-Key']}'`); } const data = JSON.stringify(last.body).replace(/'/g, "'\\''"); parts.push(`-d '${data}'`); return parts.join(' '); }
+    // Wire copy/export/apply buttons
+    window.addEventListener('click', (e)=>{
+      const id = e.target && e.target.id;
+      if(id==='copyTce'){ copyText(($('outTce').value||'')); }
+      if(id==='copyTau'){ copyText(($('outTau').value||'')); }
+      if(id==='copyExplanation'){ copyText(($('outExplanation').value||'')); }
+      if(id==='copyRefined'){ copyText(($('outRefined').textContent||'')); }
+      if(id==='exportTce'){ const v=$('outTce').value||''; if(v) downloadFile('output.tce', v); }
+      if(id==='exportTau'){ const v=$('outTau').value||''; if(v) downloadFile('output.tau', v); }
+      if(id==='applyRefined'){ const v=$('outRefined').textContent||''; if(editor && v){ editor.setValue(v); showToast('Refined prompt applied'); } }
+      if(id==='copyCurl'){ const c=buildCurl(); if(c) copyText(c); }
+    });
+    // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
+    window.addEventListener('keydown', (e)=>{
+      if(!(e.shiftKey && (e.ctrlKey||e.metaKey))) return;
+      if(e.key==='1'){ e.preventDefault(); copyText(($('outTce').value||'')); }
+      if(e.key==='2'){ e.preventDefault(); copyText(($('outTau').value||'')); }
+      if(e.key==='3'){ e.preventDefault(); copyText(($('outExplanation').value||'')); }
+      if(e.key==='4'){ e.preventDefault(); copyText(($('outRefined').textContent||'')); }
+    });
 
     // Monaco setup
     let editor = null;
