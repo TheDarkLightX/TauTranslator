@@ -55,7 +55,7 @@
     </div>
     <div class="card">
       <div class="hint-box" style="margin-bottom:10px">Alpha note: You can attach your own grammar per request (e.g., .tgf). Uploaded files remain in your browser memory; if supported, the backend can accept an uploaded grammar for your session. Do not upload licensed content you do not have rights to share.</div>
-      <div class="controls">
+      <div class="controls" id="controlsTop">
         <label style="flex:1">
           Operation
           <select id="op">
@@ -85,7 +85,7 @@
         </label>
         <button class="btn primary" id="run">Translate</button>
       </div>
-      <div class="controls" style="margin-top:6px">
+      <div class="controls" id="controlsAdv" style="margin-top:6px">
         <details>
           <summary>Constraints (LMQL‑lite)</summary>
           <label class="hint" style="display:block; margin:6px 0">Deterministic constraints for Prompt → Spec. Applied before validation with a one‑shot repair.</label>
@@ -140,7 +140,7 @@
           <small>Questions are derived from detected gaps (intent, guard, condition, quantifiers). Answers remain in your browser.</small>
         </details>
       </div>
-      <div class="card" style="margin-bottom:10px">
+      <div class="card" id="grammarCard" style="margin-bottom:10px">
         <label>
           Grammar source
           <select id="grammarMode">
@@ -187,6 +187,14 @@
             </label>
             <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
             <div id="simpleBar" style="position:sticky;bottom:0;padding:8px 0;background:transparent;display:flex;gap:8px;flex-wrap:wrap">
+              <label style="font-size:12px;color:#a3a3a3">Output
+                <select id="simpleTypeBar">
+                  <option value="tau">Tau</option>
+                  <option value="tce">TCE</option>
+                  <option value="explanation">Explanation</option>
+                  <option value="module">Module</option>
+                </select>
+              </label>
               <button class="btn" id="simpleValidate">Validate</button>
               <button class="btn" id="simpleInsert">Insert to editor</button>
             </div>
@@ -869,7 +877,7 @@
     }
 
     function updateSimpleOut(){
-      const mode = (sel && sel.value) || 'tau';
+      const mode = currentSimpleMode();
       let v = '';
       if(mode==='tau'){ v = $('outTau').value || $('outTce').value || ''; }
       else if(mode==='tce'){ v = $('outTce').value || ''; }
@@ -877,6 +885,25 @@
       else if(mode==='module'){ v = $('outModule').value || ''; }
       if(editorOut){ editorOut.setValue(v||''); }
     }
+    (function wireSimple(){
+      const cb = $('simpleMode'); const sel = $('simpleType');
+      function applySimple(){
+        const on = cb && cb.checked;
+        const wrap = $('simpleOutWrap'); if(wrap){ wrap.style.display = on ? '' : 'none'; }
+        const adv = $('advancedOutputs'); if(adv){ adv.style.display = on ? 'none' : ''; }
+        const ct = $('controlsTop'); if(ct){ ct.style.display = on ? 'none' : 'flex'; }
+        const ca = $('controlsAdv'); if(ca){ ca.style.display = on ? 'none' : 'flex'; }
+        const gc = $('grammarCard'); if(gc){ gc.style.display = on ? 'none' : 'block'; }
+        updateSimpleOut();
+      }
+      if(cb){ cb.addEventListener('change', applySimple); }
+      if(sel){ sel.addEventListener('change', ()=>{ updateSimpleOut(); }); }
+      const selBar = document.getElementById('simpleTypeBar'); if(selBar){ selBar.addEventListener('change', ()=> updateSimpleOut()); }
+      // Keep simpleOut in sync when outputs change
+      window.__updateSimpleOut = updateSimpleOut;
+      // Initialize default simple view active
+      applySimple();
+    })();
 
     $('run').onclick = async ()=>{
       $('run').disabled = true;
