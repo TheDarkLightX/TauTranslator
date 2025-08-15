@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributive Intent Lattices for Prompt-to-Specification</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        .header { text-align: center; margin-bottom: 40px; }
+        h1 { color: #2a5298; font-size: 2.5em; margin: 0 0 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        .subtitle { color: #666; font-size: 1.2em; font-style: italic; }
+        .main-diagram { display: flex; justify-content: space-between; align-items: flex-start; margin: 40px 0; gap: 30px; }
+        .process-flow { flex: 1; background: #f8f9fa; border-radius: 15px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .process-step { background: white; border: 2px solid #2a5298; border-radius: 10px; padding: 20px; margin: 15px 0; position: relative; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .process-step:hover { transform: translateX(5px); box-shadow: 0 8px 20px rgba(42, 82, 152, 0.2); }
+        .process-step::after { content: '↓'; position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 24px; color: #2a5298; }
+        .process-step:last-child::after { display: none; }
+        .step-number { background: #2a5298; color: white; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; }
+        .lattice-section { flex: 1; text-align: center; }
+        .lattice-container { background: #f8f9fa; border-radius: 15px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        svg { width: 100%; height: 400px; }
+        .node { cursor: pointer; transition: all 0.3s ease; }
+        .node:hover circle { r: 35; fill: #ff6b6b; }
+        .key-concepts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 40px; }
+        .concept-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease; }
+        .concept-card:hover { transform: translateY(-5px); }
+        .concept-card h3 { margin: 0 0 10px 0; font-size: 1.3em; }
+        .concept-card p { margin: 0; font-size: 0.9em; line-height: 1.4; }
+        .example-box { background: #e8f4f8; border-left: 5px solid #2a5298; border-radius: 5px; padding: 20px; margin: 30px 0; }
+        .example-box h3 { color: #2a5298; margin-top: 0; }
+        .facet-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+        .facet-tag { background: #2a5298; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9em; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .highlight { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Distributive Intent Lattices</h1>
+            <p class="subtitle">From Ambiguous English to Formal Specifications</p>
+        </div>
+        <div class="main-diagram">
+            <div class="process-flow">
+                <h2 style="color: #2a5298; text-align: center;">Pipeline Process</h2>
+                <div class="process-step">
+                    <span class="step-number">1</span>
+                    <strong>Natural Language Input</strong>
+                    <p style="margin: 5px 0 0 40px; color: #666;">"If the button is pressed, the light turns on"</p>
+                </div>
+                <div class="process-step">
+                    <span class="step-number">2</span>
+                    <strong>Parse & Extract Facets</strong>
+                    <div class="facet-list" style="margin-left: 40px;">
+                        <span class="facet-tag">Temporal: ?</span>
+                        <span class="facet-tag">Quantifier: ?</span>
+                        <span class="facet-tag">Guard: if-then</span>
+                    </div>
+                </div>
+                <div class="process-step">
+                    <span class="step-number">3</span>
+                    <strong>Build Intent Lattice</strong>
+                    <p style="margin: 5px 0 0 40px; color: #666;">Model all possible interpretations</p>
+                </div>
+                <div class="process-step">
+                    <span class="step-number">4</span>
+                    <strong>Disambiguate</strong>
+                    <p style="margin: 5px 0 0 40px; color: #666;">Ask clarifying questions</p>
+                </div>
+                <div class="process-step highlight">
+                    <span class="step-number">5</span>
+                    <strong>Generate Formal Spec</strong>
+                    <p style="margin: 5px 0 0 40px; color: #666;">always (ButtonPressed → next LightOn)</p>
+                </div>
+            </div>
+            <div class="lattice-section">
+                <h2 style="color: #2a5298;">Distributive Lattice Structure</h2>
+                <div class="lattice-container">
+                    <svg viewBox="0 0 400 400">
+                        <line x1="200" y1="50" x2="100" y2="150" stroke="#ccc" stroke-width="2"/>
+                        <line x1="200" y1="50" x2="300" y2="150" stroke="#ccc" stroke-width="2"/>
+                        <line x1="100" y1="150" x2="50" y2="250" stroke="#ccc" stroke-width="2"/>
+                        <line x1="100" y1="150" x2="150" y2="250" stroke="#ccc" stroke-width="2"/>
+                        <line x1="300" y1="150" x2="250" y2="250" stroke="#ccc" stroke-width="2"/>
+                        <line x1="300" y1="150" x2="350" y2="250" stroke="#ccc" stroke-width="2"/>
+                        <line x1="50" y1="250" x2="200" y2="350" stroke="#ccc" stroke-width="2"/>
+                        <line x1="150" y1="250" x2="200" y2="350" stroke="#ccc" stroke-width="2"/>
+                        <line x1="250" y1="250" x2="200" y2="350" stroke="#ccc" stroke-width="2"/>
+                        <line x1="350" y1="250" x2="200" y2="350" stroke="#ccc" stroke-width="2"/>
+                        <g class="node"><circle cx="200" cy="50" r="30" fill="#2a5298"/><text x="200" y="55" text-anchor="middle" fill="white" font-weight="bold">⊤</text><text x="200" y="20" text-anchor="middle" fill="#666" font-size="12">Most General</text></g>
+                        <g class="node"><circle cx="100" cy="150" r="25" fill="#4a7c9e"/><text x="100" y="155" text-anchor="middle" fill="white" font-size="14">∀,?</text></g>
+                        <g class="node"><circle cx="300" cy="150" r="25" fill="#4a7c9e"/><text x="300" y="155" text-anchor="middle" fill="white" font-size="14">∃,?</text></g>
+                        <g class="node"><circle cx="50" cy="250" r="25" fill="#6a9fb5"/><text x="50" y="255" text-anchor="middle" fill="white" font-size="12">∀,Ev</text></g>
+                        <g class="node"><circle cx="150" cy="250" r="25" fill="#6a9fb5"/><text x="150" y="255" text-anchor="middle" fill="white" font-size="12">∀,Im</text></g>
+                        <g class="node"><circle cx="250" cy="250" r="25" fill="#6a9fb5"/><text x="250" y="255" text-anchor="middle" fill="white" font-size="12">∃,Ev</text></g>
+                        <g class="node"><circle cx="350" cy="250" r="25" fill="#6a9fb5"/><text x="350" y="255" text-anchor="middle" fill="white" font-size="12">∃,Im</text></g>
+                        <g class="node"><circle cx="200" cy="350" r="30" fill="#8ab4c4"/><text x="200" y="355" text-anchor="middle" fill="white" font-weight="bold">⊥</text><text x="200" y="385" text-anchor="middle" fill="#666" font-size="12">Most Specific</text></g>
+                    </svg>
+                    <p style="color: #666; margin-top: 20px;">Each node represents a possible interpretation<br>∀ = Universal, ∃ = Existential<br>Im = Immediate, Ev = Eventually</p>
+                </div>
+            </div>
+        </div>
+        <div class="example-box">
+            <h3>Example Disambiguation</h3>
+            <p><strong>Input:</strong> "When a user logs in, they must accept the Terms or they cannot proceed."</p>
+            <p><strong>Ambiguities Detected:</strong></p>
+            <ul style="margin: 10px 0;">
+                <li>Temporal scope: Always vs Sometimes</li>
+                <li>Logical structure: Implication vs Disjunction</li>
+                <li>Timing: Immediate requirement vs Eventually</li>
+            </ul>
+            <p><strong>Clarifying Question:</strong> "Should this rule apply every time a user logs in?"</p>
+            <p><strong>Final Spec:</strong> <code>always (Login → (TermsAccepted ∨ ¬Proceed))</code></p>
+        </div>
+        <div class="key-concepts">
+            <div class="concept-card"><h3>🔷 Distributive Lattice</h3><p>Mathematical structure capturing all possible interpretations ordered by specificity</p></div>
+            <div class="concept-card"><h3>🔍 Intent Facets</h3><p>Independent semantic dimensions like temporal scope, quantifiers, and guards</p></div>
+            <div class="concept-card"><h3>💬 Smart Clarification</h3><p>Information-theoretic questions that maximally reduce ambiguity</p></div>
+            <div class="concept-card"><h3>✅ Formal Output</h3><p>Unambiguous controlled English and logic-ready specifications</p></div>
+        </div>
+    </div>
+</body>
+</html>
+
+
