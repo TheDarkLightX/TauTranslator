@@ -27,6 +27,10 @@ class PromptToSpecResponse:
     # Optional high-level intent and better prompt suggestions
     intent: Optional[str] = None
     prompt_suggestions: List[str] = field(default_factory=list)
+    # Optional extended NLP analysis and refinements
+    nlp_analysis: Dict[str, Any] = field(default_factory=dict)
+    refined_prompt: Optional[str] = None
+    refined_options: List[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

@@ -131,14 +131,60 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     low = body.prompt.lower()
     intent = None
     suggestions: list[str] = []
-    if any(w in low for w in ["always", "whenever", "at all times"]):
+    nlp_analysis: dict[str, any] = {}
+    # Detect temporal intent
+    if any(w in low for w in ["always", "whenever", "at all times", "must always", "ensure always"]):
         intent = "invariant"
-    if any(w in low for w in ["unless", "except if", "except when"]):
-        suggestions.append("Use a guard expression: always (action -> guard)")
-    if any(w in low for w in ["if ", "when ", "whenever "]):
+    # Detect causality
+    causality = any(w in low for w in ["if ", "when ", "whenever ", "once ", "after "])
+    # Detect guards/exception conditions
+    guarded = any(w in low for w in ["unless", "except if", "except when", "but not if"]) 
+    # Detect quantifiers
+    quantified = any(w in low for w in ["for all", "each ", "every ", "there exists", "exists "])
+    # Detect negation
+    has_neg = any(w in low for w in ["not ", "never ", "no ", "without "])
+    # Extract rough action/object tokens
+    import re as _re
+    action_tokens = []
+    m = _re.search(r"(send|ship|approve|deny|lock|unlock|emit|buy|sell|hold|release)", low)
+    if m:
+        action_tokens.append(m.group(1))
+    obj = _re.search(r"(order|payment|signal|lock|data|price|volume|trend|guard)", low)
+    object_token = obj.group(1) if obj else None
+    # Build refined prompt template options
+    if causality:
         suggestions.append("Use implication: always (condition -> action)")
-    if any(w in low for w in ["for all", "each", "every "]):
+    if guarded:
+        suggestions.append("Use a guard: always (action -> guard)")
+    if quantified:
         suggestions.append("Quantify explicitly: always (all x (condition(x) -> action(x)))")
+    if has_neg:
+        suggestions.append("Use 'not' explicitly in condition or action: always (not condition -> ...)")
+    # Create a refined prompt candidate
+    refined_prompt = None
+    refined_options: list[str] = []
+    # Heuristic assembly
+    act = (action_tokens[0] if action_tokens else (object_token or "action"))
+    cond = "condition"
+    guard = "guard"
+    if causality and not guarded:
+        refined_options.append(f"always ({cond} -> {act})")
+    if guarded and not causality:
+        refined_options.append(f"always ({act} -> {guard})")
+    if causality and guarded:
+        refined_options.append(f"always (({cond} & {guard}) -> {act})")
+    if quantified:
+        refined_options.append(f"always (all x ({cond}(x) -> {act}(x)))")
+    if refined_options:
+        refined_prompt = refined_options[0]
+    nlp_analysis = {
+        "causality": causality,
+        "guarded": guarded,
+        "quantified": quantified,
+        "negation": has_neg,
+        "action_tokens": action_tokens,
+        "object_token": object_token,
+    }
 
     tce = _sanitize_to_tce(raw, body.prompt)
     # Minimal repair rules
@@ -240,7 +286,10 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         reasons=reasons,
         provenance={"mode": body.mode, "grammar_id": body.grammar_id, "version": body.grammar_version, "retrieval": top},
         intent=intent,
-        prompt_suggestions=suggestions
+        prompt_suggestions=suggestions,
+        nlp_analysis=nlp_analysis,
+        refined_prompt=refined_prompt,
+        refined_options=refined_options
     )
 
 
