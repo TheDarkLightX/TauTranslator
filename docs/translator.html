@@ -36,16 +36,20 @@
     <div class="bar">
       <h1>Translator Alpha</h1>
       <div class="right">
-        <div class="stack">
-          <small>API</small>
-          <input id="apiBase" placeholder="https://api.tautranslator.ai" />
-          <button class="btn" id="saveApi">Save</button>
+        <div id="barStacks" style="display:none">
+          <div class="stack">
+            <small>API</small>
+            <input id="apiBase" placeholder="https://api.tautranslator.ai" />
+            <button class="btn" id="saveApi">Save</button>
+          </div>
+          <div class="stack">
+            <small>BYOK (OpenRouter)</small>
+            <input id="byok" type="password" placeholder="sk-or-v1-... (optional)" />
+            <button class="btn" id="saveByok">Save</button>
+          </div>
         </div>
-        <div class="stack">
-          <small>BYOK (OpenRouter)</small>
-          <input id="byok" type="password" placeholder="sk-or-v1-... (optional)" />
-          <button class="btn" id="saveByok">Save</button>
-        </div>
+        <button class="btn" id="openAdvanced">Settings</button>
+        <button class="btn" id="openSimple">Simple</button>
         <button class="btn primary" id="toggleChat">Assistant</button>
       </div>
     </div>
@@ -516,6 +520,8 @@
         const txt = editorOut ? editorOut.getValue() : ''; if(!txt){ showToast('Nothing to insert'); return; }
         if(editor){ editor.setValue(txt); showToast('Inserted into editor'); }
       }
+      if(id==='openAdvanced'){ const cb=$('simpleMode'); if(cb){ cb.checked=false; document.getElementById('barStacks').style.display=''; applySimple(); } }
+      if(id==='openSimple'){ const cb=$('simpleMode'); if(cb){ cb.checked=true; document.getElementById('barStacks').style.display='none'; applySimple(); } }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
