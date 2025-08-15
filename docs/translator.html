@@ -11,7 +11,7 @@
     .wrap { max-width: 1100px; margin: 28px auto; padding: 0 16px; }
     h1 { margin: 0 0 16px; font-size: 28px; color: var(--brand); }
     .hint { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-    .row { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .card { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 14px; }
     label { display:block; font-size: 13px; color: var(--muted); margin: 8px 0 6px; }
     textarea, input, select { width: 100%; background: var(--card); color: var(--fg); border: 1px solid var(--b); border-radius: 10px; padding: 10px 12px; outline: none; }
@@ -46,6 +46,7 @@
           <input id="byok" type="password" placeholder="sk-or-v1-... (optional)" />
           <button class="btn" id="saveByok">Save</button>
         </div>
+        <button class="btn primary" id="toggleChat">Assistant</button>
       </div>
     </div>
     <div class="card">
@@ -155,7 +156,7 @@
       <div class="row">
         <div class="card">
           <label id="inLabel">Input</label>
-          <div id="editor" style="height: 320px; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
+          <div id="editor" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
           <textarea id="input" placeholder="e.g., always (x equals 5)" style="display:none; margin-top:8px; min-height: 160px;"></textarea>
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
         </div>
@@ -166,14 +167,14 @@
                 <button class="btn" id="copyTce" style="margin-left:6px">Copy</button>
                 <button class="btn" id="exportTce">Export .tce</button>
               </label>
-              <textarea id="outTce" class="mono" readonly style="min-height: 100px"></textarea>
+              <textarea id="outTce" class="mono" readonly style="min-height: 60vh"></textarea>
             </div>
             <div>
               <label>Output — Tau
                 <button class="btn" id="copyTau" style="margin-left:6px">Copy</button>
                 <button class="btn" id="exportTau">Export .tau</button>
               </label>
-              <textarea id="outTau" class="mono" readonly style="min-height: 100px"></textarea>
+              <textarea id="outTau" class="mono" readonly style="min-height: 60vh"></textarea>
             </div>
           </div>
           <div class="cols" style="margin-top:10px">
@@ -212,7 +213,7 @@
           <label style="margin-top:10px">Explanation
             <button class="btn" id="copyExplanation" style="margin-left:6px">Copy</button>
           </label>
-          <textarea id="outExplanation" class="mono" readonly style="min-height: 100px"></textarea>
+          <textarea id="outExplanation" class="mono" readonly style="min-height: 40vh"></textarea>
           <details style="margin-top:10px">
             <summary>Context (RAG)</summary>
             <div id="ragPanel" class="mono"></div>
@@ -227,7 +228,7 @@
               <button class="btn" id="copyModule" style="margin-left:6px">Copy</button>
               <button class="btn" id="exportModule">Export .tau</button>
             </label>
-            <textarea id="outModule" class="mono" readonly style="min-height: 160px"></textarea>
+            <textarea id="outModule" class="mono" readonly style="min-height: 60vh"></textarea>
           </div>
         </div>
       </div>
@@ -235,6 +236,30 @@
     </div>
   </div>
   <div id="toast" style="position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:8px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s ease">Copied</div>
+
+  <!-- Assistant Chat Drawer (right-docked) -->
+  <div id="chatDrawer" style="position:fixed;top:0;right:-420px;width:420px;height:100vh;background:#101725;border-left:1px solid rgba(255,255,255,0.12);box-shadow: -4px 0 16px rgba(0,0,0,0.4);transition:right .2s ease;display:flex;flex-direction:column;z-index:9999">
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
+      <strong>Assistant</strong>
+      <div>
+        <label style="font-size:12px;color:#a3a3a3;margin-right:8px"><input type="checkbox" id="rememberChat"> Remember chat (local)</label>
+        <button class="btn" id="closeChat">Close</button>
+      </div>
+    </div>
+    <div id="chatMessages" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+    <div style="padding:10px;border-top:1px solid rgba(255,255,255,0.12)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn" id="chatExplainSel">Explain selection</button>
+        <button class="btn" id="chatInsertTce">Insert TCE</button>
+        <button class="btn" id="chatInsertTau">Insert Tau</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="chatInput" placeholder="Ask about your spec or request a change..." style="flex:1;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 12px;outline:none" />
+        <button class="btn primary" id="chatSend">Send</button>
+        <button class="btn" id="chatStop">Stop</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js" crossorigin="anonymous"></script>
   <script>
@@ -425,6 +450,13 @@
       if(id==='genQuestions'){ generateQuestions(); }
       if(id==='applyAnswers'){ applyAnswers(); }
       if(id==='genFullSpec'){ generateFullSpecDraft(); }
+      if(id==='toggleChat'){ openChat(); }
+      if(id==='closeChat'){ closeChat(); }
+      if(id==='chatSend'){ chatSend(); }
+      if(id==='chatStop'){ chatStop(); }
+      if(id==='chatExplainSel'){ chatExplainSelection(); }
+      if(id==='chatInsertTce'){ const t = $('outTce').value||''; if(editor && t){ editor.setValue(t); showToast('Inserted TCE'); } }
+      if(id==='chatInsertTau'){ const t = $('outTau').value||''; if(t){ $('outModule').value = (t.includes('module')? t : `# Tau (inline)\n${t}`); showToast('Tau copied to module box'); } }
     });
     // Keyboard shortcuts: Ctrl/Cmd+Shift+1..4 copy slots
     window.addEventListener('keydown', (e)=>{
@@ -807,6 +839,35 @@
         $('run').disabled = false;
       }
     };
+    // Chat logic (client-side thread)
+    let __chatThread = [];
+    function openChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='0'; restoreChat(); }
+    function closeChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='-420px'; }
+    function renderChat(){ const box=$('chatMessages'); if(!box) return; box.innerHTML = __chatThread.map(m=>{
+      const who = m.role==='user'? '#00d4ff' : '#a3ffa3';
+      const extra = m.tce || m.tau ? `<div style="margin-top:6px"><small>TCE:</small> <code>${(m.tce||'').replace(/</g,'&lt;')}</code><br/><small>Tau:</small> <code>${(m.tau||'').replace(/</g,'&lt;')}</code></div>` : '';
+      return `<div style="padding:8px;border:1px solid rgba(255,255,255,0.12);border-radius:8px"><div style="color:${who};font-weight:600">${m.role}</div><div>${(m.content||'').replace(/</g,'&lt;')}</div>${extra}</div>`;
+    }).join(''); box.scrollTop = box.scrollHeight; saveChat(); }
+    function chatSend(){ const inp=$('chatInput'); if(!inp) return; const text=(inp.value||'').trim(); if(!text) return; __chatThread.push({role:'user', content:text}); renderChat(); inp.value='';
+      // build payload
+      const messages = __chatThread.map(m=>({role:m.role, content:m.content}));
+      post('/llm/chat', { threadId:null, messages, mode:'assist' }).then(r=>{
+        const reply = r.reply || '';
+        __chatThread.push({role:'assistant', content:reply, tce:r.tce, tau:r.tau});
+        // Also update outputs if present
+        if(r.tce || r.tau){ setOutputs({ tce: r.tce||'', tau: r.tau||'', reasons: r.reasons||[], success:true }); }
+        renderChat();
+      }).catch(err=>{ __chatThread.push({role:'assistant', content:`Error: ${String(err)}`}); renderChat(); });
+    }
+    function chatStop(){ /* no-op: backend not streaming yet */ showToast('Stop (not streaming)'); }
+    function chatExplainSelection(){ if(!editor) return; const model=editor.getModel(); if(!model) return; const sel=editor.getSelection(); if(!sel) return; const text=model.getValueInRange(sel).trim(); if(!text){ showToast('No selection'); return; }
+      const isTau = /\[[^\]]*\]/.test(text) || /always\s*\(/i.test(text);
+      post('/llm/spec-to-prompt', { spec_text: text, spec_type: isTau? 'tau':'tce' }).then(r=>{
+        __chatThread.push({role:'assistant', content:r.explanation||''}); renderChat();
+      }).catch(err=>{ __chatThread.push({role:'assistant', content:`Explain failed: ${String(err)}`}); renderChat(); });
+    }
+    function saveChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ localStorage.setItem('tau_chat', JSON.stringify(__chatThread)); }catch{} }
+    function restoreChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ const raw=localStorage.getItem('tau_chat'); if(raw){ __chatThread = JSON.parse(raw)||[]; renderChat(); } }catch{} }
   </script>
 </body>
 </html>
