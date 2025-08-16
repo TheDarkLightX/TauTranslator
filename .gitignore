@@ -164,3 +164,9 @@ docs/internal/
 dating_sim/
 data/grammars/official/**
 data/grammar_packs/raw/**
+
+# IDNI Tau Language (external, license-protected)
+external/tau-lang/
+grammars/tau.tgf
+backend/tau.tgf
+docs/tau.tgf
