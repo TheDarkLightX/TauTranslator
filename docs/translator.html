@@ -613,6 +613,8 @@
       if(typeof valid === 'boolean') msgs.push(`Valid: ${valid ? 'true' : 'false'}`);
       if(typeof success === 'boolean') msgs.push(`Success: ${success ? 'true' : 'false'}`);
       $('outReasons').textContent = msgs.join('\n\n');
+      // Refresh output editor view
+      try { if (typeof window.updateEditorOut === 'function') { window.updateEditorOut(); } } catch {}
       // no simple mode
     }
     function showToast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; }, 1200); }
@@ -647,6 +649,17 @@
       if(id==='outTabModule'){ window.__outView='module'; updateEditorOut(); showToast('Output: Module'); }
       if(id==='copyOut'){ const txt = editorOut ? editorOut.getValue() : ''; if(txt) copyText(txt); }
       if(id==='runMid'){ const b=$('run'); if(b && !b.disabled){ b.click(); } }
+      // Context menu: right-click normalize connectives (fallback when no Monaco action)
+      if(id==='normalizeNow'){
+        if(editor){
+          const val = editor.getValue();
+          let t = val.replace(/\bAND\b/g,'and').replace(/\bOR\b/g,'or').replace(/=>|⇒/g,'->').replace(/:\s/g,' ');
+          let bal=0; for(const ch of t){ if(ch==='(') bal++; else if(ch===')') bal--; }
+          if(bal>0) t = t + ')'.repeat(bal);
+          editor.executeEdits('quickfix', [{ range: editor.getModel().getFullModelRange(), text: t }]);
+          showToast('Normalized');
+        }
+      }
       // simple mode actions removed
       if(id==='applyPromptCandidate'){
         const v = e.target && e.target.dataset && e.target.dataset.prompt ? e.target.dataset.prompt : '';
@@ -1068,18 +1081,24 @@
           };
           const r = await post('/llm/prompt-to-spec', body);
           setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [], intent: r.intent || '', prompt_suggestions: r.prompt_suggestions || [], refined_prompt: r.refined_prompt || '', refined_options: r.refined_options || [] });
+          // Auto-switch Output view when meaningful
+          if((r.tau||'').trim()){ window.__outView='tau'; }
+          else if((r.tce||'').trim()){ window.__outView='tce'; }
+          if(typeof window.updateEditorOut==='function') window.updateEditorOut();
         } else if (op === 'validate'){
           const r = await post('/validate/tce', { tce: input });
           setOutputs({ valid: !!r.valid, reasons: [], errors: r.errors || [] });
         } else if (op === 'tce2tau'){
           const r = await post('/translate/tce-to-tau', { tce: input });
           setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
+          window.__outView='tau'; if(typeof window.updateEditorOut==='function') window.updateEditorOut();
         } else if (op === 's2p'){
           const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
           const r = await post('/llm/spec-to-prompt', payload);
           const rag = (r && r.provenance && Array.isArray(r.provenance.retrieval)) ? r.provenance.retrieval : null;
           setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '', rag, verification: r.verification || null });
+          window.__outView='expl'; if(typeof window.updateEditorOut==='function') window.updateEditorOut();
           // Bidirectional translate-selection (convenience)
           try {
             const tr = await post('/edu/translate-selection', { text: input, from_language: lang, to_language: (lang==='TCE'?'TAU':'TCE') });
