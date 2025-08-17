@@ -4,18 +4,18 @@
 (function(){
   const STORAGE_KEY = 'tau_symbol_map_v1';
   const DEFAULT_MAPPINGS = [
-    { id:'always', display:'🔁', canonical:'always ( )', scope:'both', wordBoundary:false },
-    { id:'and', display:'∧', canonical:' and ', scope:'both', wordBoundary:true },
-    { id:'or', display:'∨', canonical:' or ', scope:'both', wordBoundary:true },
-    { id:'not', display:'¬', canonical:'!', scope:'both', wordBoundary:true },
-    { id:'implies', display:'→', canonical:' -> ', scope:'both', wordBoundary:true },
-    { id:'forall', display:'∀', canonical:'all', scope:'both', wordBoundary:true },
-    { id:'exists', display:'∃', canonical:'ex', scope:'both', wordBoundary:true },
-    { id:'eq', display:'⩵', canonical:' = ', scope:'both', wordBoundary:false },
-    { id:'true', display:'⊤', canonical:'T', scope:'both', wordBoundary:true },
-    { id:'false', display:'⊥', canonical:'F', scope:'both', wordBoundary:true },
-    { id:'t', display:'⏱️', canonical:'[t]', scope:'both', wordBoundary:false },
-    { id:'tprev', display:'⏮️', canonical:'[t-1]', scope:'both', wordBoundary:false }
+    { id:'always', display:'🔁', canonical:'always ( )', scope:'tce', wordBoundary:false },
+    { id:'and', display:'∧', canonical:' and ', scope:'tce', wordBoundary:true },
+    { id:'or', display:'∨', canonical:' or ', scope:'tce', wordBoundary:true },
+    { id:'not', display:'¬', canonical:'!', scope:'tce', wordBoundary:true },
+    { id:'implies', display:'→', canonical:' -> ', scope:'tce', wordBoundary:true },
+    { id:'forall', display:'∀', canonical:'all', scope:'tce', wordBoundary:true },
+    { id:'exists', display:'∃', canonical:'ex', scope:'tce', wordBoundary:true },
+    { id:'eq', display:'⩵', canonical:' = ', scope:'tce', wordBoundary:false },
+    { id:'true', display:'⊤', canonical:'T', scope:'tce', wordBoundary:true },
+    { id:'false', display:'⊥', canonical:'F', scope:'tce', wordBoundary:true },
+    { id:'t', display:'⏱️', canonical:'[t]', scope:'tce', wordBoundary:false },
+    { id:'tprev', display:'⏮️', canonical:'[t-1]', scope:'tce', wordBoundary:false }
   ];
 
   function $(id){ return document.getElementById(id); }
@@ -34,30 +34,38 @@
   }
 
   function compile(map){
-    const forward = []; // display -> canonical
-    const reverse = []; // canonical -> display
+    const forward = []; // display -> canonical (any)
+    const reverse = []; // canonical -> display (any)
+    const forwardBy = { tce:[], tau:[], both:[] };
+    const reverseBy = { tce:[], tau:[], both:[] };
     // Sort by display length desc to prefer longest-first
     const ms = (map.mappings||[]).slice().sort((a,b)=> (b.display.length - a.display.length));
     for(const m of ms){
-      forward.push({ r: buildRegexEntry(m), to: m.canonical });
+      const e = { r: buildRegexEntry(m), to: m.canonical, scope:(m.scope||'both') };
+      forward.push(e);
+      (forwardBy[e.scope]||forwardBy.both).push(e);
     }
     // Reverse: prefer longer canonical first
     const ms2 = (map.mappings||[]).slice().sort((a,b)=> (b.canonical.length - a.canonical.length));
     for(const m of ms2){
       const esc = m.canonical.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      reverse.push({ r: new RegExp(esc, 'g'), to: m.display });
+      const e = { r: new RegExp(esc, 'g'), to: m.display, scope:(m.scope||'both') };
+      reverse.push(e);
+      (reverseBy[e.scope]||reverseBy.both).push(e);
     }
-    return { forward, reverse };
+    return { forward, reverse, forwardBy, reverseBy };
   }
 
-  function applyForward(text, compiled){
+  function applyForward(text, compiled, scope){
     let t = String(text||'');
-    for(const e of compiled.forward){ t = t.replace(e.r, e.to); }
+    const list = scope && compiled.forwardBy[scope] ? compiled.forwardBy[scope] : compiled.forward;
+    for(const e of list){ t = t.replace(e.r, e.to); }
     return t;
   }
-  function applyReverse(text, compiled){
+  function applyReverse(text, compiled, scope){
     let t = String(text||'');
-    for(const e of compiled.reverse){ t = t.replace(e.r, e.to); }
+    const list = scope && compiled.reverseBy[scope] ? compiled.reverseBy[scope] : compiled.reverse;
+    for(const e of list){ t = t.replace(e.r, e.to); }
     return t;
   }
 
@@ -69,8 +77,8 @@
   window.__tau_symbols = {
     getMap: ()=>JSON.parse(JSON.stringify(map)),
     setMap: (m)=>{ Object.assign(map, m); saveMap(map); compiled = compile(map); renderPalette(); },
-    toCanonical: (text)=>applyForward(text, compiled),
-    toDisplay: (text)=>applyReverse(text, compiled)
+    toCanonical: (text, scope)=>applyForward(text, compiled, scope),
+    toDisplay: (text, scope)=>applyReverse(text, compiled, scope)
   };
 
   // Wrap send flows if present
@@ -82,7 +90,18 @@
       try{
         if(typeof window.getEditorText === 'function'){
           const raw = window.getEditorText();
-          const canonical = window.__tau_symbols.toCanonical(raw);
+          // Determine scope: infer from op/lang in page
+          let scope = 'tce';
+          try{
+            const op = document.getElementById('op')?.value || 'p2s';
+            if(op==='tce2tau' || op==='validate') scope='tce';
+            else if(op==='s2p'){
+              const txt = (typeof window.getEditorText==='function')? window.getEditorText() : '';
+              const isTau = /(\[.*?\])/.test(txt) || /\bmodule\b/.test(txt);
+              scope = isTau ? 'tau' : 'tce';
+            } else if(op==='p2s') scope='tce';
+          }catch{}
+          const canonical = window.__tau_symbols.toCanonical(raw, scope);
           if(canonical !== raw && window.editor){
             window.editor.setValue(canonical);
           }
@@ -97,8 +116,8 @@
     if(typeof orig !== 'function') return;
     window.setOutputs = function(args){
       try{
-        if(args && typeof args.tce === 'string'){ args.tce = window.__tau_symbols.toDisplay(args.tce); }
-        if(args && typeof args.tau === 'string'){ args.tau = window.__tau_symbols.toDisplay(args.tau); }
+        if(args && typeof args.tce === 'string'){ args.tce = window.__tau_symbols.toDisplay(args.tce, 'tce'); }
+        if(args && typeof args.tau === 'string'){ args.tau = window.__tau_symbols.toDisplay(args.tau, 'tau'); }
       }catch{}
       return orig.apply(null, [args]);
     };
