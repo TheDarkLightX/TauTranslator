@@ -31,6 +31,11 @@ class PromptToSpecResponse:
     nlp_analysis: Dict[str, Any] = field(default_factory=dict)
     refined_prompt: Optional[str] = None
     refined_options: List[str] = field(default_factory=list)
+    # New: ambiguity/clarification metadata
+    ambiguity_score: Optional[float] = None
+    ambiguity_facets: List[str] = field(default_factory=list)
+    clarifying_questions: List[Dict[str, Any]] = field(default_factory=list)  # [{"question": str, "options": [str]}]
+    chosen_cut: Optional[Dict[str, Any]] = None  # lattice cut or decisions applied
 
 
 @dataclass(frozen=True)

@@ -55,10 +55,13 @@ def translate_tce_to_tau_simple(text: str) -> Tuple[bool, str | None, List[str]]
     inner = t[len("always ("):-1]
     # Normalize spacing
     inner = re.sub(r"\s+", " ", inner).strip()
-    # Basic replacements
+    # Basic replacements (favor Tau wff-level operators)
+    inner = re.sub(r"\btrue\b", "T", inner, flags=re.IGNORECASE)
+    inner = re.sub(r"\bfalse\b", "F", inner, flags=re.IGNORECASE)
     inner = re.sub(r"\bequals\b", "=", inner, flags=re.IGNORECASE)
-    inner = re.sub(r"\band\b", "&", inner, flags=re.IGNORECASE)
-    inner = re.sub(r"\bor\b", "|", inner, flags=re.IGNORECASE)
+    # Use logical connectives
+    inner = re.sub(r"\band\b", "&&", inner, flags=re.IGNORECASE)
+    inner = re.sub(r"\bor\b", "||", inner, flags=re.IGNORECASE)
     # not <expr> -> !<expr>
     inner = re.sub(r"\bnot\s+\(", "!(", inner, flags=re.IGNORECASE)
     inner = re.sub(r"\bnot\s+([a-zA-Z_][\w]*)", r"!\1", inner, flags=re.IGNORECASE)
@@ -68,7 +71,8 @@ def translate_tce_to_tau_simple(text: str) -> Tuple[bool, str | None, List[str]]
     inner = re.sub(r"\b(for\s+all|forall)\s+([a-zA-Z_][\w]*)\s*\(", r"all \2 (", inner, flags=re.IGNORECASE)
     inner = re.sub(r"\b(there\s+exists|exists)\s+([a-zA-Z_][\w]*)\s*\(", r"ex \2 (", inner, flags=re.IGNORECASE)
 
-    tau = f"always({inner})"
+    # Emit Tau as 'always ( ... )' with a space, per tau.tgf grammar
+    tau = f"always ({inner})"
     # Ensure parentheses are balanced
     if not _balanced_parens(tau):
         # Try to close any missing )

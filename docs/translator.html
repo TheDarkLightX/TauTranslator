@@ -73,6 +73,14 @@
           </select>
         </label>
         <label>
+          Spec Mode
+          <select id="specMode">
+            <option value="auto">auto</option>
+            <option value="wff">WFF (policy/invariant)</option>
+            <option value="rr">RR (stream constraint)</option>
+          </select>
+        </label>
+        <label>
           Mode
           <select id="mode">
             <option value="assist">assist</option>
@@ -173,7 +181,7 @@
         <div class="card">
           <label id="inLabel">Input</label>
           <div id="editor" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-          <textarea id="input" placeholder="e.g., always (x equals 5)" style="display:none; margin-top:8px; min-height: 160px;"></textarea>
+          <textarea id="input" placeholder="e.g., If a payment is approved then the order is shipped." style="display:none; margin-top:8px; min-height: 160px;"></textarea>
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
           
         </div>
@@ -278,6 +286,20 @@
         <button class="btn" id="chatExplainSel">Explain selection</button>
         <button class="btn" id="chatInsertTce">Insert TCE</button>
         <button class="btn" id="chatInsertTau">Insert Tau</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn" data-emoji="always">🔁 always</button>
+          <button class="btn" data-emoji="and">➕ &&</button>
+          <button class="btn" data-emoji="or">🔀 ||</button>
+          <button class="btn" data-emoji="not">🚫 !</button>
+          <button class="btn" data-emoji="implies">➡️ -></button>
+          <button class="btn" data-emoji="all">🌐 all</button>
+          <button class="btn" data-emoji="ex">🔎 ex</button>
+          <button class="btn" data-emoji="eq">🟰 =</button>
+          <button class="btn" data-emoji="t">🅣 T</button>
+          <button class="btn" data-emoji="f">🅕 F</button>
+          <button class="btn" data-emoji="t_idx">⏱️ [t]</button>
+          <button class="btn" data-emoji="t_prev">⏮️ [t-1]</button>
+        </div>
       </div>
       <div style="display:flex;gap:8px">
         <input id="chatInput" placeholder="Ask about your spec or request a change..." style="flex:1;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 12px;outline:none" />
@@ -458,6 +480,7 @@
       reader.readAsText(f);
     });
     loadGrammarState();
+    setSampleForOp(); // Call once after loadGrammarState
 
     async function post(path, body){
       const localOnly = (localStorage.getItem('tau_local_only') === '1');
@@ -660,6 +683,18 @@
           showToast('Normalized');
         }
       }
+      // Emoji palette → insert tokens in chat input (compose TCE snippets)
+      const dataEmoji = e.target && e.target.getAttribute && e.target.getAttribute('data-emoji');
+      if(dataEmoji){
+        const map = {
+          always: 'always ( )', and: ' && ', or: ' || ', not: '!', implies: ' -> ',
+          all: 'all x ( )', ex: 'ex x ( )', eq: ' = ', t: 'T', f: 'F', t_idx: '[t]', t_prev: '[t-1]'
+        };
+        const token = map[dataEmoji] || '';
+        const inp = $('chatInput'); if(inp && token){
+          const cur = inp.value || ''; inp.value = cur + token; inp.focus();
+        }
+      }
       // simple mode actions removed
       if(id==='applyPromptCandidate'){
         const v = e.target && e.target.dataset && e.target.dataset.prompt ? e.target.dataset.prompt : '';
@@ -837,6 +872,23 @@
     }, 1500);
 
     function getEditorText(){ return editor ? editor.getValue() : ($("input") ? $("input").value : ''); }
+
+    // Provide contextual sample inputs per operation without overwriting user text
+    function setSampleForOp(){
+      const op = $('op').value;
+      const ta = $('input');
+      const sampleMap = {
+        p2s: 'If a payment is approved then the order is shipped.',
+        validate: 'always (payment_approved -> order_shipped)',
+        tce2tau: 'always (all x (!send_over_network(x)))',
+        s2p: 'always ((i1[t] != 1) -> (o1[t] != 0))'
+      };
+      const sample = sampleMap[op] || '';
+      if(ta){ ta.placeholder = (op==='p2s') ? 'e.g., If a payment is approved then the order is shipped.' : sample; }
+      // Only seed the editor if it is empty
+      const cur = getEditorText().trim();
+      if(!cur && sample){ if(editor){ editor.setValue(sample); } else if(ta){ ta.value = sample; } }
+    }
 
     function getCursorOffset(){
       if(!editor) return 0;
@@ -1071,6 +1123,9 @@
 
         if(op === 'p2s'){
           const body = { prompt: input, mode };
+          // Attach spec mode hint
+          const sm = (document.getElementById('specMode')||{}).value || 'auto';
+          if(sm && sm !== 'auto'){ body.spec_mode = sm; }
           if(provider) body.provider = provider;
           // Attach constraints
           body.constraints = {

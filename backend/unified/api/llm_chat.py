@@ -10,6 +10,7 @@ from backend.unified.infrastructure.llm_providers import (
     LLMRequest,
 )
 from .simple_tce import translate_tce_to_tau_simple
+import re
 
 
 router = APIRouter(prefix="/llm", tags=["llm"])
@@ -49,26 +50,59 @@ async def chat(body: ChatBody, request: Request) -> ChatResponse:
     user_texts = [m.content for m in body.messages if m.role == "user"]
     assistant_texts = [m.content for m in body.messages if m.role == "assistant"]
 
+    def _extract_grammar_hints() -> str:
+        hints = []
+        # Default Tau tokens
+        tokens = {
+            "operators": ["->", "&&", "||", "!"],
+            "quantifiers": ["all", "ex"],
+            "literals": ["T", "F"],
+            "temporal": ["always"],
+        }
+        if body.grammar_inline and isinstance(body.grammar_inline, dict):
+            name = body.grammar_inline.get("name", "inline")
+            content = str(body.grammar_inline.get("content", ""))
+            # Try to detect tokens present in grammar text
+            detected = set(re.findall(r"(->|&&|\|\||!|all|ex|forall|exists|always|sometimes|T|F)", content))
+            if detected:
+                if "forall" in detected and "all" not in detected:
+                    detected.add("all")
+                if "exists" in detected and "ex" not in detected:
+                    detected.add("ex")
+                # merge
+                tokens["operators"] = [t for t in tokens["operators"] if t in detected or t in ["->","&&","||","!"]]
+                tokens["quantifiers"] = [q for q in ["all","ex"] if q in detected or q in ["all","ex"]]
+                if "always" in detected:
+                    tokens["temporal"] = ["always"]
+            excerpt = content[:600].replace("\n", " ") if content else ""
+            hints.append(f"GrammarInline: {name} (excerpt): {excerpt}")
+        if body.grammar_ref and isinstance(body.grammar_ref, dict):
+            hints.append(f"GrammarRef: {body.grammar_ref}")
+        # Render allowed tokens succinctly
+        hints.append(
+            "Allowed tokens: "
+            + ", ".join(tokens["operators"]) + "; quantifiers: " + ", ".join(tokens["quantifiers"]) + "; literals: T,F; temporal: always"
+        )
+        return "\n".join(hints)
+
     system = (
-        "You are a helpful Tau Controlled English (TCE) assistant."
-        " Produce at most one TCE sentence starting with 'always (' and ending with ')'."
-        " Use Tau quantifiers 'all'/'ex', '->' for implies, '!' for not."
-        " Avoid colons and invalid tokens."
+        "You are a Tau Controlled English (TCE) assistant.\n"
+        "Rules:\n"
+        "- Output exactly one TCE sentence, starting with 'always (' and ending with ')'.\n"
+        "- Use only these tokens: '->' (implies), '&&', '||', '!' (not), quantifiers 'all'/'ex', literals 'T'/'F', temporal 'always'.\n"
+        "- Variables are single letters (x,y,z). Do not invent new operators or punctuation.\n"
+        "- No explanations, no colons, no extra text. Only the TCE inside 'always (...)'.\n"
     )
+    grammar_hints = _extract_grammar_hints()
+    if grammar_hints:
+        system = system + "\n" + grammar_hints
     if system_texts:
         system = system + "\n" + "\n".join(system_texts)
 
     prior = "\n".join(f"Assistant: {t}" for t in assistant_texts[-3:])
     question = user_texts[-1] if user_texts else ""
 
-    steering = []
-    if body.grammar_ref:
-        steering.append(f"GrammarRef: {body.grammar_ref}")
-    if body.grammar_inline:
-        steering.append(f"GrammarInline: {body.grammar_inline.get('name','inline')}")
-
     prompt = (
-        ("\n".join(steering) + "\n" if steering else "")
         + (f"Context:\n{prior}\n" if prior else "")
         + f"User: {question}\nTCE:"
     )

@@ -28,6 +28,9 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..core.result_enhanced import Success, Failure, Result
+from .gs_ir import build_from_features as gs_build_from_features, to_tce as gs_to_tce
+from .nlp_syntax import extract_roles
+from .alignment_cache import alignment_cache
 
 
 @dataclass
@@ -71,6 +74,18 @@ _FST_REPLACEMENTS: Tuple[Tuple[re.Pattern, str], ...] = (
 )
 
 
+def _slugify_phrase(text: str) -> str:
+    tokens = re.findall(r"[A-Za-z0-9]+", text.lower())
+    stop = {"the","a","an","to","and","or","of","for","in","on","over","under","with","without","if","then","when","whenever"}
+    kept = [t for t in tokens if t not in stop]
+    return "_".join(kept) or "predicate"
+
+
+def _aligned_predicate_or_slug(phrase: str) -> str:
+    aligned = alignment_cache.suggest_predicate(phrase)
+    return aligned or _slugify_phrase(phrase)
+
+
 def _fst_normalize(text: str) -> Tuple[str, List[str]]:
     reasons: List[str] = []
     s = text
@@ -84,6 +99,12 @@ def _fst_normalize(text: str) -> Tuple[str, List[str]]:
     if new != s:
         reasons.append("Trimmed trailing punctuation")
         s = new
+    # remove filler polite tokens that can distort structure
+    s2 = re.sub(r"\b(please|now|strictly)\b", " ", s, flags=re.I)
+    s2 = re.sub(r"\b(ensure\s+that|make\s+sure\s+to)\b", " ", s2, flags=re.I)
+    if s2 != s:
+        reasons.append("Removed filler tokens (please/now/strictly/...)")
+        s = s2
     return s, reasons
 
 
@@ -97,14 +118,25 @@ def _extract_typed(text: str) -> Dict[str, Any]:
     guards: List[str] = []
     quantifiers: List[str] = []
     temporal: List[str] = []
+    negate = False
 
     # intent detection
-    if re.search(r"\balways\b|\bat all times\b|\bmust always\b", low):
-        intent = "invariant"
-    if re.search(r"\bif\b|\bwhen\b|\bwhenever\b|\bonce\b|\bafter\b", low):
-        intent = intent or "causal"
-    if re.search(r"\biff\b|\bequivalent\b|\bif and only if\b", low):
+    has_always = re.search(r"\balways\b|\bat all times\b|\bmust always\b", low) is not None
+    has_causal = re.search(r"\bif\b|\bwhen\b|\bwhenever\b|\bonce\b|\bafter\b", low) is not None
+    has_equiv = re.search(r"\biff\b|\bequivalent\b|\bif and only if\b", low) is not None
+    if has_causal:
+        intent = "causal"
+    elif has_equiv:
         intent = "equivalence"
+    elif has_always:
+        intent = "invariant"
+    global_negate = False
+    if re.search(r"\bnever\b|\bmust not\b|\bcannot\b|\bcan\s*not\b|\bcan't\b", low):
+        intent = intent or "invariant"; negate = True; global_negate = True
+    # Soft negation phrases that may require scope clarification
+    soft_neg = re.search(r"\bdo not\b|\bdon't\b|\bshould not\b|\bshall not\b", low) is not None
+    if soft_neg and not negate:
+        negate = True
 
     # condition/action extraction (very shallow)
     # if X then Y / when X, Y  → condition=X action=Y
@@ -139,37 +171,65 @@ def _extract_typed(text: str) -> Dict[str, Any]:
     if re.search(r"\bprevious\b|\b[tT]-1\b|\bbefore\b", low):
         temporal.append("[t-1]")
 
+    # domain phrase mapping for privacy/security example
+    action_phrase = None
+    if re.search(r"\bsend\b.*\bnetwork\b|\btransmit\b.*\bnetwork\b|\bshare\b.*\bnetwork\b", low):
+        action_phrase = "send data over the network"
+
     return {
         "intent": intent,
         "condition": cond,
-        "action": act,
+        "action": act or (action_phrase and _slugify_phrase(action_phrase)) or None,
         "guards": guards,
         "quantifiers": quantifiers,
         "temporal": temporal,
+        "negate": negate,
+        "global_negate": global_negate,
+        "soft_negation": soft_neg,
     }
 
 
 def _project_to_tce(features: Dict[str, Any]) -> Tuple[str, List[str]]:
     """Project features to a normalized TCE template."""
     reasons: List[str] = []
-    cond = features.get("condition") or "condition"
-    act = features.get("action") or features.get("predicate") or "action"
+    cond_raw = features.get("condition") or "condition"
+    act_raw = features.get("action") or features.get("predicate") or "action"
+    # strip filler polite tokens from phrases
+    cond_raw = re.sub(r"\b(please|now|strictly)\b", " ", cond_raw, flags=re.I)
+    cond_raw = re.sub(r"\b(ensure\s+that|make\s+sure\s+to)\b", " ", cond_raw, flags=re.I)
+    act_raw = re.sub(r"\b(please|now|strictly)\b", " ", act_raw, flags=re.I)
+    act_raw = re.sub(r"\b(ensure\s+that|make\s+sure\s+to)\b", " ", act_raw, flags=re.I)
+    negate = bool(features.get("negate"))
+    # Remove negation words from action phrase to avoid double negation in English
+    if negate:
+        act_raw = re.sub(r"\b(must not|do not|don't|cannot|can not|can't|never|at no time|under no circumstances|should not|shall not)\b\s*", "", act_raw, flags=re.IGNORECASE).strip()
+    # Slugify phrases to canonical predicate symbols for Tau/TCE emission
+    cond_sym = _aligned_predicate_or_slug(cond_raw)
+    act_sym = _aligned_predicate_or_slug(act_raw)
     guards: List[str] = features.get("guards") or []
     quant: List[str] = features.get("quantifiers") or []
 
     body = None
+    # Choose a canonical action term; default to unary arity for generality
+    act_term = act_sym
+    if not re.search(r"\(", act_term):
+        act_term = f"{act_sym}(x)"
     if features.get("intent") == "equivalence":
-        body = f"({cond} -> {act}) and ({act} -> {cond})"
+        body = f"({cond_sym}(x) -> {act_term}) and ({act_term} -> {cond_sym}(x))"
         reasons.append("Equivalence decomposed to implication pair")
     elif features.get("intent") == "causal":
-        body = f"{cond} -> {act}"
+        # In causal form, keep condition as-is and use canonical action term
+        body = f"{cond_sym}(x) -> {act_term}"
     else:
         # default invariant form
-        body = f"{act}"
+        body = f"{act_term}"
+        if negate:
+            body = f"not {act_term}"
+            reasons.append("Detected negation from prompt (never/cannot)")
 
     # apply guard as conjunction in antecedent when causal
     if guards:
-        g = " and ".join(guards)
+        g = " and ".join(_slugify_phrase(g) for g in guards)
         if "->" in body:
             lhs, rhs = body.split("->", 1)
             body = f"({lhs.strip()} and not {g}) -> {rhs.strip()}"
@@ -178,7 +238,7 @@ def _project_to_tce(features: Dict[str, Any]) -> Tuple[str, List[str]]:
             body = f"({g} -> {body})"
             reasons.append("Applied guard implication around action")
 
-    # add quantifier wrapper if detected
+    # add quantifier wrapper if detected or inferred
     qprefix = None
     for q in quant:
         if q.startswith("all"):
@@ -186,6 +246,10 @@ def _project_to_tce(features: Dict[str, Any]) -> Tuple[str, List[str]]:
             break
         if q.startswith("ex"):
             qprefix = "ex x"
+    # If negation applies to an action without an explicit condition/quantifiers, infer 'all x'
+    if not qprefix and negate and not features.get("condition"):
+        qprefix = "all x"
+        reasons.append("Added implicit quantifier: all x")
     if qprefix:
         body = f"{qprefix} ({body})"
         reasons.append(f"Added quantifier: {qprefix}")
@@ -225,11 +289,17 @@ def _fdl_enabled_from_env() -> bool:
     return v in ("1", "true", "yes", "on")
 
 
+def _gs_enabled_from_env() -> bool:
+    v = os.getenv("TAU_OPTIMIZER_USE_GS", "0").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
 def optimize_prompt_to_tce(
     prompt: str,
     constraints: Optional[Dict[str, Any]] = None,
     ambiguity_threshold: float = 0.25,
     use_fdl: Optional[bool] = None,
+    use_gs: Optional[bool] = None,
 ) -> Result[OptimizerOutput]:
     """Optimize English prompt into TCE using deterministic synthesis.
 
@@ -241,6 +311,24 @@ def optimize_prompt_to_tce(
         constraints = constraints or {}
         s, reasons = _fst_normalize(prompt)
         feats = _extract_typed(s)
+        # Tier-1 role extraction to improve predicate synthesis
+        try:
+            roles = extract_roles(prompt)
+            # Prefer structured roles when present
+            if roles.condition: feats["condition"] = roles.condition
+            if roles.action: feats["action"] = roles.action
+            if roles.guard: feats.setdefault("guards", []).append(roles.guard)
+            if roles.negation: feats["negate"] = True
+            if roles.quant_all and "all x" not in feats.get("quantifiers", []):
+                feats.setdefault("quantifiers", []).append("all x")
+            if roles.quant_ex and "ex x" not in feats.get("quantifiers", []):
+                feats.setdefault("quantifiers", []).append("ex x")
+            if roles.temporal:
+                t = feats.get("temporal") or []
+                feats["temporal"] = list(set(t + roles.temporal))
+            reasons.append("Tier-1 roles extracted")
+        except Exception:
+            pass
         # Optional FDL projection (feature-flagged for safe rollback)
         use_fdl_flag = _fdl_enabled_from_env() if use_fdl is None else bool(use_fdl)
         if use_fdl_flag:
@@ -260,6 +348,25 @@ def optimize_prompt_to_tce(
         else:
             tce, proj_msgs = _project_to_tce(feats)
         reasons.extend(proj_msgs)
+
+        # Optional GS/NSO clean-room synthesis (feature-flagged)
+        use_gs_flag = _gs_enabled_from_env() if use_gs is None else bool(use_gs)
+        if use_gs_flag:
+            try:
+                gs_ast = gs_build_from_features(
+                    intent=feats.get("intent"),
+                    condition=feats.get("condition"),
+                    action=feats.get("action"),
+                    guards=feats.get("guards") or [],
+                    quantifiers=feats.get("quantifiers") or [],
+                    temporal=feats.get("temporal") or [],
+                )
+                tce_gs = gs_to_tce(gs_ast)
+                if tce_gs and tce_gs.lower().startswith("always ("):
+                    tce = tce_gs
+                    reasons.append("GS synthesis applied")
+            except Exception as _e:
+                reasons.append("GS synthesis skipped (error)")
         # optional constraints
         if constraints.get('forbid_colon') and ':' in tce:
             tce = tce.replace(':', ' ')
@@ -270,7 +377,7 @@ def optimize_prompt_to_tce(
         tce, gate_msgs = _gate(tce)
         reasons.extend(gate_msgs)
 
-        # ambiguity heuristics (FDL-aware generation of questions when enabled)
+        # ambiguity heuristics (FDL/GS-aware generation of questions when enabled)
         intents_detected = [k for k in [feats.get('intent')] if k]
         roles_missing = int(feats.get('condition') is None) + int(feats.get('action') is None)
         paths = max(1, len(intents_detected)) + roles_missing
@@ -283,6 +390,9 @@ def optimize_prompt_to_tce(
                 questions.append("What is the action (e.g., order_shipped)?")
             if not feats.get('intent'):
                 questions.append("Is this an invariant or a causal rule (if X then Y)?")
+            # Scope clarification for soft negation without explicit condition
+            if feats.get('negate') and not feats.get('global_negate') and not feats.get('condition'):
+                questions.append("Should this rule apply at all times (never), or only under specific conditions? If conditional, please specify the condition.")
             if use_fdl_flag:
                 # Map join-irreducibles to questions (guards/quantifiers/temporal)
                 for g in sorted(set(feats.get('guards') or [])):
@@ -291,6 +401,12 @@ def optimize_prompt_to_tce(
                     questions.append(f"Confirm quantifier: {q}?")
                 for t in sorted(set(feats.get('temporal') or [])):
                     questions.append(f"Confirm temporal reference: {t}?")
+            elif use_gs_flag:
+                # Ask about structure relevant to GS normalization
+                if feats.get('guards'):
+                    questions.append("Should guards block the action when active?")
+                if feats.get('quantifiers'):
+                    questions.append("Should the rule hold for all entities or only some?")
             else:
                 if not feats.get('guards'):
                     questions.append("Is there a guard/exception (e.g., unless maintenance)?")

@@ -53,3 +53,16 @@ def test_fdl_bitset_glb_projection():
     assert kept_intent and not kept_guard and not kept_quant
 
 
+def test_negation_never_network_maps_to_not():
+    res = optimize_prompt_to_tce(
+        "Never send data over the network",
+        constraints={"forbid_colon": True, "require_prefix": "always (", "require_closing_paren": True},
+        use_fdl=False,
+        use_gs=False,
+    )
+    assert isinstance(res, Success)
+    out = res.unwrap()
+    assert out.tce.lower().startswith("always (")
+    assert 'not' in out.tce.lower()
+
+
