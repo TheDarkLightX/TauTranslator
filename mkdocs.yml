@@ -10,6 +10,7 @@ nav:
   - Architecture:
       - Translation Pipeline: architecture/translation_pipeline.md
       - Grammar Engine: architecture/grammar_engine.md
+      - Mechanism Design (Internal): architecture/mechanism_design.md
   - API Reference: reference/index.md
   - Intent Detection & Analysis: intent_lattices.html
 theme:
