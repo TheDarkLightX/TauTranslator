@@ -1202,6 +1202,9 @@
     function saveChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ localStorage.setItem('tau_chat', JSON.stringify(__chatThread)); }catch{} }
     function restoreChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ const raw=localStorage.getItem('tau_chat'); if(raw){ __chatThread = JSON.parse(raw)||[]; renderChat(); } }catch{} }
   </script>
+  <!-- Client-only extensions: Symbol Map + Web Speech (loaded after main script) -->
+  <script src="docs/js/symbols.js"></script>
+  <script src="docs/js/speech.js"></script>
 </body>
 </html>
 
