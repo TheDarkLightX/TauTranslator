@@ -177,6 +177,7 @@
       <div class="row">
         <div id="midAction" style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; position:sticky; top:0; padding:6px 0; background:transparent; z-index:5">
           <button class="btn primary" id="runMid">Translate</button>
+          <button class="btn" id="makeTau" title="Translate current TCE to Tau">Make Tau</button>
         </div>
         <div class="card">
           <label id="inLabel">Input</label>
@@ -672,6 +673,12 @@
       if(id==='outTabModule'){ window.__outView='module'; updateEditorOut(); showToast('Output: Module'); }
       if(id==='copyOut'){ const txt = editorOut ? editorOut.getValue() : ''; if(txt) copyText(txt); }
       if(id==='runMid'){ const b=$('run'); if(b && !b.disabled){ b.click(); } }
+      if(id==='makeTau'){
+        const opSel = document.getElementById('op');
+        if(opSel){ opSel.value = 'tce2tau'; }
+        const b=$('run'); if(b && !b.disabled){ b.click(); }
+        showToast('Translating TCE → Tau');
+      }
       // Context menu: right-click normalize connectives (fallback when no Monaco action)
       if(id==='normalizeNow'){
         if(editor){
