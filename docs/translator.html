@@ -1212,6 +1212,16 @@
   <!-- Client-only extensions: Symbol Map + Web Speech (loaded after main script) -->
   <script src="docs/js/symbols.js"></script>
   <script src="docs/js/speech.js"></script>
+  <script>
+    // Initialize symbol-aware completions after Monaco is ready
+    try{ if(typeof registerCompletionProvider==='function'){ /* already registers main provider */ }
+      if(window.__tau_symbols && typeof window.__tau_symbols.getMap==='function'){
+        if(typeof window.registerSymbolCompletions==='function'){
+          window.registerSymbolCompletions();
+        }
+      }
+    }catch{}
+  </script>
 </body>
 </html>
 
