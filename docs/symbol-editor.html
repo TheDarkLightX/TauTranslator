@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tau Translator — Symbol Editor (Local)</title>
+  <style>
+    body{ font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif; background:#0c1322; color:#e8e8e8; margin:0; }
+    .bar{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.12); position:sticky; top:0; background:#0c1322; z-index:5 }
+    .btn{ background:#1a2238; color:#e8e8e8; border:1px solid #2a3350; border-radius:8px; padding:8px 10px; cursor:pointer }
+    .btn.primary{ background:#2b5cff; border-color:#2b5cff; color:#fff }
+    .row{ display:grid; grid-template-columns: 1fr 320px; gap:12px; padding:12px }
+    .panel{ background:#0f1830; border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px }
+    label{ display:flex; flex-direction:column; gap:6px; margin-bottom:8px }
+    input, textarea, select{ background:#1a2238; color:#e8e8e8; border:1px solid #2a3350; border-radius:8px; padding:8px }
+    textarea{ min-height:120px }
+    .tools{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px }
+    svg{ background:#0b1020; border:1px solid rgba(255,255,255,0.12); border-radius:10px }
+    .hint{ color:#a3a3a3; font-size:12px }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <div><strong>Symbol Editor (Local)</strong></div>
+    <div style="display:flex; gap:8px">
+      <button class="btn" onclick="location.href='translator.html'">Back to Translator</button>
+      <button class="btn" id="exportPack">Export Pack</button>
+      <button class="btn" id="importPack">Import Pack</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="panel">
+      <div class="tools">
+        <button class="btn" id="addText">Add Text/Emoji</button>
+        <button class="btn" id="addRect">Add Rect</button>
+        <button class="btn" id="addCircle">Add Circle</button>
+        <label style="align-items:center;gap:6px;flex-direction:row">Fill <input type="color" id="fill" value="#3a82f6" /></label>
+        <button class="btn" id="del">Delete Selected</button>
+      </div>
+      <svg id="canvas" width="640" height="360" viewBox="0 0 640 360"></svg>
+      <div class="hint" style="margin-top:6px">Tip: Drag to move elements. Click to select. Use the color picker to set fill for new shapes.</div>
+    </div>
+    <div class="panel">
+      <label>Title<input id="title" placeholder="e.g., Always" /></label>
+      <label>Display token (text/emoji)<input id="displayToken" placeholder="e.g., 🔁" /></label>
+      <label>Macro (canonical output)<textarea id="macro" placeholder="e.g., always ( )"></textarea></label>
+      <label>Scope<select id="scope"><option value="tce" selected>TCE</option><option value="tau">Tau</option><option value="both">Both</option></select></label>
+      <label><input type="checkbox" id="registerMap" checked /> Register mapping (Display → Macro)</label>
+      <div style="display:flex; gap:8px">
+        <button class="btn primary" id="save">Save to Pack</button>
+        <button class="btn" id="clear">Clear Canvas</button>
+      </div>
+      <div class="hint" style="margin-top:6px">Pack and mappings are stored locally (localStorage). Export/import to share manually.</div>
+      <hr style="border-color:rgba(255,255,255,0.12)"/>
+      <div id="packList"></div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    const ART_KEY = 'tau_symbol_art_v1';
+    const MAP_KEY = 'tau_symbol_map_v1';
+    function $(id){ return document.getElementById(id); }
+    function loadPack(){ try{ const raw=localStorage.getItem(ART_KEY); return raw? JSON.parse(raw):{version:1, items:[]}; }catch{ return {version:1, items:[]}; } }
+    function savePack(p){ try{ localStorage.setItem(ART_KEY, JSON.stringify(p)); }catch{} }
+    function loadMap(){ try{ const raw=localStorage.getItem(MAP_KEY); return raw? JSON.parse(raw):{version:1, name:'Default', mappings:[]}; }catch{ return {version:1, name:'Default', mappings:[]}; } }
+    function saveMap(m){ try{ localStorage.setItem(MAP_KEY, JSON.stringify(m)); }catch{} }
+
+    const svg = $('canvas'); let selected=null; let dragging=false; let dragOffset=[0,0];
+    function make(id, attrs){ const el=document.createElementNS('http://www.w3.org/2000/svg', id); for(const k in attrs){ el.setAttribute(k, attrs[k]); } return el; }
+    function select(el){ if(selected){ selected.removeAttribute('stroke'); selected.removeAttribute('stroke-width'); } selected=el; if(selected){ selected.setAttribute('stroke','#00d4ff'); selected.setAttribute('stroke-width','2'); } }
+    function addText(){ const t=make('text', {x:320, y:180, 'text-anchor':'middle', 'dominant-baseline':'middle', fill:$('fill').value||'#3a82f6', 'font-size':'64'}); t.textContent='🔁'; wire(t); svg.appendChild(t); select(t); }
+    function addRect(){ const r=make('rect', {x:280, y:140, width:80, height:80, rx:12, ry:12, fill:$('fill').value||'#3a82f6'}); wire(r); svg.appendChild(r); select(r); }
+    function addCircle(){ const c=make('circle', {cx:320, cy:180, r:42, fill:$('fill').value||'#3a82f6'}); wire(c); svg.appendChild(c); select(c); }
+    function wire(el){ el.style.cursor='move'; el.addEventListener('mousedown', onDown); el.addEventListener('click', (e)=>{ e.stopPropagation(); select(el); }); }
+    function onDown(e){ e.preventDefault(); const pt = getMouse(e); select(e.target); dragging=true; dragOffset = [pt.x - getX(e.target), pt.y - getY(e.target)]; window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp); }
+    function onMove(e){ if(!dragging || !selected) return; const pt = getMouse(e); setPos(selected, pt.x - dragOffset[0], pt.y - dragOffset[1]); }
+    function onUp(){ dragging=false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); }
+    function getMouse(e){ const r=svg.getBoundingClientRect(); return { x: (e.clientX - r.left) * (svg.viewBox.baseVal.width / r.width), y: (e.clientY - r.top) * (svg.viewBox.baseVal.height / r.height) }; }
+    function getX(el){ return el.tagName==='circle'? Number(el.getAttribute('cx')) : Number(el.getAttribute('x')||0); }
+    function getY(el){ return el.tagName==='circle'? Number(el.getAttribute('cy')) : Number(el.getAttribute('y')||0); }
+    function setPos(el, x, y){ if(el.tagName==='circle'){ el.setAttribute('cx', x); el.setAttribute('cy', y); } else if(el.tagName==='text'){ el.setAttribute('x', x); el.setAttribute('y', y); } else { el.setAttribute('x', x); el.setAttribute('y', y); } }
+
+    svg.addEventListener('click', ()=>select(null));
+    $('addText').onclick = ()=> addText();
+    $('addRect').onclick = ()=> addRect();
+    $('addCircle').onclick = ()=> addCircle();
+    $('del').onclick = ()=>{ if(selected){ selected.remove(); selected=null; } };
+    $('clear').onclick = ()=>{ while(svg.firstChild) svg.firstChild.remove(); selected=null; };
+
+    $('exportPack').onclick = ()=>{
+      const p = loadPack(); const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='symbol_art_pack.json'; document.body.appendChild(a); a.click(); a.remove();
+    };
+    $('importPack').onclick = ()=>{
+      const i=document.createElement('input'); i.type='file'; i.accept='.json'; i.onchange=()=>{ const f=i.files&&i.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const p=JSON.parse(String(r.result||'')); savePack(p); renderPack(); alert('Imported'); }catch(e){ alert('Invalid pack JSON: '+e.message); } }; r.readAsText(f); }; i.click();
+    };
+
+    $('save').onclick = ()=>{
+      const title = $('title').value.trim() || 'Untitled';
+      const display = $('displayToken').value.trim() || '';
+      const macro = $('macro').value.trim();
+      const scope = $('scope').value || 'tce';
+      if(!macro){ alert('Enter a macro (canonical output).'); return; }
+      // capture SVG string
+      const clone = svg.cloneNode(true); clone.removeAttribute('id');
+      const svgStr = new XMLSerializer().serializeToString(clone);
+      const pack = loadPack();
+      const id = 'art_' + Math.random().toString(36).slice(2,9);
+      pack.items.push({ id, title, display, macro, scope, svg: svgStr }); savePack(pack);
+      // optional mapping registration
+      if(display && $('registerMap').checked){
+        const map = loadMap();
+        const exists = (map.mappings||[]).some(m=>m.display===display && m.canonical===macro && (m.scope||'both')===scope);
+        if(!exists){ (map.mappings = map.mappings||[]).push({ id:'m_'+Date.now(), display, canonical: macro, scope, wordBoundary:false }); saveMap(map); }
+      }
+      renderPack(); alert('Saved');
+    };
+
+    function renderPack(){
+      const p = loadPack(); const box=$('packList');
+      box.innerHTML = (p.items||[]).slice().reverse().map(it=>{
+        return `<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px">
+          <div style="width:64px;height:36px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;overflow:hidden">${it.svg}</div>
+          <div style="flex:1">
+            <div><strong>${it.title||''}</strong> <small class="hint">(${it.scope||'tce'})</small></div>
+            <div class="hint">${it.display ? (it.display+' → ') : ''}${it.macro||''}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    renderPack();
+  })();
+  </script>
+</body>
+</html>
+
+

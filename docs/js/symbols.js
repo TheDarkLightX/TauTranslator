@@ -160,8 +160,9 @@
     const btnSave = document.createElement('button'); btnSave.className='btn'; btnSave.textContent='Save'; btnSave.onclick=()=>{ try{ const m=JSON.parse(ta.value); window.__tau_symbols.setMap(m); alert('Saved'); }catch(e){ alert('Invalid JSON: '+e.message); } };
     const btnExport = document.createElement('button'); btnExport.className='btn'; btnExport.textContent='Export JSON'; btnExport.onclick=()=>{ const blob=new Blob([ta.value],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='symbol_map.json'; document.body.appendChild(a); a.click(); a.remove(); };
     const btnImport = document.createElement('button'); btnImport.className='btn'; btnImport.textContent='Import JSON'; btnImport.onclick=()=>{ const i=document.createElement('input'); i.type='file'; i.accept='.json'; i.onchange=()=>{ const f=i.files&&i.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ ta.value = String(r.result||''); const m=JSON.parse(ta.value); window.__tau_symbols.setMap(m); alert('Imported'); }catch(e){ alert('Invalid JSON: '+e.message); } }; r.readAsText(f); }; i.click(); };
+    const btnEditor = document.createElement('button'); btnEditor.className='btn'; btnEditor.textContent='Open Symbol Editor'; btnEditor.onclick=()=>{ window.location.href = 'symbol-editor.html'; };
     row.append(btnSave, btnExport, btnImport);
-    box.append(help, ta, row); details.appendChild(box); adv.appendChild(details);
+    box.append(help, ta, row, btnEditor); details.appendChild(box); adv.appendChild(details);
   }
 
   // Initialize
