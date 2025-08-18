@@ -144,6 +144,43 @@
       });
       row.appendChild(b);
     }
+
+    // Render saved Symbol Art pack as large glyphs (inserts macro)
+    renderArtPalette(drawer);
+  }
+
+  function loadArtPack(){
+    try{ const raw = localStorage.getItem('tau_symbol_art_v1'); return raw ? JSON.parse(raw) : {version:1, items:[]}; }catch{ return {version:1, items:[]}; }
+  }
+  function renderArtPalette(drawer){
+    const containerId = 'customArtRow';
+    let row = document.getElementById(containerId);
+    // Find the same parent used for symbol row
+    const parent = drawer.querySelector('div[style*="border-top"] > div'); if(!parent) return;
+    if(!row){
+      row = document.createElement('div'); row.id = containerId;
+      row.style.display='flex'; row.style.gap='8px'; row.style.flexWrap='wrap'; row.style.marginTop='6px';
+      parent.appendChild(row);
+    }
+    row.innerHTML='';
+    const pack = loadArtPack();
+    const items = (pack.items||[]).slice(-12).reverse();
+    for(const it of items){
+      const tile = document.createElement('div'); tile.style.display='flex'; tile.style.flexDirection='column'; tile.style.alignItems='center'; tile.style.gap='4px';
+      const box = document.createElement('div'); box.style.width='64px'; box.style.height='36px'; box.style.border='1px solid rgba(255,255,255,0.12)'; box.style.borderRadius='6px'; box.style.overflow='hidden'; box.title = (it.display? (it.display+' → ') : '') + (it.macro||'');
+      box.innerHTML = it.svg || '';
+      const cap = document.createElement('small'); cap.className='hint'; cap.textContent = it.title || '';
+      tile.appendChild(box); tile.appendChild(cap);
+      tile.style.cursor='pointer';
+      tile.addEventListener('click', ()=>{
+        const inp = document.getElementById('chatInput'); if(!inp) return;
+        // Insert macro (canonical) into chat input for immediate composition
+        const macro = it.macro || '';
+        inp.value = (inp.value||'') + (macro ? macro : (it.display||''));
+        inp.focus();
+      });
+      row.appendChild(tile);
+    }
   }
 
   // Mini panel in Settings to export/import
