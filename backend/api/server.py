@@ -147,6 +147,22 @@ try:
 except Exception:
     pass
 
+
+# Graceful shutdown: close shared HTTP clients
+try:
+    from backend.unified.infrastructure.llm_providers import OpenRouterProvider
+
+    @app.on_event("shutdown")
+    async def _shutdown_clients():
+        try:
+            client = getattr(OpenRouterProvider, "_CLIENT", None)
+            if client is not None:
+                await client.aclose()
+        except Exception:
+            pass
+except Exception:
+    pass
+
 # Mount v2 functional endpoints
 from backend.api.endpoints.translation_endpoints import router as translation_router
 from backend.unified.api.llm_endpoints import router as llm_router
