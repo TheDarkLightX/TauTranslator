@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why “Consciousness?” is (Typically) Undecidable</title>
+  <meta name="description" content="An informal but rigorous explanation of why deciding consciousness is generally undecidable under a computationalist framing (via Rice’s Theorem), plus caveats and practical proxies." />
+  <link rel="canonical" href="/docs/blog/undecidability-consciousness.html" />
+  <style>
+    body{margin:0;padding:24px;font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;background:#0f0f1e;color:#e8e8e8}
+    .wrap{max-width: 980px; margin: 0 auto;}
+    h1{color:#00d4ff}
+    h2{color:#8bd1ff}
+    .card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);border-radius:12px;padding:16px;margin:12px 0}
+    pre{background:#0c1324;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px;overflow:auto}
+    code{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    a{color:#88ddff}
+    ul{margin:8px 0 8px 18px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Why “Consciousness?” is (Typically) Undecidable</h1>
+
+    <div class="card">
+      <p>
+        Under a standard computationalist framing, “Is this system conscious?” is modeled as a non‑trivial property of a computation’s extensional behavior. By <em>Rice’s Theorem</em>, any non‑trivial semantic property of programs is undecidable; consequently, there is no total algorithm that can decide consciousness for <em>all</em> programs or implementations.
+      </p>
+      <ul>
+        <li><strong>Assumption (computationalism):</strong> Consciousness corresponds to some extensional property <code>P</code> over computed behaviors/functions.</li>
+        <li><strong>Non‑triviality:</strong> There exist programs with <code>P</code> and programs without <code>P</code>.</li>
+        <li><strong>Rice:</strong> Any such non‑trivial property is undecidable.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>What This Does (and Doesn’t) Say</h2>
+      <ul>
+        <li>It rules out a <em>universal</em> decider over all programs or implementations.</li>
+        <li>It does not forbid <em>restricted</em> settings (e.g., bounded models) or <em>specific definitions</em> that are computable.</li>
+        <li>Operational proxies may be computable but may not faithfully capture consciousness.</li>
+      </ul>
+    </div>
+
+  </div>
+</body>
+</html>
+
+
