@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTM ⇒ Pancomputationalism (Trivial Case) — Lean-Checked</title>
+  <style>
+    body{margin:0;padding:24px;font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;background:#0f0f1e;color:#e8e8e8}
+    .wrap{max-width: 980px; margin: 0 auto;}
+    h1{color:#00d4ff}
+    .card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);border-radius:12px;padding:16px;margin:12px 0}
+    pre{background:#0c1324;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px;overflow:auto}
+    code{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    a{color:#88ddff}
+  </style>
+  <meta name="description" content="A minimal formalization of a pancomputationalism theorem checked in Lean 4: every system implements itself under a homomorphic implementation definition." />
+  <link rel="canonical" href="/docs/blog/pancomputationalism.html" />
+  <meta property="og:title" content="CTM ⇒ Pancomputationalism (Trivial Case) — Lean-Checked" />
+  <meta property="og:description" content="A minimal formalization of a pancomputationalism theorem checked in Lean 4: every system implements itself under a homomorphic implementation definition." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="/docs/blog/pancomputationalism.html" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>CTM ⇒ Pancomputationalism (Trivial Case) — Lean‑Checked</h1>
+    <div class="card">
+      <p>This note presents a minimal, Lean‑checked formalization of a trivial pancomputationalism result:</p>
+      <ul>
+        <li>Define an implementation relation as a homomorphism preserving state transitions (with an accessibility side condition).</li>
+        <li>Show that every system implements itself via identity maps.</li>
+        <li>Conclude that ∀P ∃C (Implements P C) by taking C = P.</li>
+      </ul>
+      <p>Stronger claims require additional constraints (e.g., computational type, counterfactual robustness, restrictions on admissible witnesses) and are left for future work.</p>
+    </div>
+
+    <div class="card">
+      <h2>Lean 4 Proof (excerpt)</h2>
+      <pre><code>-- lean/Tau/Pancomputational.lean
+universe u₁ v₁ u₂ v₂ u v
+
+namespace Tau
+
+structure System (S : Type u) (I : Type v) where
+  tau : S → I → S
+  Acc : S → I → Prop
+
+def Implements {S₁ : Type u₁} {I₁ : Type v₁} {S₂ : Type u₂} {I₂ : Type v₂}
+  (P : System S₁ I₁) (C : System S₂ I₂) : Prop :=
+  ∃ (f : S₁ → S₂) (g : I₁ → I₂),
+    ∀ (s : S₁) (i : I₁), P.Acc s i → f (P.tau s i) = C.tau (f s) (g i)
+
+theorem pancomputational_self {S : Type u} {I : Type v}
+  (P : System S I) : Implements P P := by
+  refine ⟨id, id, ?h⟩; intro s i _h; rfl
+
+theorem pancomputational {S : Type u} {I : Type v}
+  (P : System S I) : ∃ (C : System S I), Implements P C := by
+  exact ⟨P, pancomputational_self P⟩
+
+end Tau</code></pre>
+      <p>Checked with Lean 4.22.0. See <code>lean/Tau/Pancomputational.lean</code> in this repo.</p>
+    </div>
+
+    <div class="card">
+      <h2>How to Reproduce</h2>
+      <ol>
+        <li>Install elan (Lean toolchain manager).</li>
+        <li>In the repo root: <code>cd lean</code>.</li>
+        <li>Build and check: <code>lake build</code> and <code>lean Tau/Pancomputational.lean</code>.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Discussion</h2>
+      <p>This formalization captures a “self‑implementation” result. It can serve as a baseline for richer theorems: adding constraints on admissible implementations, requiring specific computational types, or formalizing counterfactual robustness.</p>
+    </div>
+
+    <div class="card">
+      <h2>Undecidability of Consciousness (Informal)</h2>
+      <p>
+        Under a computationalist reading where “is conscious” is modeled as a non‑trivial property of a computation’s extensional behavior, determining whether an arbitrary program/system is conscious is <em>undecidable</em> by Rice’s Theorem. Any total procedure deciding such a property for all programs would imply a decision procedure for all non‑trivial semantic properties, which is impossible. This pushes us toward conditional, axiomatic, or approximate criteria rather than a universal decision test.
+      </p>
+      <ul>
+        <li><strong>Assumption:</strong> Consciousness is a non‑trivial property of computed function/behavior (extensional).</li>
+        <li><strong>Claim:</strong> There is no total algorithm that decides “conscious?” for every program/system.</li>
+        <li><strong>Caveat:</strong> Specific <em>definitions</em> of consciousness may be computable on bounded models, but generally fail to be both faithful and tractable.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Black‑Hole Consciousness (Conditional Possibility)</h2>
+      <p>
+        If consciousness exists at all and is realized by some class of computations, then—assuming sufficiently rich physical substrates can implement those computations—there is no principled barrier to a black hole (or any complex physical system) implementing them. This is a conditional <em>possibility</em> claim, not a physical assertion.
+      </p>
+      <ul>
+        <li><strong>Assume:</strong> (i) Consciousness is realized by some computations C<sub>cog</sub>; (ii) rich physical systems can implement computations in C<sub>cog</sub> (with appropriate counterfactual robustness); (iii) black holes exist as physical systems.</li>
+        <li><strong>Then:</strong> It is possible that some black hole implements a conscious computation.</li>
+        <li><strong>Probability gloss:</strong> If a non‑zero prior mass is placed on black‑hole implementations of C<sub>cog</sub>, consciousness has non‑zero probability in such systems—likely <em>very low</em>, but not logically excluded.</li>
+      </ul>
+      <p style="opacity:.85">This section is an epistemic/axiomatic argument. It does not claim present‑day physics predicts consciousness in black holes; it shows how, under explicit assumptions, the possibility follows.</p>
+    </div>
+
+    <div class="card">
+      <h2>Visuals</h2>
+      <p>Three compact diagrams illustrate the key ideas.</p>
+      <h3>1) Implementation Flow (Trivial Pancomputationalism)</h3>
+      <svg viewBox="0 0 820 160" width="100%" role="img" aria-label="Implementation flow">
+        <defs>
+          <style>
+            .b{fill:#0c1324;stroke:#4aa3ff;stroke-width:1.2}
+            .t{fill:#e8e8e8;font: 13px sans-serif}
+            .a{stroke:#88ddff;stroke-width:1.4;marker-end:url(#m)}
+          </style>
+          <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L0,6 L9,3 z" fill="#88ddff"/>
+          </marker>
+        </defs>
+        <rect class="b" x="20" y="30" rx="8" ry="8" width="200" height="60"/>
+        <text class="t" x="30" y="58">System P(S,I,τ,Acc)</text>
+        <rect class="b" x="290" y="30" rx="8" ry="8" width="220" height="60"/>
+        <text class="t" x="300" y="52">Implementation witness (f : S→S, g : I→I)</text>
+        <text class="t" x="300" y="70">f(τ(s,i)) = τ(f(s), g(i))</text>
+        <rect class="b" x="560" y="30" rx="8" ry="8" width="240" height="60"/>
+        <text class="t" x="570" y="52">Implements(P, P) via f = id, g = id</text>
+        <text class="t" x="570" y="70">⇒ ∀P ∃C Implements(P, C) with C = P</text>
+        <line class="a" x1="220" y1="60" x2="290" y2="60"/>
+        <line class="a" x1="510" y1="60" x2="560" y2="60"/>
+      </svg>
+
+      <h3>2) Rice’s Theorem Intuition (Undecidability)</h3>
+      <svg viewBox="0 0 820 220" width="100%" role="img" aria-label="Rice theorem intuition">
+        <defs>
+          <style>
+            .box{fill:#0c1324;stroke:#ffb066;stroke-width:1.2}
+            .txt{fill:#e8e8e8;font: 13px sans-serif}
+            .arr{stroke:#ffd8a8;stroke-width:1.4;marker-end:url(#m2)}
+          </style>
+          <marker id="m2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L0,6 L9,3 z" fill="#ffd8a8"/>
+          </marker>
+        </defs>
+        <rect class="box" x="20" y="30" rx="8" ry="8" width="240" height="60"/>
+        <text class="txt" x="30" y="58">Programs / Implementations</text>
+        <text class="txt" x="30" y="76">(extensional semantics)</text>
+
+        <rect class="box" x="300" y="30" rx="8" ry="8" width="240" height="60"/>
+        <text class="txt" x="310" y="58">Non‑trivial semantic property</text>
+        <text class="txt" x="310" y="76">e.g., “is conscious”</text>
+
+        <rect class="box" x="580" y="30" rx="8" ry="8" width="220" height="60"/>
+        <text class="txt" x="590" y="58">Rice: no total decider</text>
+        <text class="txt" x="590" y="76">for all programs</text>
+
+        <line class="arr" x1="260" y1="60" x2="300" y2="60"/>
+        <line class="arr" x1="540" y1="60" x2="580" y2="60"/>
+
+        <text class="txt" x="30" y="130">Consequence:</text>
+        <text class="txt" x="30" y="150">Any universal “conscious?” test is impossible, absent restrictive definitions.</text>
+      </svg>
+
+      <h3>3) Black‑Hole Consciousness (Conditional)</h3>
+      <svg viewBox="0 0 820 240" width="100%" role="img" aria-label="Black-hole conditional possibility">
+        <defs>
+          <style>
+            .bx{fill:#0c1324;stroke:#8bd18b;stroke-width:1.2}
+            .tx{fill:#e8e8e8;font: 13px sans-serif}
+            .ar{stroke:#a0f0a0;stroke-width:1.4;marker-end:url(#m3)}
+          </style>
+          <marker id="m3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L0,6 L9,3 z" fill="#a0f0a0"/>
+          </marker>
+        </defs>
+        <rect class="bx" x="20" y="30" rx="8" ry="8" width="230" height="80"/>
+        <text class="tx" x="30" y="58">Assume C<sub>cog</sub> exists</text>
+        <text class="tx" x="30" y="76">(computations realizing consciousness)</text>
+
+        <rect class="bx" x="290" y="30" rx="8" ry="8" width="250" height="80"/>
+        <text class="tx" x="300" y="58">Assume rich physical systems</text>
+        <text class="tx" x="300" y="76">can implement C<sub>cog</sub></text>
+
+        <rect class="bx" x="580" y="30" rx="8" ry="8" width="220" height="80"/>
+        <text class="tx" x="590" y="58">Assume black holes exist</text>
+        <text class="tx" x="590" y="76">as physical systems</text>
+
+        <rect class="bx" x="200" y="140" rx="8" ry="8" width="420" height="60"/>
+        <text class="tx" x="210" y="168">Then: possible that some black hole implements a conscious computation</text>
+
+        <line class="ar" x1="135" y1="110" x2="330" y2="170"/>
+        <line class="ar" x1="415" y1="110" x2="330" y2="170"/>
+        <line class="ar" x1="690" y1="110" x2="620" y2="170"/>
+      </svg>
+    </div>
+
+    <div class="card">
+      <h2>Laws as Programmer (Lean conditional)</h2>
+      <p>
+        We formalize the intuition “the laws of physics can <em>program</em> a subsystem” as a
+        conditional theorem. Define <code>Programmable P C U hU</code> to mean there exist witnesses
+        <code>f, g</code> such that <code>RobustImplements P C U hU f g</code> holds (homomorphism over a family of
+        admissible inputs <code>U</code>). Then:
+      </p>
+      <pre><code>-- lean/Tau/Programmability.lean
+def Programmable (P C U hU) : Prop := ∃ f g, RobustImplements P C U hU f g
+
+theorem implementsNonTrivial_of_programmable
+  (hp : Programmable P C U hU)
+  (nd : ∃ φ γ, NonDegenerate φ γ)
+  : ImplementsNonTrivial P C U hU
+
+-- With ≥2 distinct states/inputs (and DecidableEq), we can build φ, γ
+theorem implementsNonTrivial_of_programmable_two ... : ImplementsNonTrivial P C U hU</code></pre>
+      <p>
+        Read: if a physical subsystem can be robustly “programmed” (via boundary/initial
+        conditions) to realize a target computation, and its carriers admit simple
+        non‑degeneracy, then it <strong>non‑trivially implements</strong> that computation. See
+        <code>lean/Tau/Programmability.lean</code>. For black‑hole computing context, see
+        <a href="https://www.scientificamerican.com/article/black-hole-computers-2007-04/" target="_blank" rel="noopener">Lloyd &amp; Ng, Black Hole Computers (Scientific American)</a>.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>FAQ</h2>
+      <p><strong>Why is this the “trivial” case?</strong><br/>
+      Because the proof witnesses implementation with identity maps (f = id, g = id), showing any system implements itself. That establishes ∀P ∃C Implements(P, C) by taking C = P, but says nothing about cognitive status or robustness.</p>
+      <p><strong>What would a “non‑trivial” case look like?</strong><br/>
+      Add constraints that forbid degenerate witnesses and demand meaningful structure, e.g., C ∈ a cognitive class, counterfactual robustness over rich inputs, non‑trivial information/representation properties, or (non)injectivity/surjectivity of maps. Proving existence under those constraints is far harder and generally assumption‑dependent.</p>
+      <p><strong>Why is consciousness “typically” undecidable?</strong><br/>
+      Modeling “is conscious” as a non‑trivial semantic property of computations brings Rice’s Theorem to bear: any such property over programs is undecidable in general, so no total algorithm can decide it for all systems.</p>
+      <p><strong>When can it be decidable?</strong><br/>
+      Under strong restrictions—finite/bounded models, domain‑specific computable proxies, or certified witnesses—decision procedures exist. These are context‑limited or sufficient tests; they do not yield a universal decider.</p>
+      <p>See also: <a href="/docs/blog/undecidability-consciousness.html">Why “Consciousness?” is (Typically) Undecidable</a>.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+

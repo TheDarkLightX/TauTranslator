@@ -50,6 +50,7 @@
             <button class="btn" id="saveByok">Save</button>
           </div>
         </div>
+        <a class="btn" href="docs/blog/pancomputationalism.html" target="_blank" rel="noopener">Blog</a>
         <button class="btn" id="openAdvanced">Settings</button>
         <button class="btn primary" id="toggleChat">Assist</button>
       </div>
@@ -117,6 +118,32 @@
           </div>
         </details>
         <details>
+          <summary>Editing</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="normalizePaste" checked /> Normalize on paste</label>
+            <label><input type="checkbox" id="enhancedAC" checked /> Enhanced autocomplete (Tau/TCE/English)</label>
+          </div>
+        </details>
+        <details>
+          <summary>Guided Mode (Playbook / Copilot)</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="guidedMode" /> Enable Guided Mode</label>
+          </div>
+          <div id="guidedPanel" class="card" style="display:none; margin-top:8px">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px">
+              <strong>Playbook</strong>
+              <span class="chip">Intent → Clarify → Contracts → Validate → Trace → Tau</span>
+              <div style="margin-left:auto; display:flex; gap:8px">
+                <button class="btn" id="gClarify">Ask Clarify</button>
+                <button class="btn" id="gTemplates">Suggest TCE Templates</button>
+                <button class="btn" id="gExplain">Explain Errors</button>
+                <button class="btn" id="gSuggestFix">Suggest Fix</button>
+              </div>
+            </div>
+            <div id="guidedOutput" class="mono"></div>
+          </div>
+        </details>
+        <details>
           <summary>Session</summary>
           <div class="cols">
             <label><input type="checkbox" id="rememberQA" /> Remember answers (local)</label>
@@ -130,6 +157,16 @@
             <label><input type="checkbox" id="privacyMode" /> Privacy mode (never send private data over the network)</label>
           </div>
           <small>When enabled, private data (e.g., BYOK key, uploaded grammar contents) is never sent over the network. Requests still use your configured API.</small>
+        </details>
+        <details>
+          <summary>Diagnostics</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="debugMode" /> Verbose debug (console)</label>
+            <button class="btn" id="showDiag">Show diagnostics</button>
+            <button class="btn" id="copyDiag">Copy diagnostics</button>
+          </div>
+          <div id="diagPanel" class="mono" style="margin-top:6px; max-height: 40vh; overflow:auto"></div>
+          <small>Diagnostics show timing, status, and headers (e.g., X-Request-ID, X-Response-Time) for recent calls.</small>
         </details>
         
         <details open>
@@ -179,6 +216,7 @@
       <div class="row">
         <div id="midAction" style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; position:sticky; top:0; padding:6px 0; background:transparent; z-index:5">
           <button class="btn primary" id="runMid">Translate</button>
+          <button class="btn" id="makeTce" title="Translate current English prompt to TCE">Make TCE</button>
           <button class="btn" id="makeTau" title="Translate current TCE to Tau">Make Tau</button>
         </div>
         <div class="card">
@@ -257,6 +295,7 @@
           </details>
           <div class="controls" style="margin-top:10px">
             <button class="btn" id="copyCurl">Copy cURL (last)</button>
+            <button class="btn" id="retryLast">Retry last</button>
           </div>
           <label style="margin-top:10px">Reasons / Errors</label>
           <div id="outReasons" class="mono"></div>
@@ -457,6 +496,28 @@
       const clr = document.getElementById('clearSession'); if(clr){ clr.addEventListener('click', ()=>{
         localStorage.removeItem('tau_session'); showToast('Session cleared');
       }); }
+      // Editing toggles
+      const np = document.getElementById('normalizePaste'); if(np){
+        const savedNP = (localStorage.getItem('tau_norm_paste') || '1') === '1';
+        np.checked = savedNP; np.addEventListener('change', ()=>{
+          localStorage.setItem('tau_norm_paste', np.checked ? '1':'0');
+        });
+      }
+      const ac = document.getElementById('enhancedAC'); if(ac){
+        const savedAC = (localStorage.getItem('tau_enhanced_ac') || '1') === '1';
+        ac.checked = savedAC; ac.addEventListener('change', ()=>{
+          localStorage.setItem('tau_enhanced_ac', ac.checked ? '1':'0');
+          showToast(ac.checked ? 'Enhanced autocomplete ON' : 'Enhanced autocomplete OFF');
+        });
+      }
+      const gm = document.getElementById('guidedMode'); if(gm){
+        const savedGM = (localStorage.getItem('tau_guided_mode') || '0') === '1';
+        gm.checked = savedGM; const gp=document.getElementById('guidedPanel'); if(gp){ gp.style.display = savedGM? '':'none'; }
+        gm.addEventListener('change', ()=>{
+          localStorage.setItem('tau_guided_mode', gm.checked ? '1':'0');
+          const p=document.getElementById('guidedPanel'); if(p){ p.style.display = gm.checked? '':'none'; }
+        });
+      }
       // Privacy: do-not-send-private-data toggle
       const lo = document.getElementById('privacyMode'); if(lo){
         const saved = localStorage.getItem('tau_privacy_mode') === '1';
@@ -524,9 +585,39 @@
       }
       // Track last call for copy cURL
       window.__tau_last_call = { url, path, headers: {...headers}, body: JSON.parse(JSON.stringify(body)) };
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
-      if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
-      return res.json();
+      const controller = new AbortController();
+      const timeoutMs = 30000;
+      const to = setTimeout(()=>controller.abort('timeout'), timeoutMs);
+      const t0 = performance.now();
+      let meta = { ok:false, status:0, durationMs:0, err:null, headersOut:{} };
+      try{
+        const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body), signal: controller.signal });
+        clearTimeout(to);
+        const t1 = performance.now();
+        meta.ok = res.ok; meta.status = res.status; meta.durationMs = Math.round(t1 - t0);
+        // Capture interesting headers
+        try{
+          meta.headersOut = {
+            'x-request-id': res.headers.get('X-Request-ID')||'',
+            'x-response-time': res.headers.get('X-Response-Time')||'',
+            'via': res.headers.get('Via')||''
+          };
+        }catch{}
+        if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
+        const json = await res.json();
+        window.__tau_last_result = json;
+        window.__tau_last_diag = meta;
+        if((localStorage.getItem('tau_debug')||'0')==='1') console.debug('POST', path, meta, json);
+        return json;
+      }catch(e){
+        clearTimeout(to);
+        meta.err = String(e&&e.message||e);
+        meta.durationMs = Math.round(performance.now() - t0);
+        window.__tau_last_error = meta;
+        window.__tau_last_diag = meta;
+        if((localStorage.getItem('tau_debug')||'0')==='1') console.debug('POST_FAIL', path, meta);
+        throw e;
+      }
     }
 
     // Local fallback: simple deterministic Prompt→Spec in browser
@@ -646,6 +737,12 @@
         const md = provenance.model ? (String(provenance.model)) : '';
         msgs.push('Provenance: ' + pv + (md? ` (${md})`:''));
       }
+      // Request ID (from diagnostics), if available
+      try {
+        const diag = (window.__tau_last_diag||{});
+        const rid = diag && diag.headersOut ? (diag.headersOut['x-request-id']||'') : '';
+        if(rid){ msgs.push('Request-ID: ' + rid); }
+      } catch {}
       if(Array.isArray(reasons) && reasons.length) msgs.push('Reasons:\n- ' + reasons.join('\n- '));
       if(Array.isArray(errors) && errors.length) msgs.push('Errors:\n- ' + errors.join('\n- '));
       if(typeof valid === 'boolean') msgs.push(`Valid: ${valid ? 'true' : 'false'}`);
@@ -685,6 +782,55 @@
       if(id==='genQuestions'){ generateQuestions(); }
       if(id==='applyAnswers'){ applyAnswers(); }
       if(id==='genFullSpec'){ generateFullSpecDraft(); }
+      // Guided Mode actions
+      if(id==='gClarify'){
+        const guidedOut = document.getElementById('guidedOutput'); if(guidedOut){ guidedOut.textContent='Thinking…'; }
+        const input = getEditorText().trim(); const rp = $('outRefined')? $('outRefined').textContent : '';
+        const messages = [
+          { role:'system', content:'You are a Tau specification copilot. Ask 3-6 concrete clarifying questions about missing conditions, actions, guards, quantifiers, and time behaviors.' },
+          { role:'user', content:`Intent/spec text:\n${input}\n\nRefined (if any):\n${rp}` }
+        ];
+        post('/llm/chat', { threadId:null, messages, mode:'assist' })
+          .then(r=>{ const reply = (r && r.reply) ? String(r.reply) : 'No suggestions'; if(guidedOut){ guidedOut.textContent = reply; } showToast('Clarify ready'); })
+          .catch(()=>{ if(guidedOut){ guidedOut.textContent='Failed to get clarifications.'; } showToast('Clarify failed'); });
+      }
+      if(id==='gTemplates'){
+        const guidedOut = document.getElementById('guidedOutput'); if(guidedOut){ guidedOut.textContent='Generating templates…'; }
+        const input = getEditorText().trim();
+        const sm = (document.getElementById('specMode')||{}).value || 'auto';
+        const body = { prompt: input, mode: 'generate' }; if(sm && sm!=='auto'){ body.spec_mode = sm; }
+        post('/llm/prompt-to-spec', body)
+          .then(r=>{
+            const opts = Array.isArray(r && r.refined_options) ? r.refined_options : [];
+            const lines = opts.length ? ('Templates:\n- ' + opts.join('\n- ')) : 'No templates returned';
+            if(guidedOut){ guidedOut.textContent = lines; }
+            showToast('Templates ready');
+          })
+          .catch(()=>{ if(guidedOut){ guidedOut.textContent='Failed to get templates.'; } showToast('Templates failed'); });
+      }
+      if(id==='gExplain'){
+        const guidedOut = document.getElementById('guidedOutput'); if(guidedOut){ guidedOut.textContent='Explaining…'; }
+        const input = getEditorText().trim();
+        const hasTau = /\/\[[^\]]*\]/.test(input) || /->/.test(input);
+        const isTau = hasTau || /always\s*\(/i.test(input);
+        post('/llm/spec-to-prompt', { spec_text: input, spec_type: isTau ? 'tau' : 'tce' })
+          .then(r=>{ const expl = (r && r.explanation) ? r.explanation : 'No explanation.'; if(guidedOut){ guidedOut.textContent = expl; } showToast('Explanation ready'); })
+          .catch(()=>{ if(guidedOut){ guidedOut.textContent='Failed to explain.'; } showToast('Explain failed'); });
+      }
+      if(id==='gSuggestFix'){
+        const guidedOut = document.getElementById('guidedOutput'); if(guidedOut){ guidedOut.textContent='Suggesting fix…'; }
+        const input = getEditorText().trim();
+        const requireAlways = document.getElementById('cRequireAlways')?.checked;
+        const requireClose = document.getElementById('cRequireClose')?.checked;
+        const forbidColon = document.getElementById('cForbidColon')?.checked;
+        const messages = [
+          { role:'system', content:'You are a Tau specification copilot. Propose the smallest edit to make the following invariant/spec valid and clearer. Return only the revised snippet.' },
+          { role:'user', content:`Constraints: requireAlways=${requireAlways}, requireClose=${requireClose}, forbidColon=${forbidColon}.\nSpec:\n${input}` }
+        ];
+        post('/llm/chat', { threadId:null, messages, mode:'assist' })
+          .then(r=>{ const reply = (r && r.reply) ? String(r.reply) : 'No fix proposed'; if(guidedOut){ guidedOut.textContent = reply; } showToast('Fix suggestion ready'); })
+          .catch(()=>{ if(guidedOut){ guidedOut.textContent='Failed to suggest fix.'; } showToast('Suggest fix failed'); });
+      }
       if(id==='toggleChat'){ openChat(); }
       if(id==='closeChat'){ closeChat(); }
       if(id==='chatSend'){ chatSend(); }
@@ -692,6 +838,22 @@
       if(id==='chatExplainSel'){ chatExplainSelection(); }
       if(id==='chatInsertTce'){ const t = $('outTce').value||''; if(editor && t){ editor.setValue(t); showToast('Inserted TCE'); } }
       if(id==='chatInsertTau'){ const t = $('outTau').value||''; if(t){ $('outModule').value = (t.includes('module')? t : `# Tau (inline)\n${t}`); showToast('Tau copied to module box'); } }
+      if(id==='showDiag'){
+        const p = document.getElementById('diagPanel'); if(!p) return;
+        const last = window.__tau_last_call||{}; const diag = window.__tau_last_diag||{}; const err = window.__tau_last_error||null; const res = window.__tau_last_result||null;
+        const lines = [];
+        lines.push(`# Last Call`);
+        lines.push(JSON.stringify(last, null, 2));
+        lines.push(`# Last Diag`);
+        lines.push(JSON.stringify(diag, null, 2));
+        if(err){ lines.push(`# Last Error`); lines.push(JSON.stringify(err, null, 2)); }
+        if(res){ lines.push(`# Last Result (truncated)`); try{ lines.push(JSON.stringify(res, null, 2).slice(0, 4000)); }catch{ lines.push('[unserializable]'); } }
+        p.textContent = lines.join('\n\n');
+      }
+      if(id==='copyDiag'){
+        const p = document.getElementById('diagPanel'); const txt = p ? p.textContent : '';
+        if(txt){ copyText(txt); }
+      }
       // New unified tabs for output Monaco
       if(id==='outTabTau'){ window.__outView='tau'; updateEditorOut(); showToast('Output: Tau'); }
       if(id==='outTabTce'){ window.__outView='tce'; updateEditorOut(); showToast('Output: TCE'); }
@@ -699,6 +861,12 @@
       if(id==='outTabModule'){ window.__outView='module'; updateEditorOut(); showToast('Output: Module'); }
       if(id==='copyOut'){ const txt = editorOut ? editorOut.getValue() : ''; if(txt) copyText(txt); }
       if(id==='runMid'){ const b=$('run'); if(b && !b.disabled){ b.click(); } }
+      if(id==='makeTce'){
+        const opSel = document.getElementById('op');
+        if(opSel){ opSel.value = 'p2s'; }
+        const b=$('run'); if(b && !b.disabled){ b.click(); }
+        showToast('Translating English → TCE');
+      }
       if(id==='makeTau'){
         const opSel = document.getElementById('op');
         if(opSel){ opSel.value = 'tce2tau'; }
@@ -856,6 +1024,22 @@
           fontSize: 13,
           suggest: { preview: true }
         });
+        // Normalize on paste (best-effort)
+        try{
+          window.addEventListener('paste', ()=>{
+            const on = (localStorage.getItem('tau_norm_paste')||'1') === '1';
+            if(!on || !editor) return;
+            setTimeout(()=>{
+              const val = editor.getValue();
+              const norm = normalizeTceText(val, {
+                requireAlways: document.getElementById('cRequireAlways')?.checked,
+                requireClose: document.getElementById('cRequireClose')?.checked,
+                forbidColon: document.getElementById('cForbidColon')?.checked
+              });
+              if(norm !== val){ editor.setValue(norm); showToast('Normalized'); }
+            }, 10);
+          });
+        }catch{}
         const outEl = document.getElementById('editorOut');
         if(outEl){
           editorOut = monaco.editor.create(outEl, {
@@ -888,6 +1072,30 @@
         resolveMonacoReady && resolveMonacoReady();
       });
     });
+    function normalizeTceText(t, opts){
+      try{
+        let s = String(t||'');
+        // Unicode and alias arrows → ->
+        s = s.replace(/[⇒→↦⟹⟶]/g, '->').replace(/=>/g, '->');
+        // Quotes and spaces
+        s = s.replace(/[“”]/g, '"').replace(/[’‘]/g, "'").replace(/\u00A0/g, ' ');
+        // Logical words
+        s = s.replace(/\bAND\b/g,'and').replace(/\bOR\b/g,'or').replace(/\bNOT\b/g,'not');
+        // Forbid colon if option on
+        if(opts && opts.forbidColon){ s = s.replace(/:/g, ' '); }
+        // Ensure always ( ... ) if requested
+        if(opts && opts.requireAlways){
+          const low = s.trim().toLowerCase();
+          if(!/^always\s*\(/.test(low)){
+            s = 'always (' + s.trim().replace(/^always\s*\(/i,'').replace(/\)+\s*$/,'') + ')';
+          }
+        }
+        // Balance parentheses
+        let bal=0; for(const ch of s){ if(ch==='(') bal++; else if(ch===')') bal--; }
+        if(bal>0) s += ')'.repeat(bal);
+        return s;
+      }catch{ return t; }
+    }
 
     // Fallback if Monaco fails to initialize quickly
     setTimeout(() => {
@@ -1000,23 +1208,55 @@
     }
 
     function registerCompletionProvider(){
-      // Use our custom language for inline suggestions
+      const enhancedOn = ()=> (localStorage.getItem('tau_enhanced_ac')||'1') === '1';
+      const mkRange = (pos)=> new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column);
+      function localSnippets(model, position){
+        const op = (document.getElementById('op')||{}).value || 'p2s';
+        const text = model.getValue();
+        const before = text.slice(0, model.getOffsetAt(position));
+        const items = [];
+        function snip(label, insertText, docs){
+          items.push({ label, kind: monaco.languages.CompletionItemKind.Snippet, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, insertText, detail: 'snippet', documentation: docs||'' });
+        }
+        // Core invariance
+        snip('always (...)', 'always (${1:condition})', 'Invariant');
+        snip('always (A -> B)', 'always (${1:A} -> ${2:B})', 'Implication');
+        snip('always (!signal)', 'always (!${1:signal})', 'Absence');
+        snip('always (all $x (...))', 'always (all ${1:$x} (${2:P($x)}))', 'Quantified invariant');
+        snip('always (!(A && B))', 'always (!(${1:A} && ${2:B}))', 'Mutual exclusion');
+        // Time-aware
+        snip('A[t] -> B[t-1]', 'always (${1:A}[t] -> ${2:B}[t${3:-1}])', 'Temporal precedence');
+        // Tokens
+        items.push({ label:'->', kind: monaco.languages.CompletionItemKind.Keyword, insertText:' -> ', detail:'implies' });
+        items.push({ label:'&&', kind: monaco.languages.CompletionItemKind.Keyword, insertText:' && ', detail:'and' });
+        items.push({ label:'||', kind: monaco.languages.CompletionItemKind.Keyword, insertText:' || ', detail:'or' });
+        items.push({ label:'!', kind: monaco.languages.CompletionItemKind.Keyword, insertText:'!', detail:'not' });
+        // RR helpers
+        if(op === 'tce2tau' || /\[t/.test(before)){
+          items.push({ label:'[t]', kind: monaco.languages.CompletionItemKind.Text, insertText:'[t]', detail:'time index' });
+          items.push({ label:'[t-1]', kind: monaco.languages.CompletionItemKind.Text, insertText:'[t-1]', detail:'previous time' });
+          items.push({ label:'i1[t]', kind: monaco.languages.CompletionItemKind.Text, insertText:'i1[t]', detail:'input 1 at t' });
+          items.push({ label:'o1[t]', kind: monaco.languages.CompletionItemKind.Text, insertText:'o1[t]', detail:'output 1 at t' });
+        }
+        // TCE scaffolds in p2s
+        if(op === 'p2s'){
+          snip('If ... then ...', 'If ${1:condition} then ${2:action}.', 'English scaffold');
+          snip('Never ...', 'Never ${1:event}.', 'English scaffold');
+          snip('At all times ...', 'At all times, ${1:statement}.', 'English scaffold');
+        }
+        return items;
+      }
       monaco.languages.registerCompletionItemProvider('tauLang', {
-        triggerCharacters: [' ', '(', ')'],
+        triggerCharacters: [' ', '(', ')', '[', ']'],
         provideCompletionItems: async (model, position) => {
-          const suggestions = await fetchSuggestions();
-          const range = new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column);
-          return {
-            suggestions: suggestions.map((s, idx)=>({
-              label: s.display || s.text,
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: s.text,
-              detail: s.description || s.category,
-              documentation: s.example || '',
-              range,
-              sortText: String(idx).padStart(4,'0')
-            }))
-          };
+          const range = mkRange(position);
+          const locals = enhancedOn() ? localSnippets(model, position) : [];
+          const remote = await fetchSuggestions();
+          const merged = [];
+          let idx = 0;
+          for(const it of locals){ merged.push({ ...it, range, sortText: String(idx++).padStart(4,'0') }); }
+          for(const s of remote){ merged.push({ label: (s.display||s.text), kind: monaco.languages.CompletionItemKind.Snippet, insertText: s.text, detail: s.description||s.category, documentation: s.example||'', range, sortText: String(idx++).padStart(4,'0') }); }
+          return { suggestions: merged };
         }
       });
     }
