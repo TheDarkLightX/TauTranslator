@@ -42,6 +42,7 @@
             <small>API</small>
             <input id="apiBase" placeholder="https://api.tautranslator.ai" />
             <button class="btn" id="saveApi">Save</button>
+            <button class="btn" id="resetApi">Reset</button>
           </div>
           <div class="stack">
             <small>BYOK (OpenRouter)</small>
@@ -126,9 +127,9 @@
         <details>
           <summary>Privacy</summary>
           <div class="cols">
-            <label><input type="checkbox" id="localOnly" /> Local only (never send data over network)</label>
+            <label><input type="checkbox" id="privacyMode" /> Privacy mode (never send private data over the network)</label>
           </div>
-          <small>When enabled, Prompt→Spec runs entirely in your browser with a simple deterministic optimizer. Some features may be limited.</small>
+          <small>When enabled, private data (e.g., BYOK key, uploaded grammar contents) is never sent over the network. Requests still use your configured API.</small>
         </details>
         
         <details open>
@@ -339,7 +340,7 @@
     const qs = new URLSearchParams(location.search);
     const fromQS = qs.get('api');
     const saved = localStorage.getItem('tau_api_base');
-    const defaultBase = fromQS || saved || 'https://tau-translator-api.fly.dev';
+    const defaultBase = (fromQS && fromQS.trim()) || (saved && saved.trim()) || 'https://tau-translator-api.fly.dev';
     $('apiBase').value = defaultBase;
     const savedByok = localStorage.getItem('tau_byok_openrouter') || '';
     $('byok').value = qs.get('byok') || savedByok;
@@ -399,6 +400,11 @@
       localStorage.setItem('tau_api_base', $('apiBase').value.trim());
       alert('Saved API base.');
     };
+    $('resetApi').onclick = ()=>{
+      localStorage.removeItem('tau_api_base');
+      $('apiBase').value = 'https://tau-translator-api.fly.dev';
+      alert('Reset to default API base');
+    };
     $('saveByok').onclick = ()=>{
       localStorage.setItem('tau_byok_openrouter', $('byok').value.trim());
       alert('Saved BYOK key.');
@@ -410,7 +416,7 @@
       return v.replace(/\/$/, '');
     }
     function ensureApiBaseDefault(){
-      const el=$('apiBase'); if(el && !el.value.trim()){ el.value='https://api.tautranslator.ai'; }
+      const el=$('apiBase'); if(el && !el.value.trim()){ el.value='https://tau-translator-api.fly.dev'; }
     }
 
     // Grammar UI state
@@ -451,11 +457,11 @@
       const clr = document.getElementById('clearSession'); if(clr){ clr.addEventListener('click', ()=>{
         localStorage.removeItem('tau_session'); showToast('Session cleared');
       }); }
-      // Privacy: local only toggle
-      const lo = document.getElementById('localOnly'); if(lo){
-        const saved = localStorage.getItem('tau_local_only') === '1';
+      // Privacy: do-not-send-private-data toggle
+      const lo = document.getElementById('privacyMode'); if(lo){
+        const saved = localStorage.getItem('tau_privacy_mode') === '1';
         lo.checked = saved;
-        lo.addEventListener('change', ()=>{ localStorage.setItem('tau_local_only', lo.checked ? '1' : '0'); });
+        lo.addEventListener('change', ()=>{ localStorage.setItem('tau_privacy_mode', lo.checked ? '1' : '0'); });
       }
     }
     loadExperimental();
@@ -485,23 +491,29 @@
     setSampleForOp(); // Call once after loadGrammarState
 
     async function post(path, body){
-      const localOnly = (localStorage.getItem('tau_local_only') === '1');
-      if(localOnly){
-        return postLocal(path, body);
-      }
+      const privacy = (localStorage.getItem('tau_privacy_mode') === '1');
       const url = apiBase() + path;
       const headers = { 'Content-Type':'application/json' };
       const byok = $('byok').value.trim();
-      if(byok){ headers['X-OpenRouter-Key'] = byok; }
+      if(byok && !privacy){ headers['X-OpenRouter-Key'] = byok; }
       // Attach grammar metadata/payload if selected
       const mode = (document.getElementById('grammarMode')||{}).value || 'none';
       if(mode === 'upload' && grammarInline && (document.getElementById('attachInline')||{checked:false}).checked){
-        body.grammar_inline = {
-          name: grammarInline.name,
-          mime: grammarInline.type,
-          size: grammarInline.size,
-          content: grammarInline.content
-        };
+        if(!privacy){
+          body.grammar_inline = {
+            name: grammarInline.name,
+            mime: grammarInline.type,
+            size: grammarInline.size,
+            content: grammarInline.content
+          };
+        } else {
+          // In privacy mode, send only metadata; omit content bytes
+          body.grammar_inline = {
+            name: grammarInline.name,
+            mime: grammarInline.type,
+            size: grammarInline.size
+          };
+        }
       } else if (mode === 'hosted'){
         const selEl = document.getElementById('hostedSelect');
         const sel = selEl ? selEl.value : '';
@@ -513,12 +525,7 @@
       // Track last call for copy cURL
       window.__tau_last_call = { url, path, headers: {...headers}, body: JSON.parse(JSON.stringify(body)) };
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
-      if(!res.ok){
-        // Fallback to local optimizer if enabled at runtime
-        const localNow = (localStorage.getItem('tau_local_only') === '1');
-        if(localNow){ return postLocal(path, body); }
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
       return res.json();
     }
 
@@ -574,7 +581,7 @@
         return { valid, errors: valid?[]:['Local validator: expected always(...) and balanced parentheses'] };
       }
       // unsupported locally
-      return { success:false, reasons:['Local mode: endpoint not supported'], errors:['Local only'] };
+      return { success:false, reasons:['Local fallback not available for this endpoint'], errors:['Unsupported in local fallback'] };
     }
 
     function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null, intent='', prompt_suggestions=[], refined_prompt='', refined_options=[], provenance=null }){
@@ -1135,6 +1142,18 @@
     }
 
     // Removed simple mode; always show advanced outputs
+
+    // Settings toggle
+    (function(){
+      const btn = document.getElementById('openAdvanced');
+      const adv = document.getElementById('controlsAdv');
+      if(btn && adv){
+        btn.addEventListener('click', ()=>{
+          const isHidden = adv.style.display === 'none';
+          adv.style.display = isHidden ? '' : 'none';
+        });
+      }
+    })();
 
     $('run').onclick = async ()=>{
       $('run').disabled = true;

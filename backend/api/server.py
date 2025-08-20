@@ -44,6 +44,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://www.tautranslator.ai",
+        "https://tautranslator.ai",
         "https://thedarklightx.github.io",
         "https://thedarklightx.github.io/TauTranslator",
     ],
