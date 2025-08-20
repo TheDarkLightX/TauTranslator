@@ -36,6 +36,7 @@ import uuid
 import time
 import os
 from typing import Callable
+import logging
 
 app = FastAPI(title="Tau Translator API", version="0.1.0")
 
@@ -104,6 +105,47 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 app.add_middleware(RateLimitMiddleware)
+
+
+# Structured JSON logging (optional)
+try:
+    from pythonjsonlogger import jsonlogger
+    handler = logging.StreamHandler()
+    formatter = jsonlogger.JsonFormatter()
+    handler.setFormatter(formatter)
+    root_logger = logging.getLogger()
+    # Avoid duplicate handlers on reload
+    if not any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
+        root_logger.addHandler(handler)
+    root_logger.setLevel(os.getenv("TAU_LOG_LEVEL", "INFO"))
+except Exception:
+    pass
+
+
+# Prometheus metrics (optional)
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    instrumentator = Instrumentator().instrument(app)
+
+    @app.on_event("startup")
+    async def _startup_metrics():
+        try:
+            instrumentator.expose(app)
+        except Exception:
+            pass
+except Exception:
+    pass
+
+
+# OpenTelemetry instrumentation (optional)
+try:
+    if os.getenv("TAU_ENABLE_OTEL", "0") == "1":
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+        FastAPIInstrumentor.instrument_app(app)
+except Exception:
+    pass
 
 # Mount v2 functional endpoints
 from backend.api.endpoints.translation_endpoints import router as translation_router
