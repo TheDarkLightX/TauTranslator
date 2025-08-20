@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import uuid
 import time
+import os
 from typing import Callable
 
 app = FastAPI(title="Tau Translator API", version="0.1.0")
@@ -61,6 +62,48 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(RequestIdMiddleware)
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Simple in-memory token bucket per IP for /llm/* endpoints.
+    Not distributed; sufficient for single-machine Fly deployment.
+    """
+
+    _buckets = {}
+
+    async def dispatch(self, request, call_next: Callable):
+        path: str = request.url.path or ""
+        if not path.startswith("/llm/"):
+            return await call_next(request)
+
+        try:
+            limit = int(os.getenv("TAU_RATE_LIMIT_RPM", "60"))
+        except Exception:
+            limit = 60
+        capacity = max(1, limit)
+        refill_rate = capacity / 60.0  # tokens per second
+
+        ip = (request.client.host if request.client else "0.0.0.0")
+        key = (ip, "llm")
+        now = time.time()
+        bucket = self._buckets.get(key)
+        if not bucket:
+            bucket = {"tokens": float(capacity), "ts": now}
+            self._buckets[key] = bucket
+        # Refill
+        elapsed = max(0.0, now - bucket["ts"])
+        bucket["tokens"] = min(capacity, bucket["tokens"] + elapsed * refill_rate)
+        bucket["ts"] = now
+        if bucket["tokens"] < 1.0:
+            from fastapi.responses import JSONResponse
+            resp = JSONResponse(status_code=429, content={"error": "Rate limit exceeded", "retry_after": 1})
+            resp.headers["Retry-After"] = "1"
+            return resp
+        # consume
+        bucket["tokens"] -= 1.0
+        return await call_next(request)
+
+app.add_middleware(RateLimitMiddleware)
 
 # Mount v2 functional endpoints
 from backend.api.endpoints.translation_endpoints import router as translation_router

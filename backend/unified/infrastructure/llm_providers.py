@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
-import requests
+import asyncio
+import httpx
 
 from ..core.result_enhanced import Result, Success, Failure
 
@@ -51,6 +52,16 @@ class OpenRouterProvider(LLMProvider):
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
 
     def generate(self, request: LLMRequest) -> Result[LLMResponse]:
+        # Run sync wrapper around async httpx client for compatibility
+        try:
+            return asyncio.run(self._generate_async(request))
+        except RuntimeError:
+            # Already in an event loop; run nested
+            return asyncio.get_event_loop().run_until_complete(self._generate_async(request))
+        except Exception as e:
+            return Failure("OPENROUTER_ERROR", str(e))
+
+    async def _generate_async(self, request: LLMRequest) -> Result[LLMResponse]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -65,17 +76,30 @@ class OpenRouterProvider(LLMProvider):
             "temperature": request.temperature,
             "max_tokens": request.max_tokens,
         }
-        try:
-            resp = requests.post(self.base_url, json=payload, headers=headers, timeout=30)
-            if resp.status_code >= 300:
-                return Failure(f"OPENROUTER_HTTP_{resp.status_code}", resp.text)
-            data = resp.json()
-            choice = (data.get("choices") or [{}])[0]
-            text = ((choice.get("message") or {}).get("content")) or ""
-            usage = data.get("usage") or {}
-            return Success(LLMResponse(text=text, usage=usage))
-        except Exception as e:
-            return Failure("OPENROUTER_ERROR", str(e))
+        timeout = httpx.Timeout(10.0, connect=5.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            # basic backoff (2 attempts)
+            for attempt in range(2):
+                try:
+                    resp = await client.post(self.base_url, json=payload, headers=headers)
+                    if resp.status_code == 429 and attempt == 0:
+                        await asyncio.sleep(1.0)
+                        continue
+                    if resp.status_code >= 300:
+                        return Failure(f"OPENROUTER_HTTP_{resp.status_code}", resp.text)
+                    data = resp.json()
+                    choice = (data.get("choices") or [{}])[0]
+                    text = ((choice.get("message") or {}).get("content")) or ""
+                    usage = data.get("usage") or {}
+                    return Success(LLMResponse(text=text, usage=usage))
+                except httpx.TimeoutException:
+                    if attempt == 0:
+                        await asyncio.sleep(0.5)
+                        continue
+                    return Failure("OPENROUTER_TIMEOUT", "timeout")
+                except Exception as e:
+                    return Failure("OPENROUTER_ERROR", str(e))
+        return Failure("OPENROUTER_ERROR", "unreachable")
 
 
 def get_default_provider() -> LLMProvider:
