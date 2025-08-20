@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any
 import asyncio
 import httpx
+import os
+import hashlib
 
 from ..core.result_enhanced import Result, Success, Failure
 
@@ -61,6 +63,23 @@ class OpenRouterProvider(LLMProvider):
         except Exception as e:
             return Failure("OPENROUTER_ERROR", str(e))
 
+    # Shared async client and limits per process
+    _CLIENT: Optional[httpx.AsyncClient] = None
+    _SEMAPHORE: Optional[asyncio.Semaphore] = None
+
+    @classmethod
+    def _get_client(cls) -> httpx.AsyncClient:
+        if cls._CLIENT is None:
+            limits = httpx.Limits(
+                max_connections=int(os.getenv("TAU_HTTPX_MAX_CONN", "100")),
+                max_keepalive_connections=int(os.getenv("TAU_HTTPX_MAX_KEEPALIVE", "20")),
+            )
+            timeout = httpx.Timeout(10.0, connect=5.0)
+            cls._CLIENT = httpx.AsyncClient(http2=True, limits=limits, timeout=timeout)
+        if cls._SEMAPHORE is None:
+            cls._SEMAPHORE = asyncio.Semaphore(int(os.getenv("TAU_HTTPX_MAX_INFLIGHT", "64")))
+        return cls._CLIENT
+
     async def _generate_async(self, request: LLMRequest) -> Result[LLMResponse]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -76,9 +95,14 @@ class OpenRouterProvider(LLMProvider):
             "temperature": request.temperature,
             "max_tokens": request.max_tokens,
         }
-        timeout = httpx.Timeout(10.0, connect=5.0)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            # basic backoff (2 attempts)
+        # Idempotency key to protect retries
+        idem_key = hashlib.sha256((request.system or "" + "||" + request.prompt).encode("utf-8")).hexdigest()[:32]
+        headers["Idempotency-Key"] = idem_key
+
+        client = self._get_client()
+        # basic backoff (2 attempts) & concurrency limit
+        sem = self._SEMAPHORE or asyncio.Semaphore(64)
+        async with sem:
             for attempt in range(2):
                 try:
                     resp = await client.post(self.base_url, json=payload, headers=headers)

@@ -5,7 +5,8 @@ from typing import Tuple, List
 
 
 # Allow common Tau punctuation in fallback output too
-ALLOWED_TOKENS = re.compile(r"^[a-zA-Z0-9_\s(),:!\-\->\[\]]+$")
+# Allow time indices [t] and [t-1], logical connectives, commas, underscores, parentheses
+ALLOWED_TOKENS = re.compile(r"^[A-Za-z0-9_\s(),:!\-\>\[\]=\&\|]+$")
 
 
 def _balanced_parens(text: str) -> bool:

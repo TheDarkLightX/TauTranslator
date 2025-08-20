@@ -15,7 +15,12 @@ import os, importlib.util
 from ..infrastructure.llm_providers import get_default_provider, get_provider, LLMRequest
 import re
 from ..domain.prompt_optimizer_pnf_ilgo import optimize_prompt_to_tce
-from ..domain.normalization import gate_tokens, normalize_inner_from_prompt
+from ..domain.normalization_fast import gate_tokens_fast as gate_tokens
+from ..domain.normalization import normalize_inner_from_prompt
+from ..domain.spec_strategy import get_spec_strategy
+from ..domain.englishify import tce_to_english
+from collections import OrderedDict
+import hashlib
 def _load_class_from_path(module_name: str, file_path: str, class_name: str):
     try:
         spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -132,16 +137,42 @@ def _resolve_repo_path(*parts: str) -> str:
     return candidates[-1]
 
 try:
-    from tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser
+    from tau_translator_omega.core_engine.parsers.cnl_parser.parser import CNLParser as _CNLParser
 except Exception:  # pragma: no cover
-    CNLParser = None
+    _CNLParser = None
 try:
-    from tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator
+    from tau_translator_omega.core_engine.translators.tce_tau_translator import TCETauTranslator as _TCETauTranslator
 except Exception:  # pragma: no cover
-    TCETauTranslator = None
+    _TCETauTranslator = None
 
 
 router = APIRouter(prefix="/llm", tags=["llm"])
+
+# Simple single-process caches (low risk)
+_PACK_CACHE: "OrderedDict[tuple[str,str], object]" = OrderedDict()
+_RETR_CACHE: "OrderedDict[tuple[str,str,str,int], list]" = OrderedDict()
+_CACHE_MAX = 64
+
+_PARSER = None
+_TRANSLATOR = None
+
+def _get_parser():
+    global _PARSER
+    if _PARSER is None and _CNLParser is not None:
+        try:
+            _PARSER = _CNLParser()
+        except Exception:
+            _PARSER = None
+    return _PARSER
+
+def _get_translator():
+    global _TRANSLATOR
+    if _TRANSLATOR is None and _TCETauTranslator is not None:
+        try:
+            _TRANSLATOR = _TCETauTranslator()
+        except Exception:
+            _TRANSLATOR = None
+    return _TRANSLATOR
 
 
 class PromptToSpecBody(BaseModel):
@@ -163,13 +194,30 @@ class PromptToSpecBody(BaseModel):
 async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     # Build or ensure knowledge pack exists (minimal builder for now)
     builder = GrammarKnowledgePackBuilder("data/grammar_packs")
-    pack_result = builder.build_minimal(body.grammar_id, body.grammar_version)
+    key = (body.grammar_id, body.grammar_version)
+    pack_obj = _PACK_CACHE.get(key)
+    if pack_obj is None:
+        pack_result = builder.build_minimal(body.grammar_id, body.grammar_version)
+        if isinstance(pack_result, Failure):
+            raise HTTPException(status_code=500, detail=pack_result.message)
+        pack_obj = pack_result.unwrap()
+        _PACK_CACHE[key] = pack_obj
+        if len(_PACK_CACHE) > _CACHE_MAX:
+            _PACK_CACHE.popitem(last=False)
     if isinstance(pack_result, Failure):
         raise HTTPException(status_code=500, detail=pack_result.message)
 
     # Retrieve relevant rule summaries/examples for assist context (safe RAG)
-    pack = pack_result.unwrap()
-    top = retrieve_top_k(pack, body.prompt, k=4).unwrap()
+    pack = pack_obj
+    # retrieval cache
+    h = hashlib.sha256(body.prompt.encode('utf-8')).hexdigest()[:16]
+    rkey = (body.grammar_id, body.grammar_version, h, 4)
+    top = _RETR_CACHE.get(rkey)
+    if top is None:
+        top = retrieve_top_k(pack, body.prompt, k=4).unwrap()
+        _RETR_CACHE[rkey] = top
+        if len(_RETR_CACHE) > _CACHE_MAX:
+            _RETR_CACHE.popitem(last=False)
 
     # First try deterministic optimizer (PNF-ILGO+ Phase 1)
     # Feature-flagged FDL optimizer (safe rollback via env var)
@@ -356,14 +404,9 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             # A robot may not injure a human or, through inaction, allow a human to come to harm.
             # Encode as: for all robots r and humans h: not injure(r,h) and if (risk_to(h) && can_prevent(r,h)) then prevent_harm(r,h)
             return "all r (all h ((!injure[0](r,h)) && ((risk_to[0](h) && can_prevent[0](r,h)) -> prevent_harm[0](r,h))))"
-        # Stream equality patterns (WFF relational forms over bf terms)
-        if ("output" in orig_prompt_low and "input" in orig_prompt_low) and (
-            "each time step" in orig_prompt_low or "time t" in orig_prompt_low or ("equals" in orig_prompt_low and "always" in orig_prompt_low)
-        ):
-            return "(o1[t] = i1[t])"
-        if ("output" in orig_prompt_low) and ("previous" in orig_prompt_low or "t-1" in orig_prompt_low):
-            return "(o1[t] = i1[t-1])"
-        inner = normalize_inner_from_prompt(orig_prompt_low, inner)
+        # Delegate to spec-mode strategy (WFF default vs RR)
+        strategy = get_spec_strategy(body.spec_mode)
+        inner = strategy.normalize(orig_prompt_low, inner)
         # Replace common placeholder tokens with T to ensure valid wff
         inner = re.sub(r"\b(condition|action|guard|event|state|predicate)\b", "T", inner, flags=re.IGNORECASE)
         # Convert natural phrases to predicate atoms when used as operands
@@ -520,12 +563,11 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     tce, gate_msgs = _gate_tokens(tce)
     reasons.extend(gate_msgs)
     tau = None
-    if CNLParser is not None and TCETauTranslator is not None:
+    PARSER = _get_parser(); TRANSLATOR = _get_translator()
+    if PARSER is not None and TRANSLATOR is not None:
         try:
-            parser = CNLParser()
-            ast = parser.parse(tce)
-            translator = TCETauTranslator()
-            tau_result = translator.translate(ast)
+            ast = PARSER.parse(tce)
+            tau_result = TRANSLATOR.translate(ast)
             if tau_result.errors:
                 reasons.extend(tau_result.errors)
             else:
@@ -601,7 +643,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
 
     # Finalize TCE as controlled English (plain text)
     try:
-        tce_english = _tce_to_english(tce)
+        tce_english = tce_to_english(tce)
     except Exception:
         tce_english = tce
 

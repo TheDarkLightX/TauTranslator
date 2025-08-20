@@ -21,16 +21,24 @@ def ensure_always_wrapper(text: str) -> Tuple[str, List[str]]:
 def balance_parentheses(text: str) -> Tuple[str, List[str]]:
     msgs: List[str] = []
     bal = 0
+    out: list[str] = []
     for ch in text:
-        if ch == '(': bal += 1
-        elif ch == ')': bal -= 1
-        if bal < 0:
-            msgs.append("Parenthesis underflow; attempted normalization")
-            break
+        if ch == '(':
+            bal += 1
+            out.append(ch)
+        elif ch == ')':
+            if bal == 0:
+                # drop unmatched closing paren
+                msgs.append("Removed unmatched closing parenthesis")
+                continue
+            bal -= 1
+            out.append(ch)
+        else:
+            out.append(ch)
     if bal > 0:
-        text = text + (')' * bal)
+        out.append(')' * bal)
         msgs.append("Balanced missing closing parenthesis")
-    return text, msgs
+    return "".join(out), msgs
 
 
 def whitelist_and_canonicalize(text: str) -> Tuple[str, List[str]]:
@@ -45,15 +53,26 @@ def whitelist_and_canonicalize(text: str) -> Tuple[str, List[str]]:
 
 
 def gate_tokens(candidate: str) -> Tuple[str, List[str]]:
-    """DFA-like gate composed from simple pure steps."""
+    """Strict gate that guarantees 'always ( ... )' with balanced parens and whitelisted tokens."""
     reasons: List[str] = []
-    t1, m1 = ensure_always_wrapper(candidate)
+    raw = (candidate or "").strip()
+    # First pass: whitelist raw to avoid exotic chars early
+    raw, m0 = whitelist_and_canonicalize(raw)
+    reasons.extend(m0)
+    # Extract inner if already wrapped
+    m = re.match(r"^\s*always\s*\((.*)\)\s*$", raw, flags=re.IGNORECASE | re.DOTALL)
+    if m:
+        inner = m.group(1)
+    else:
+        inner = raw
+        reasons.append("Wrapped in always (...) per constraint gate")
+    # Balance and clean inner
+    inner_bal, m1 = balance_parentheses(inner)
     reasons.extend(m1)
-    t2, m2 = balance_parentheses(t1)
+    inner_clean, m2 = whitelist_and_canonicalize(inner_bal)
     reasons.extend(m2)
-    t3, m3 = whitelist_and_canonicalize(t2)
-    reasons.extend(m3)
-    return t3, reasons
+    text = f"always ({inner_clean})"
+    return text, reasons
 
 
 def normalize_inner_from_prompt(orig_prompt_low: str, inner_or_full: str) -> str:
