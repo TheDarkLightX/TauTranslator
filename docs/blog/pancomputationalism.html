@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CTM ⇒ Pancomputationalism (Trivial Case) — Lean-Checked</title>
+  <title>CTM ⇒ Pancomputationalism (Trivial Case) – Lean Checked</title>
   <style>
     body{margin:0;padding:24px;font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;background:#0f0f1e;color:#e8e8e8}
     .wrap{max-width: 980px; margin: 0 auto;}
@@ -11,18 +11,25 @@
     .card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);border-radius:12px;padding:16px;margin:12px 0}
     pre{background:#0c1324;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px;overflow:auto}
     code{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    /* Simple syntax tint for Lean blocks */
+    pre code.language-lean { color:#e8e8e8 }
+    pre code.language-lean .kw { color:#9cdcfe; font-weight:600 }
+    pre code.language-lean .sym { color:#ffcc66 }
+    pre code.language-lean .com { color:#6a9955; font-style:italic }
+    /* Pretty math-style rendering for logic arrows and quantifiers */
+    .logic { font-family: 'Georgia', 'Times New Roman', serif; letter-spacing: 0.2px }
     a{color:#88ddff}
   </style>
   <meta name="description" content="A minimal formalization of a pancomputationalism theorem checked in Lean 4: every system implements itself under a homomorphic implementation definition." />
   <link rel="canonical" href="/docs/blog/pancomputationalism.html" />
-  <meta property="og:title" content="CTM ⇒ Pancomputationalism (Trivial Case) — Lean-Checked" />
+  <meta property="og:title" content="CTM ⇒ Pancomputationalism (Trivial Case) – Lean Checked" />
   <meta property="og:description" content="A minimal formalization of a pancomputationalism theorem checked in Lean 4: every system implements itself under a homomorphic implementation definition." />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="/docs/blog/pancomputationalism.html" />
 </head>
 <body>
   <div class="wrap">
-    <h1>CTM ⇒ Pancomputationalism (Trivial Case) — Lean‑Checked</h1>
+    <h1>CTM ⇒ Pancomputationalism (Trivial Case) – Lean Checked</h1>
     <div class="card">
       <p>This note presents a minimal, Lean‑checked formalization of a trivial pancomputationalism result:</p>
       <ul>
@@ -35,7 +42,7 @@
 
     <div class="card">
       <h2>Lean 4 Proof (full)</h2>
-      <pre><code>-- lean/Tau/Pancomputational.lean
+      <pre><code class="language-lean">-- lean/Tau/Pancomputational.lean
 universe u₁ v₁ u₂ v₂ u v
 
 namespace Tau
@@ -72,7 +79,7 @@ end Tau</code></pre>
     <div class="card">
       <h2>Full Lean sources (non‑trivial framework and exemplar)</h2>
       <h3>lean/Tau/NonTrivial.lean</h3>
-      <pre><code>import Tau.Pancomputational
+      <pre><code class="language-lean">import Tau.Pancomputational
 
 /-!
 Non‑trivial implementation framework (research scaffold)
@@ -120,7 +127,7 @@ def ImplementsNonTrivial {S₁ : Type u₁} {I₁ : Type v₁} {S₂ : Type u₂
 end Tau</code></pre>
 
       <h3>lean/Tau/Certificates.lean</h3>
-      <pre><code>/-!
+      <pre><code class="language-lean">/-!
 Finite certificate checker (scaffold)
 
 We avoid external finite set dependencies by carrying explicit
@@ -155,7 +162,7 @@ def checkRobustProp (P C : Finsys) (c : Cert P C) : Prop :=
 end Tau</code></pre>
 
       <h3>lean/Tau/NonTrivialExemplar.lean</h3>
-      <pre><code>import Tau.Certificates
+      <pre><code class="language-lean">import Tau.Certificates
 
 /-!
 Non‑trivial exemplar: map a finite Mealy‑style P to a tiny cognitive
@@ -208,7 +215,7 @@ theorem robust_ok : checkRobustProp P_sys C_sys cert_w := by
 end Tau</code></pre>
 
       <h3>lean/Tau/Programmability.lean</h3>
-      <pre><code>import Tau.Pancomputational
+      <pre><code class="language-lean">import Tau.Pancomputational
 import Tau.NonTrivial
 
 /-! Programmability schema: robust witnesses imply non‑trivial implementation. -/
@@ -362,12 +369,12 @@ end Tau</code></pre>
     <div class="card">
       <h2>Black‑Hole Consciousness (Conditional Possibility)</h2>
       <p>
-        If consciousness exists at all and is realized by some class of computations, then—assuming sufficiently rich physical substrates can implement those computations—there is no principled barrier to a black hole (or any complex physical system) implementing them. This is a conditional <em>possibility</em> claim, not a physical assertion.
+        If consciousness exists at all and is realized by some class of computations, then, assuming sufficiently rich physical substrates can implement those computations, there is no principled barrier to a black hole (or any complex physical system) implementing them. This is a conditional <em>possibility</em> claim, not a physical assertion.
       </p>
       <ul>
         <li><strong>Assume:</strong> (i) Consciousness is realized by some computations C<sub>cog</sub>; (ii) rich physical systems can implement computations in C<sub>cog</sub> (with appropriate counterfactual robustness); (iii) black holes exist as physical systems.</li>
         <li><strong>Then:</strong> It is possible that some black hole implements a conscious computation.</li>
-        <li><strong>Probability gloss:</strong> If a non‑zero prior mass is placed on black‑hole implementations of C<sub>cog</sub>, consciousness has non‑zero probability in such systems—likely <em>very low</em>, but not logically excluded.</li>
+        <li><strong>Probability gloss:</strong> If a non‑zero prior mass is placed on black‑hole implementations of C<sub>cog</sub>, consciousness has non‑zero probability in such systems, likely <em>very low</em>, but not logically excluded.</li>
       </ul>
       <p style="opacity:.85">This section is an epistemic/axiomatic argument. It does not claim present‑day physics predicts consciousness in black holes; it shows how, under explicit assumptions, the possibility follows.</p>
     </div>
