@@ -21,13 +21,15 @@
     a{color:#88ddff}
   </style>
   <meta name="description" content="A minimal formalization of a pancomputationalism theorem checked in Lean 4: every system implements itself under a homomorphic implementation definition." />
-  <link rel="canonical" href="/docs/blog/pancomputationalism.html" />
+  <link rel="canonical" href="/blog/pancomputationalism.html" />
   <meta property="og:title" content="CTM ⇒ Pancomputationalism (Trivial Case) – Lean Checked" />
   <meta property="og:description" content="A minimal formalization of a pancomputationalism theorem checked in Lean 4: every system implements itself under a homomorphic implementation definition." />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="/docs/blog/pancomputationalism.html" />
+  <meta property="og:url" content="/blog/pancomputationalism.html" />
   <!-- Prism CSS for code highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" integrity="sha512-8BqC8g7q9G0EA4C0oTHQb9paX8Q3mQ0p6D+q7zqj5qLhKMxqz7O0dH0m9C8z0LQw1kQ0VQj8aD3uJ3z5e4h4xQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- KaTeX CSS for pretty math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
   <div class="wrap">
@@ -72,11 +74,9 @@ end Tau</code></pre>
 
     <div class="card">
       <h2>Laws as Programmer (Lean conditional)</h2>
-      <p>
-        Define <code>Programmable P C U hU := ∃ f g, RobustImplements P C U hU f g</code>.
-        If <code>Programmable</code> holds and there exist non‑degenerate endomorphisms on the physical side,
-        then <code>ImplementsNonTrivial P C U hU</code>.
-      </p>
+      <div class="math-block">$$ \mathrm{Programmable}(P,C,U,h_U) \iff \exists f,g\; .\; \mathrm{RobustImplements}(P,C,U,h_U,f,g) $$</div>
+      <div class="math-block">$$ \mathrm{Programmable}(P,C,U,h_U)\;\land\;\big(\exists \\varphi,\\gamma\; .\; \mathrm{NonDegenerate}(\\varphi,\\gamma)\big) \\Rightarrow\; \mathrm{ImplementsNonTrivial}(P,C,U,h_U) $$</div>
+      <p>Intuition: robustly programmable subsystems with non‑degenerate carriers witness a non‑trivial implementation.</p>
     </div>
     <div class="card">
       <h2>Full Lean sources (non‑trivial framework and exemplar)</h2>
@@ -277,8 +277,9 @@ end Tau</code></pre>
     </div>
   </div>
   <!-- Prism JS for code highlighting -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-Jf1+9n44rXlG6Sk5h7y9o+bnvJ5vG7g2sC8c4Xo4t6c8qL0H1vH3nE9e3Gv0u3U2G8Vf0g0YhQWZtGspcH7Ciw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js" integrity="sha512-fjmS9uY7y1j8g8iX2hC2oW7Lx2f8Jc3vE3m1f2P0rQ0f2x0jYbYkYI2K8v4QnM5lQq4l7gJ7E0fKk9Y9CzO3Dg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 </html>
 
