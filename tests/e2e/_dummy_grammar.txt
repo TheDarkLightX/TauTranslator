@@ -1,3 +1,0 @@
-# dummy grammar
-start: WORD
-WORD: /[a-zA-Z]+/

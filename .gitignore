@@ -170,12 +170,3 @@ external/tau-lang/
 grammars/tau.tgf
 backend/tau.tgf
 docs/tau.tgf
-
-# Lean (elan toolchain, build artifacts)
-lean/.elan/
-lean/.lake/
-lean/build/
-*.olean
-*.olean.*
-*.trace
-*.log
