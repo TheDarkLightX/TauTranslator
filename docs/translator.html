@@ -112,6 +112,7 @@
           <div class="cols">
             <label><input type="checkbox" id="expRank" /> On-device ranking for suggestions</label>
             <label><input type="checkbox" id="expTfRank" /> Use TF.js model (if available)</label>
+            <label><input type="checkbox" id="autoTau" /> Auto-translate TCE to Tau after Prompt→Spec</label>
           </div>
         </details>
         <details>
@@ -576,7 +577,7 @@
       return { success:false, reasons:['Local mode: endpoint not supported'], errors:['Local only'] };
     }
 
-    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null, intent='', prompt_suggestions=[], refined_prompt='', refined_options=[] }){
+    function setOutputs({ tce='', tau='', reasons=[], valid=null, success=null, errors=[], prompt_candidate='', analysis=null, explanation='', rag=null, verification=null, intent='', prompt_suggestions=[], refined_prompt='', refined_options=[], provenance=null }){
       $('outTce').value = tce || '';
       $('outTau').value = tau || '';
       $('outPromptCandidate').textContent = prompt_candidate || '';
@@ -632,6 +633,12 @@
         } else { ragDiv.textContent = ''; }
       }
       const msgs = [];
+      // Provider/model chip (provenance)
+      if(provenance && (provenance.provider || provenance.model)){
+        const pv = provenance.provider ? (String(provenance.provider)) : '';
+        const md = provenance.model ? (String(provenance.model)) : '';
+        msgs.push('Provenance: ' + pv + (md? ` (${md})`:''));
+      }
       if(Array.isArray(reasons) && reasons.length) msgs.push('Reasons:\n- ' + reasons.join('\n- '));
       if(Array.isArray(errors) && errors.length) msgs.push('Errors:\n- ' + errors.join('\n- '));
       if(typeof valid === 'boolean') msgs.push(`Valid: ${valid ? 'true' : 'false'}`);
@@ -639,6 +646,18 @@
       $('outReasons').textContent = msgs.join('\n\n');
       // Refresh output editor view
       try { if (typeof window.updateEditorOut === 'function') { window.updateEditorOut(); } } catch {}
+      // Auto-translate to Tau if requested and Tau not present
+      try{
+        const auto = document.getElementById('autoTau');
+        if(auto && auto.checked && (!tau || !String(tau).trim())){
+          const candidate = (refined_prompt && refined_prompt.includes('always (')) ? refined_prompt : '';
+          if(candidate){
+            post('/translate/tce-to-tau', { tce: candidate }).then(rt=>{
+              if(rt && rt.tau){ $('outTau').value = rt.tau; window.__outView='tau'; if(typeof window.updateEditorOut==='function') window.updateEditorOut(); showToast('Auto-translated to Tau'); }
+            }).catch(()=>{});
+          }
+        }
+      }catch{}
       // no simple mode
     }
     function showToast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; }, 1200); }
