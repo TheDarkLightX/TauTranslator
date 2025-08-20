@@ -339,7 +339,7 @@
     const qs = new URLSearchParams(location.search);
     const fromQS = qs.get('api');
     const saved = localStorage.getItem('tau_api_base');
-    const defaultBase = fromQS || saved || 'https://api.tautranslator.ai';
+    const defaultBase = fromQS || saved || 'https://tau-translator-api.fly.dev';
     $('apiBase').value = defaultBase;
     const savedByok = localStorage.getItem('tau_byok_openrouter') || '';
     $('byok').value = qs.get('byok') || savedByok;

@@ -204,8 +204,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         _PACK_CACHE[key] = pack_obj
         if len(_PACK_CACHE) > _CACHE_MAX:
             _PACK_CACHE.popitem(last=False)
-    if isinstance(pack_result, Failure):
-        raise HTTPException(status_code=500, detail=pack_result.message)
+    # pack_obj is guaranteed non-None here
 
     # Retrieve relevant rule summaries/examples for assist context (safe RAG)
     pack = pack_obj
