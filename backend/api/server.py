@@ -31,6 +31,10 @@ def _get_translator() -> Optional[Any]:
         return None
 # Enable CORS for PWA frontend
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+import uuid
+import time
+from typing import Callable
 
 app = FastAPI(title="Tau Translator API", version="0.1.0")
 
@@ -45,6 +49,18 @@ app.add_middleware(
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-OpenRouter-Key"],
 )
+
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next: Callable):
+        rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        start = time.time()
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = rid
+        response.headers["X-Response-Time"] = f"{(time.time()-start)*1000:.1f}ms"
+        return response
+
+app.add_middleware(RequestIdMiddleware)
 
 # Mount v2 functional endpoints
 from backend.api.endpoints.translation_endpoints import router as translation_router

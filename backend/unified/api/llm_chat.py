@@ -139,7 +139,8 @@ async def chat(body: ChatBody, request: Request) -> ChatResponse:
         reasons=reasons,
         provenance={
             "mode": body.mode,
-            "provider": body.provider or ("openrouter" if openrouter_key else "echo"),
+            "provider": getattr(provider, "__class__", type(provider)).__name__,
+            "model": getattr(provider, "model", None),
             "steering": steering,
         },
     )

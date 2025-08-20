@@ -15,6 +15,7 @@ import os, importlib.util
 from ..infrastructure.llm_providers import get_default_provider, get_provider, LLMRequest
 import re
 from ..domain.prompt_optimizer_pnf_ilgo import optimize_prompt_to_tce
+from ..domain.normalization import gate_tokens, normalize_inner_from_prompt
 def _load_class_from_path(module_name: str, file_path: str, class_name: str):
     try:
         spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -362,27 +363,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             return "(o1[t] = i1[t])"
         if ("output" in orig_prompt_low) and ("previous" in orig_prompt_low or "t-1" in orig_prompt_low):
             return "(o1[t] = i1[t-1])"
-        # truth literals and strong negation phrases
-        inner = re.sub(r"\b(always\s+true|true)\b", "T", inner, flags=re.IGNORECASE)
-        inner = re.sub(r"\b(false)\b", "F", inner, flags=re.IGNORECASE)
-        inner = re.sub(r"\bat\s+no\s+time\b", "never", inner, flags=re.IGNORECASE)
-        inner = re.sub(r"\bunder\s+no\s+circumstances\b", "never", inner, flags=re.IGNORECASE)
-        # if ... then ...  →  (...) -> (...)
-        inner = re.sub(r"\bif\b\s+(.*?)\s+\bthen\b\s+(.*)$", r"(\1) -> (\2)", inner, flags=re.IGNORECASE)
-        # when/whenever/after X, Y → (X) -> (Y)
-        inner = re.sub(r"\bwhen\b\s+(.*?)[,;]\s*(.*)$", r"(\1) -> (\2)", inner, flags=re.IGNORECASE)
-        inner = re.sub(r"\bwhenever\b\s+(.*?)[,;]\s*(.*)$", r"(\1) -> (\2)", inner, flags=re.IGNORECASE)
-        inner = re.sub(r"\bafter\b\s+(.*?)[,;]\s*(.*)$", r"(\1) -> (\2)", inner, flags=re.IGNORECASE)
-        # implication
-        inner = re.sub(r"\b(implies|=>|⇒)\b", "->", inner, flags=re.IGNORECASE)
-        # and/or
-        inner = re.sub(r"\bAND\b", "&&", inner)
-        inner = re.sub(r"\band\b", "&&", inner)
-        inner = re.sub(r"\bOR\b", "||", inner)
-        inner = re.sub(r"\bor\b", "||", inner)
-        # quantifiers
-        inner = re.sub(r"\b(for\s+all|forall)\b", "all", inner, flags=re.IGNORECASE)
-        inner = re.sub(r"\b(there\s+exists|exists)\b", "ex", inner, flags=re.IGNORECASE)
+        inner = normalize_inner_from_prompt(orig_prompt_low, inner)
         # Replace common placeholder tokens with T to ensure valid wff
         inner = re.sub(r"\b(condition|action|guard|event|state|predicate)\b", "T", inner, flags=re.IGNORECASE)
         # Convert natural phrases to predicate atoms when used as operands
@@ -534,33 +515,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
 
     # Final DFA-like gate: ensure only allowed tokens and a balanced structure inside always(...)
     def _gate_tokens(candidate: str) -> tuple[str, list[str]]:
-        msgs: list[str] = []
-        text = candidate.strip()
-        # Enforce always ( ... ) wrapper
-        if not text.lower().startswith('always ('):
-            text = f"always ({text})"
-            msgs.append("Wrapped in always (...) per constraint gate")
-        # Balance parentheses
-        bal = 0
-        for ch in text:
-            if ch == '(': bal += 1
-            elif ch == ')': bal -= 1
-            if bal < 0:
-                msgs.append("Parenthesis underflow; attempted normalization")
-                break
-        if bal > 0:
-            text = text + (')' * bal)
-            msgs.append("Balanced missing closing parenthesis")
-        # Whitelist simple token set (letters, digits, underscore, space, basic connectives and punctuation inside always)
-        # Replace disallowed punctuation with space
-        # Allow relational and negation operators: !, =, <, > and argument separator ','
-        cleaned = re.sub(r"[^A-Za-z0-9_,\s\(\)\-\>\|\&'\[\]<!=>]+", " ", text)
-        if cleaned != text:
-            msgs.append("Removed unsupported characters")
-            text = cleaned
-        # Normalize multiple spaces
-        text = re.sub(r"\s+", " ", text).strip()
-        return text, msgs
+        return gate_tokens(candidate)
 
     tce, gate_msgs = _gate_tokens(tce)
     reasons.extend(gate_msgs)
@@ -655,7 +610,14 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         tce=tce_english,
         tau=tau,
         reasons=reasons,
-        provenance={"mode": body.mode, "grammar_id": body.grammar_id, "version": body.grammar_version, "retrieval": top},
+        provenance={
+            "mode": body.mode,
+            "grammar_id": body.grammar_id,
+            "version": body.grammar_version,
+            "retrieval": top,
+            "provider": getattr(provider, "__class__", type(provider)).__name__,
+            "model": getattr(provider, "model", None)
+        },
         intent= opt_intent or intent,
         prompt_suggestions=suggestions + ([f"Clarify: {q}" for q in opt_questions] if opt_questions else []),
         nlp_analysis=fused_analysis,
