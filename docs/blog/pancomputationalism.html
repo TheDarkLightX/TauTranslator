@@ -30,6 +30,38 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" integrity="sha512-8BqC8g7q9G0EA4C0oTHQb9paX8Q3mQ0p6D+q7zqj5qLhKMxqz7O0dH0m9C8z0LQw1kQ0VQj8aD3uJ3z5e4h4xQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <!-- KaTeX CSS for pretty math rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>
+    (function(){
+      function inject(src, onload){
+        try{
+          var s=document.createElement('script');
+          s.src=src; s.defer=true; s.crossOrigin='anonymous';
+          if(onload) s.addEventListener('load', onload);
+          document.head.appendChild(s);
+        }catch(e){ console && console.warn && console.warn('KaTeX inject failed', e); }
+      }
+      function render(){
+        try{
+          if(window.renderMathInElement){
+            window.renderMathInElement(document.body,{
+              delimiters:[
+                {left:'$$', right:'$$', display:true},
+                {left:'$', right:'$', display:false},
+                {left:'\\(', right:'\\)', display:false},
+                {left:'\\[', right:'\\]', display:true}
+              ]
+            });
+          }
+        }catch(e){ console && console.warn && console.warn('KaTeX render failed', e); }
+      }
+      // Load KaTeX core then auto-render, then render
+      inject('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js', function(){
+        inject('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js', render);
+      });
+      // Fallback: render on DOMContentLoaded
+      document.addEventListener('DOMContentLoaded', render);
+    })();
+  </script>
 </head>
 <body>
   <div class="wrap">

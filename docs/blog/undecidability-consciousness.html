@@ -19,6 +19,16 @@
   </style>
   <!-- Prism CSS for code/inline styling parity -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- KaTeX CSS (future math) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>
+    (function(){
+      function inject(src, onload){ var s=document.createElement('script'); s.src=src; s.defer=true; s.crossOrigin='anonymous'; if(onload) s.addEventListener('load', onload); document.head.appendChild(s); }
+      function render(){ if(window.renderMathInElement){ window.renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]}); } }
+      inject('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js', function(){ inject('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js', render); });
+      document.addEventListener('DOMContentLoaded', render);
+    })();
+  </script>
 </head>
 <body>
   <div class="wrap">
