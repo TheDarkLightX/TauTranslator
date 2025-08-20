@@ -1,8 +1,7 @@
 name: deploy-mkdocs
 
 on:
-  push:
-    branches: [ main ]
+  # Disable automatic deploys to avoid conflicting with GitHub Pages (docs/ source)
   workflow_dispatch:
 
 jobs:
