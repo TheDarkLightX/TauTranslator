@@ -170,11 +170,13 @@ from backend.unified.api.llm_endpoints import router as llm_router
 from backend.unified.api.edu_endpoints import router as edu_router
 from backend.unified.api.tce_endpoints import router as tce_router
 from backend.unified.api.llm_chat import router as chat_router
+from backend.unified.api.assist_extract import router as assist_router
 app.include_router(translation_router)
 app.include_router(llm_router)
 app.include_router(edu_router)
 app.include_router(tce_router)
 app.include_router(chat_router)
+app.include_router(assist_router)
 
 
 class TranslationResponse(BaseModel):
