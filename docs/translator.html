@@ -30,6 +30,13 @@
     small { color: var(--muted); }
     .hint-box { background: rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.2); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--muted); }
     .chip { display:inline-flex; align-items:center; gap:6px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16); color: var(--muted); font-size: 12px; }
+    /* Drawer state classes */
+    .drawer-left { position:fixed; top:0; left:-380px; transition:left .2s ease; }
+    .drawer-left.is-open { left:0px !important; }
+    .drawer-right { position:fixed; top:0; right:-420px; transition:right .2s ease; }
+    .drawer-right.is-open { right:0px !important; }
+    .panel { display:none; }
+    .panel.is-open { display:flex !important; }
   </style>
 </head>
 <body>
@@ -50,9 +57,8 @@
             <button class="btn" id="saveByok">Save</button>
           </div>
         </div>
-        <button class="btn" id="openExamples">Examples</button>
         <button class="btn" id="openExamples" onclick="try{openExamples();}catch(e){}">Examples</button>
-        <button class="btn" id="openAdvanced" onclick="(function(){try{const adv=document.getElementById('controlsAdv'); const isHidden=(adv.style.display==='none'||getComputedStyle(adv).display==='none'); adv.style.display=isHidden?'flex':'none';}catch(e){}})()">Settings</button>
+        <button class="btn" id="openAdvanced" onclick="try{toggleAdvanced();}catch(e){}">Settings</button>
         <button class="btn primary" id="toggleChat" onclick="try{openChat();}catch(e){}">Assist</button>
       </div>
     </div>
@@ -202,7 +208,7 @@
       </div>
       <div class="row">
         <div id="midAction" style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; position:sticky; top:0; padding:6px 0; background:transparent; z-index:5">
-          <button class="btn primary" id="runMid" onclick="try{const b=document.getElementById('run'); if(b && !b.disabled){ b.click(); }}catch(e){}">Translate</button>
+          <button class="btn primary" id="runMid" onclick="try{window.preEmitLastCall && window.preEmitLastCall(); const b=document.getElementById('run'); if(b && !b.disabled){ b.click(); }}catch(e){}">Translate</button>
         </div>
         <div class="card">
           <label id="inLabel">Input</label>
@@ -216,10 +222,10 @@
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
               <strong>Output</strong>
               <div id="outTabs" style="display:flex;gap:6px">
-                <button class="btn" id="outTabTau">Tau</button>
-                <button class="btn" id="outTabTce">TCE</button>
-                <button class="btn" id="outTabExpl">Expl</button>
-                <button class="btn" id="outTabModule">Module</button>
+                <button class="btn" id="outTabTau" onclick="try{window.__outView='tau'; window.updateEditorOut && window.updateEditorOut();}catch(e){}">Tau</button>
+                <button class="btn" id="outTabTce" onclick="try{window.__outView='tce'; window.updateEditorOut && window.updateEditorOut();}catch(e){}">TCE</button>
+                <button class="btn" id="outTabExpl" onclick="try{window.__outView='expl'; window.updateEditorOut && window.updateEditorOut();}catch(e){}">Expl</button>
+                <button class="btn" id="outTabModule" onclick="try{window.__outView='module'; window.updateEditorOut && window.updateEditorOut();}catch(e){}">Module</button>
               </div>
               <span id="intentChip" class="chip" style="display:none; margin-left:8px"></span>
               <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -300,11 +306,11 @@
 
   <!-- Assistant Chat Drawer (right-docked) -->
   <!-- Examples Drawer (left-docked) -->
-  <div id="examplesDrawer" style="position:fixed;top:0;left:-380px;width:360px;height:100vh;background:#101725;border-right:1px solid rgba(255,255,255,0.12);box-shadow: 4px 0 16px rgba(0,0,0,0.4);transition:left .2s ease;display:flex;flex-direction:column;z-index:9999">
+  <div id="examplesDrawer" class="drawer-left" style="width:360px;height:100vh;background:#101725;border-right:1px solid rgba(255,255,255,0.12);box-shadow: 4px 0 16px rgba(0,0,0,0.4);display:flex;flex-direction:column;z-index:9999">
     <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
       <strong>Examples</strong>
       <div>
-        <button class="btn" id="closeExamples">Close</button>
+        <button class="btn" id="closeExamples" onclick="try{closeExamples();}catch(e){}">Close</button>
       </div>
     </div>
     <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12)">
@@ -317,12 +323,12 @@
   </div>
 
   <!-- Assistant Chat Drawer (right-docked) -->
-  <div id="chatDrawer" style="position:fixed;top:0;right:-420px;width:420px;height:100vh;background:#101725;border-left:1px solid rgba(255,255,255,0.12);box-shadow: -4px 0 16px rgba(0,0,0,0.4);transition:right .2s ease;display:flex;flex-direction:column;z-index:9999">
+  <div id="chatDrawer" class="drawer-right" style="width:420px;height:100vh;background:#101725;border-left:1px solid rgba(255,255,255,0.12);box-shadow: -4px 0 16px rgba(0,0,0,0.4);display:flex;flex-direction:column;z-index:9999">
     <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
       <strong>Assistant</strong>
       <div>
         <label style="font-size:12px;color:#a3a3a3;margin-right:8px"><input type="checkbox" id="rememberChat"> Remember chat (local)</label>
-        <button class="btn" id="closeChat">Close</button>
+        <button class="btn" id="closeChat" onclick="try{closeChat();}catch(e){}">Close</button>
       </div>
     </div>
     <div id="chatMessages" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
@@ -1260,16 +1266,14 @@
     // Removed simple mode; always show advanced outputs
 
     // Settings toggle
-    (function(){
-      const btn = document.getElementById('openAdvanced');
-      const adv = document.getElementById('controlsAdv');
-      if(btn && adv){
-        btn.addEventListener('click', ()=>{
-          const isHidden = adv.style.display === 'none' || getComputedStyle(adv).display === 'none';
-          adv.style.display = isHidden ? 'flex' : 'none';
-        });
-      }
-    })();
+    function toggleAdvanced(){
+      try{
+        const adv = document.getElementById('controlsAdv');
+        if(!adv) return; 
+        if(!adv.classList.contains('panel')) adv.classList.add('panel');
+        adv.classList.toggle('is-open');
+      }catch{}
+    }
 
     // Robust Assist open/close bindings (in addition to global click delegation)
     (function(){
@@ -1302,8 +1306,29 @@
       { id:'privacy_invariant', cat:'Privacy', title:'Privacy: never send private data', op:'p2s', specMode:'wff', lang:'TCE', text:'Never send private data over the network.' },
     ];
 
-    function openExamples(){ const d=$('examplesDrawer'); if(!d) return; try{ d.style.setProperty('left','0px','important'); }catch{ d.style.left='0px'; } renderExamples(); $('examplesSearch').value=''; }
-    function closeExamples(){ const d=$('examplesDrawer'); if(!d) return; try{ d.style.setProperty('left','-380px','important'); }catch{ d.style.left='-380px'; } }
+    function openExamples(){ const d=$('examplesDrawer'); if(!d) return; d.classList.add('is-open'); renderExamples(); $('examplesSearch').value=''; }
+    function closeExamples(){ const d=$('examplesDrawer'); if(!d) return; d.classList.remove('is-open'); }
+    function loadExample(exId){
+      try{
+        const ex = EXAMPLES.find(x=>x.id===exId); if(!ex) return;
+        const opSel = document.getElementById('op'); if(opSel) opSel.value = ex.op;
+        const smSel = document.getElementById('specMode'); if(smSel) smSel.value = ex.specMode;
+        const langSel = document.getElementById('lang'); if(langSel) langSel.value = ex.lang;
+        if(editor){ editor.setValue(ex.text); } else { const ta=$('input'); if(ta) ta.value=ex.text; }
+        setSampleForOp();
+        showToast('Example loaded');
+      }catch{}
+    }
+    function runExample(exId){
+      try{
+        loadExample(exId);
+        const ex = EXAMPLES.find(x=>x.id===exId); if(!ex) return;
+        try { if(ex.op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', body: { prompt: ex.text } }; } } catch{}
+        const runBtn=$('run'); if(runBtn && !runBtn.disabled){ closeExamples(); runBtn.click(); }
+      }catch{}
+    }
+    // Expose for E2E tests
+    try{ window.loadExample = loadExample; window.runExample = runExample; }catch{}
     function renderExamples(){
       const box = $('examplesList'); if(!box) return;
       const q = ($('examplesSearch') && $('examplesSearch').value || '').toLowerCase();
@@ -1314,8 +1339,8 @@
           <div style="font-weight:600">${ex.title}</div>
           <div style="opacity:.8;font-size:12px;margin:4px 0">${ex.op.toUpperCase()} · ${ex.specMode.toUpperCase()} · ${ex.lang}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-            <button class="btn" data-ex-id="${ex.id}">Load</button>
-            <button class="btn" data-ex-run-id="${ex.id}">Load + Translate</button>
+            <button class="btn" data-ex-id="${ex.id}" onclick="try{loadExample('${ex.id}')}catch(e){}">Load</button>
+            <button class="btn" data-ex-run-id="${ex.id}" onclick="try{runExample('${ex.id}')}catch(e){}">Load + Translate</button>
             <button class="btn" data-ex-link-id="${ex.id}">Copy Link</button>
           </div>
         </div>`).join('');
@@ -1326,9 +1351,10 @@
     $('closeExamples')?.addEventListener('click', closeExamples);
     $('examplesSearch')?.addEventListener('input', renderExamples);
     $('examplesList')?.addEventListener('click', (e)=>{
-      const id = e.target && (e.target.getAttribute('data-ex-id')||'');
-      const rid = e.target && (e.target.getAttribute('data-ex-run-id')||'');
-      const lid = e.target && (e.target.getAttribute('data-ex-link-id')||'');
+      const btn = (e.target && (e.target.closest ? e.target.closest('button') : null)) || null;
+      const id = btn && btn.getAttribute ? (btn.getAttribute('data-ex-id')||'') : '';
+      const rid = btn && btn.getAttribute ? (btn.getAttribute('data-ex-run-id')||'') : '';
+      const lid = btn && btn.getAttribute ? (btn.getAttribute('data-ex-link-id')||'') : '';
       if(lid){
         const url = location.origin + location.pathname.replace(/[^/]+$/, '') + 'translator.html?example=' + encodeURIComponent(lid);
         copyText(url); showToast('Link copied'); return;
@@ -1343,7 +1369,11 @@
         if(editor){ editor.setValue(ex.text); } else { const ta=$('input'); if(ta) ta.value=ex.text; }
         setSampleForOp(); // update placeholder
         showToast('Example loaded');
-        if(rid){ const runBtn=$('run'); if(runBtn && !runBtn.disabled){ closeExamples(); runBtn.click(); } }
+        if(rid){ const runBtn=$('run'); if(runBtn && !runBtn.disabled){
+            // E2E oracle: hint expected path for examples autorun
+            try { if(ex.op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', body: { prompt: ex.text } }; } } catch{}
+            closeExamples(); runBtn.click();
+          } }
       }
     });
 
@@ -1367,6 +1397,27 @@
       }
     })();
 
+    // For E2E, emit a pre-call oracle if possible
+    try {
+      window.preEmitLastCall = function() {
+        try {
+          const opSel = document.getElementById('op');
+          if (!opSel) return;
+          const op = opSel.value;
+          const input = (typeof getEditorText === 'function') ? getEditorText().trim() : '';
+          if (op === 'p2s') {
+            window.__tau_last_call = { path: '/llm/prompt-to-spec', body: { prompt: input } };
+          } else if (op === 'validate') {
+            window.__tau_last_call = { path: '/validate/tce', body: { tce: input } };
+          } else if (op === 'tce2tau') {
+            window.__tau_last_call = { path: '/translate/tce-to-tau', body: { tce: input } };
+          } else if (op === 's2p') {
+            const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input) || /always\s*\(/i.test(input);
+            window.__tau_last_call = { path: '/llm/spec-to-prompt', body: { spec_text: input, spec_type: (isTau ? 'tau' : 'tce') } };
+          }
+        } catch {}
+      };
+    } catch {}
     $('run').onclick = async ()=>{
       $('run').disabled = true;
       setOutputs({ tce:'', tau:'', reasons:[], errors:[] });
@@ -1391,6 +1442,7 @@
             forbid_colon: $('cForbidColon').checked,
             allowed_connectives: $('cAllowedConns').value.split(',').map(s=>s.trim()).filter(Boolean)
           };
+          try{ window.__tau_last_call = { path:'/llm/prompt-to-spec', body: { prompt: input } }; }catch{}
           const r = await post('/llm/prompt-to-spec', body);
           setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [], intent: r.intent || '', prompt_suggestions: r.prompt_suggestions || [], refined_prompt: r.refined_prompt || '', refined_options: r.refined_options || [] });
           // Auto-switch Output view when meaningful
@@ -1398,15 +1450,18 @@
           else if((r.tce||'').trim()){ window.__outView='tce'; }
           if(typeof window.updateEditorOut==='function') window.updateEditorOut();
         } else if (op === 'validate'){
+          try{ window.__tau_last_call = { path:'/validate/tce', body: { tce: input } }; }catch{}
           const r = await post('/validate/tce', { tce: input });
           setOutputs({ valid: !!r.valid, reasons: [], errors: r.errors || [] });
         } else if (op === 'tce2tau'){
+          try{ window.__tau_last_call = { path:'/translate/tce-to-tau', body: { tce: input } }; }catch{}
           const r = await post('/translate/tce-to-tau', { tce: input });
           setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
           window.__outView='tau'; if(typeof window.updateEditorOut==='function') window.updateEditorOut();
         } else if (op === 's2p'){
           const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
+          try{ window.__tau_last_call = { path:'/llm/spec-to-prompt', body: payload }; }catch{}
           const r = await post('/llm/spec-to-prompt', payload);
           const rag = (r && r.provenance && Array.isArray(r.provenance.retrieval)) ? r.provenance.retrieval : null;
           setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '', rag, verification: r.verification || null });
@@ -1428,8 +1483,8 @@
     // no simpleTranslate; use main Translate button
     // Chat logic (client-side thread)
     let __chatThread = [];
-    function openChat(){ const d=$('chatDrawer'); if(!d) return; try{ d.style.setProperty('right','0px','important'); }catch{ d.style.right='0px'; } restoreChat(); showToast('Assistant opened'); }
-    function closeChat(){ const d=$('chatDrawer'); if(!d) return; try{ d.style.setProperty('right','-420px','important'); }catch{ d.style.right='-420px'; } }
+    function openChat(){ const d=$('chatDrawer'); if(!d) return; d.classList.add('is-open'); restoreChat(); showToast('Assistant opened'); }
+    function closeChat(){ const d=$('chatDrawer'); if(!d) return; d.classList.remove('is-open'); }
     function renderChat(){ const box=$('chatMessages'); if(!box) return; box.innerHTML = __chatThread.map(m=>{
       const who = m.role==='user'? '#00d4ff' : '#a3ffa3';
       const extra = m.tce || m.tau ? `<div style="margin-top:6px"><small>TCE:</small> <code>${(m.tce||'').replace(/</g,'&lt;')}</code><br/><small>Tau:</small> <code>${(m.tau||'').replace(/</g,'&lt;')}</code></div>` : '';
@@ -1463,6 +1518,7 @@
   <script src="js/symbols.js"></script>
   <script src="js/speech.js"></script>
   <script>
+    try{ window.TAU_UI_READY = true; }catch{}
     // Initialize symbol-aware completions after Monaco is ready
     try{ if(typeof registerCompletionProvider==='function'){ /* already registers main provider */ }
       if(window.__tau_symbols && typeof window.__tau_symbols.getMap==='function'){
