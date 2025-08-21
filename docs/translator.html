@@ -132,6 +132,27 @@
           </div>
           <small>When enabled, private data (e.g., BYOK key, uploaded grammar contents) is never sent over the network. Requests still use your configured API.</small>
         </details>
+        <details>
+          <summary>Assist & Input</summary>
+          <div class="cols">
+            <label><input type="checkbox" id="assistSymbols" /> Enable symbol palette in Assist chat</label>
+            <label><input type="checkbox" id="assistVoice" /> Enable voice input (chat mic)</label>
+          </div>
+          <div class="cols" id="sttRow" style="display:none">
+            <label style="min-width:220px">STT Language
+              <select id="sttLangSelect">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="es-ES">Español</option>
+                <option value="fr-FR">Français</option>
+                <option value="de-DE">Deutsch</option>
+                <option value="ja-JP">日本語</option>
+                <option value="zh-CN">中文 (简体)</option>
+              </select>
+            </label>
+          </div>
+          <small>These features apply only inside the Assist drawer. The main translator remains keyboard‑focused for determinism.</small>
+        </details>
         
         <details open>
           <summary>Clarifications (client-side)</summary>
@@ -309,7 +330,7 @@
         <button class="btn" id="chatExplainSel">Explain selection</button>
         <button class="btn" id="chatInsertTce">Insert TCE</button>
         <button class="btn" id="chatInsertTau">Insert Tau</button>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <div id="chatSymbolPalette" style="display:none; gap:6px;flex-wrap:wrap">
           <button class="btn" data-emoji="always">🔁 always</button>
           <button class="btn" data-emoji="and">➕ &&</button>
           <button class="btn" data-emoji="or">🔀 ||</button>
@@ -326,6 +347,13 @@
       </div>
       <div style="display:flex;gap:8px">
         <input id="chatInput" placeholder="Ask about your spec or request a change..." style="flex:1;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 12px;outline:none" />
+        <select id="sttLang" style="display:none;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 8px">
+          <option value="en-US">en-US</option>
+          <option value="en-GB">en-GB</option>
+          <option value="es-ES">es-ES</option>
+          <option value="fr-FR">fr-FR</option>
+        </select>
+        <button class="btn" id="chatMic" style="display:none">🎤</button>
         <button class="btn primary" id="chatSend">Send</button>
         <button class="btn" id="chatStop">Stop</button>
       </div>
@@ -481,8 +509,27 @@
         lo.checked = saved;
         lo.addEventListener('change', ()=>{ localStorage.setItem('tau_privacy_mode', lo.checked ? '1' : '0'); });
       }
+      // Assist controls
+      const sym = document.getElementById('assistSymbols');
+      const mic = document.getElementById('assistVoice');
+      const sttSel = document.getElementById('sttLangSelect');
+      const sttRow = document.getElementById('sttRow');
+      if(sym){ sym.checked = (localStorage.getItem('tau_assist_symbols')==='1'); sym.addEventListener('change', ()=>{ localStorage.setItem('tau_assist_symbols', sym.checked ? '1':'0'); applyAssistToggles(); }); }
+      if(mic){ mic.checked = (localStorage.getItem('tau_assist_voice')==='1'); mic.addEventListener('change', ()=>{ localStorage.setItem('tau_assist_voice', mic.checked ? '1':'0'); applyAssistToggles(); }); }
+      if(sttSel){ sttSel.value = localStorage.getItem('tau_stt_lang')||'en-US'; sttSel.addEventListener('change', ()=>{ localStorage.setItem('tau_stt_lang', sttSel.value); }); }
+      if(sttRow){ sttRow.style.display = (mic && mic.checked) ? '' : 'none'; }
     }
     loadExperimental();
+    function applyAssistToggles(){
+      const enableSymbols = (localStorage.getItem('tau_assist_symbols')==='1');
+      const enableVoice = (localStorage.getItem('tau_assist_voice')==='1');
+      const palette = document.getElementById('chatSymbolPalette'); if(palette){ palette.style.display = enableSymbols ? 'flex' : 'none'; }
+      const micBtn = document.getElementById('chatMic'); if(micBtn){ micBtn.style.display = enableVoice ? '' : 'none'; }
+      const sttLang = document.getElementById('sttLang'); if(sttLang){ sttLang.style.display = enableVoice ? '' : 'none'; sttLang.value = localStorage.getItem('tau_stt_lang')||'en-US'; }
+      const sttRow = document.getElementById('sttRow'); if(sttRow){ sttRow.style.display = enableVoice ? '' : 'none'; }
+    }
+    // Apply after DOM ready
+    setTimeout(applyAssistToggles, 0);
     function onGrammarModeChange(){
       const m = $('grammarMode').value;
       $('uploadRow').style.display = (m === 'upload') ? '' : 'none';
