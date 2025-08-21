@@ -50,6 +50,7 @@
             <button class="btn" id="saveByok">Save</button>
           </div>
         </div>
+        <button class="btn" id="openExamples">Examples</button>
         <button class="btn" id="openAdvanced">Settings</button>
         <button class="btn primary" id="toggleChat">Assist</button>
       </div>
@@ -274,6 +275,24 @@
     </div>
   </div>
   <div id="toast" style="position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:8px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s ease">Copied</div>
+
+  <!-- Assistant Chat Drawer (right-docked) -->
+  <!-- Examples Drawer (left-docked) -->
+  <div id="examplesDrawer" style="position:fixed;top:0;left:-380px;width:360px;height:100vh;background:#101725;border-right:1px solid rgba(255,255,255,0.12);box-shadow: 4px 0 16px rgba(0,0,0,0.4);transition:left .2s ease;display:flex;flex-direction:column;z-index:9999">
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
+      <strong>Examples</strong>
+      <div>
+        <button class="btn" id="closeExamples">Close</button>
+      </div>
+    </div>
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12)">
+      <input id="examplesSearch" placeholder="Search examples…" style="width:100%;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:8px 10px;outline:none" />
+    </div>
+    <div id="examplesList" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+    <div style="padding:10px;border-top:1px solid rgba(255,255,255,0.12);font-size:12px;color:#a3a3a3">
+      Tip: Click an example to load it into the editor. Use “Load + Translate” to run immediately.
+    </div>
+  </div>
 
   <!-- Assistant Chat Drawer (right-docked) -->
   <div id="chatDrawer" style="position:fixed;top:0;right:-420px;width:420px;height:100vh;background:#101725;border-left:1px solid rgba(255,255,255,0.12);box-shadow: -4px 0 16px rgba(0,0,0,0.4);transition:right .2s ease;display:flex;flex-direction:column;z-index:9999">
@@ -1197,6 +1216,55 @@
         });
       }
     })();
+
+    // Examples Drawer: minimal sample gallery with categories
+    const EXAMPLES = [
+      { id:'p2s_basic_1', cat:'Prompt → Spec', title:'Payment approved → order shipped', op:'p2s', specMode:'wff', lang:'TCE', text:'If a payment is approved then the order is shipped.' },
+      { id:'p2s_rate_limit', cat:'Prompt → Spec', title:'Rate limit: not more than once per second', op:'p2s', specMode:'wff', lang:'TCE', text:'The system must never emit more than one event per second.' },
+      { id:'validate_tce_1', cat:'Validate TCE', title:'Simple invariant', op:'validate', specMode:'wff', lang:'TCE', text:'always (temperature_high -> fan_on)' },
+      { id:'tce2tau_1', cat:'TCE → Tau', title:'Translate a TCE rule to Tau', op:'tce2tau', specMode:'wff', lang:'TCE', text:'always (payment_approved -> order_shipped)' },
+      { id:'s2p_tau_explain', cat:'Spec → Prompt', title:'Explain a Tau-time-index rule', op:'s2p', specMode:'rr', lang:'TAU', text:'always ((i1[t] != 1) -> (o1[t] != 0))' },
+      { id:'privacy_invariant', cat:'Privacy', title:'Privacy: never send private data', op:'p2s', specMode:'wff', lang:'TCE', text:'Never send private data over the network.' },
+    ];
+
+    function openExamples(){ const d=$('examplesDrawer'); if(!d) return; d.style.left='0'; renderExamples(); $('examplesSearch').value=''; }
+    function closeExamples(){ const d=$('examplesDrawer'); if(!d) return; d.style.left='-380px'; }
+    function renderExamples(){
+      const box = $('examplesList'); if(!box) return;
+      const q = ($('examplesSearch') && $('examplesSearch').value || '').toLowerCase();
+      const cats = {};
+      EXAMPLES.forEach(ex=>{ if(q && !(ex.title.toLowerCase().includes(q) || ex.cat.toLowerCase().includes(q))) return; (cats[ex.cat]=cats[ex.cat]||[]).push(ex); });
+      box.innerHTML = Object.keys(cats).sort().map(cat=>{
+        const items = cats[cat].map(ex=>`<div style="border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px">
+          <div style="font-weight:600">${ex.title}</div>
+          <div style="opacity:.8;font-size:12px;margin:4px 0">${ex.op.toUpperCase()} · ${ex.specMode.toUpperCase()} · ${ex.lang}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+            <button class="btn" data-ex-id="${ex.id}">Load</button>
+            <button class="btn" data-ex-run-id="${ex.id}">Load + Translate</button>
+          </div>
+        </div>`).join('');
+        return `<details open><summary style="cursor:pointer">${cat}</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${items}</div></details>`;
+      }).join('') || '<div style="opacity:.7">No examples match your search.</div>';
+    }
+    $('openExamples')?.addEventListener('click', openExamples);
+    $('closeExamples')?.addEventListener('click', closeExamples);
+    $('examplesSearch')?.addEventListener('input', renderExamples);
+    $('examplesList')?.addEventListener('click', (e)=>{
+      const id = e.target && (e.target.getAttribute('data-ex-id')||'');
+      const rid = e.target && (e.target.getAttribute('data-ex-run-id')||'');
+      if(id||rid){
+        const ex = EXAMPLES.find(x=>x.id===(id||rid)); if(!ex) return;
+        // Set op/spec/lang
+        const opSel = document.getElementById('op'); if(opSel) opSel.value = ex.op;
+        const smSel = document.getElementById('specMode'); if(smSel) smSel.value = ex.specMode;
+        const langSel = document.getElementById('lang'); if(langSel) langSel.value = ex.lang;
+        // Load into editor
+        if(editor){ editor.setValue(ex.text); } else { const ta=$('input'); if(ta) ta.value=ex.text; }
+        setSampleForOp(); // update placeholder
+        showToast('Example loaded');
+        if(rid){ const runBtn=$('run'); if(runBtn && !runBtn.disabled){ closeExamples(); runBtn.click(); } }
+      }
+    });
 
     $('run').onclick = async ()=>{
       $('run').disabled = true;
