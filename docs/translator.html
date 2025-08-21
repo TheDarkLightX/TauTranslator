@@ -1382,8 +1382,8 @@
     function restoreChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ const raw=localStorage.getItem('tau_chat'); if(raw){ __chatThread = JSON.parse(raw)||[]; renderChat(); } }catch{} }
   </script>
   <!-- Client-only extensions: Symbol Map + Web Speech (loaded after main script) -->
-  <script src="docs/js/symbols.js"></script>
-  <script src="docs/js/speech.js"></script>
+  <script src="js/symbols.js"></script>
+  <script src="js/speech.js"></script>
   <script>
     // Initialize symbol-aware completions after Monaco is ready
     try{ if(typeof registerCompletionProvider==='function'){ /* already registers main provider */ }
