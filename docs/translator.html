@@ -206,7 +206,7 @@
         <div class="card">
           <label id="inLabel">Input</label>
           <div id="editor" style="display:none; height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-          <textarea id="input" placeholder="e.g., If a payment is approved then the order is shipped." style="margin-top:8px; min-height: 160px;"></textarea>
+          <textarea id="input" placeholder="e.g., If a payment is approved then the order is shipped." style="margin-top:8px; height: 60vh;"></textarea>
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
           
         </div>
@@ -226,8 +226,8 @@
                 <button class="btn" id="copyOut">Copy</button>
               </div>
             </div>
-            <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-            <textarea id="outputFallback" class="mono" readonly style="display:none;height:60vh;border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></textarea>
+            <div id="editorOut" style="display:none;height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
+            <textarea id="outputFallback" class="mono" readonly style="height:60vh;border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></textarea>
             <!-- Hidden backing stores for outputs to feed Monaco -->
             <textarea id="outTce" style="display:none"></textarea>
             <textarea id="outTau" style="display:none"></textarea>
@@ -987,11 +987,7 @@
               try{
                 editorOut.setValue(v||'');
                 monaco.editor.setModelLanguage(editorOut.getModel(), lang);
-              }catch{
-                // Fallback: show textarea if Monaco not ready
-                const ofb=document.getElementById('outputFallback');
-                if(ofb){ ofb.value = v||''; ofb.style.display=''; outEl.style.display='none'; }
-              }
+              }catch{}
             }catch{}
           }
           window.updateEditorOut();
