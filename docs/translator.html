@@ -1270,6 +1270,14 @@
       }
     })();
 
+    // Robust Assist open/close bindings (in addition to global click delegation)
+    (function(){
+      const openBtn = document.getElementById('toggleChat');
+      if(openBtn){ openBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); openChat(); }); }
+      const closeBtn = document.getElementById('closeChat');
+      if(closeBtn){ closeBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); closeChat(); }); }
+    })();
+
     // Examples Drawer: minimal sample gallery with categories
     const EXAMPLES = [
       { id:'p2s_basic_1', cat:'Prompt → Spec', title:'Payment approved → order shipped', op:'p2s', specMode:'wff', lang:'TCE', text:'If a payment is approved then the order is shipped.' },
