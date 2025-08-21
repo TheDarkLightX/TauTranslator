@@ -51,8 +51,9 @@
           </div>
         </div>
         <button class="btn" id="openExamples">Examples</button>
-        <button class="btn" id="openAdvanced">Settings</button>
-        <button class="btn primary" id="toggleChat">Assist</button>
+        <button class="btn" id="openExamples" onclick="try{openExamples();}catch(e){}">Examples</button>
+        <button class="btn" id="openAdvanced" onclick="(function(){try{const adv=document.getElementById('controlsAdv'); const isHidden=(adv.style.display==='none'||getComputedStyle(adv).display==='none'); adv.style.display=isHidden?'flex':'none';}catch(e){}})()">Settings</button>
+        <button class="btn primary" id="toggleChat" onclick="try{openChat();}catch(e){}">Assist</button>
       </div>
     </div>
     <div class="card">
@@ -201,7 +202,7 @@
       </div>
       <div class="row">
         <div id="midAction" style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; position:sticky; top:0; padding:6px 0; background:transparent; z-index:5">
-          <button class="btn primary" id="runMid">Translate</button>
+          <button class="btn primary" id="runMid" onclick="try{const b=document.getElementById('run'); if(b && !b.disabled){ b.click(); }}catch(e){}">Translate</button>
         </div>
         <div class="card">
           <label id="inLabel">Input</label>
