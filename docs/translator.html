@@ -184,8 +184,8 @@
         </div>
         <div class="card">
           <label id="inLabel">Input</label>
-          <div id="editor" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
-          <textarea id="input" placeholder="e.g., If a payment is approved then the order is shipped." style="display:none; margin-top:8px; min-height: 160px;"></textarea>
+          <div id="editor" style="display:none; height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
+          <textarea id="input" placeholder="e.g., If a payment is approved then the order is shipped." style="margin-top:8px; min-height: 160px;"></textarea>
           <div class="hint" style="margin-top:6px">Tip: Press Ctrl+Space for suggestions. If the editor fails to load, a simple textbox will appear.</div>
           
         </div>
@@ -903,6 +903,8 @@
         // Register language + theme
         registerTauLanguage(monaco);
         monaco.editor.setTheme('tauTheme');
+        const editorEl = $("editor");
+        if(editorEl){ editorEl.style.display=''; const ta=$("input"); if(ta){ ta.style.display='none'; } }
         editor = monaco.editor.create($("editor"), {
           value: '',
           language: 'tauLang',
