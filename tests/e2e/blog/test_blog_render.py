@@ -27,7 +27,7 @@ def _wait_for_server(host: str, port: int, timeout_s: float = 10.0) -> None:
 @pytest.fixture(scope="session")
 def docs_server() -> str:
     """Start a local HTTP server rooted at ./docs and yield base URL."""
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
     docs_dir = os.path.join(repo_root, "docs")
     assert os.path.isdir(docs_dir), f"docs directory not found: {docs_dir}"
 
