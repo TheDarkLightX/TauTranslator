@@ -1264,8 +1264,8 @@
       const adv = document.getElementById('controlsAdv');
       if(btn && adv){
         btn.addEventListener('click', ()=>{
-          const isHidden = adv.style.display === 'none';
-          adv.style.display = isHidden ? '' : 'none';
+          const isHidden = adv.style.display === 'none' || getComputedStyle(adv).display === 'none';
+          adv.style.display = isHidden ? 'flex' : 'none';
         });
       }
     })();
@@ -1301,8 +1301,8 @@
       { id:'privacy_invariant', cat:'Privacy', title:'Privacy: never send private data', op:'p2s', specMode:'wff', lang:'TCE', text:'Never send private data over the network.' },
     ];
 
-    function openExamples(){ const d=$('examplesDrawer'); if(!d) return; d.style.left='0'; renderExamples(); $('examplesSearch').value=''; }
-    function closeExamples(){ const d=$('examplesDrawer'); if(!d) return; d.style.left='-380px'; }
+    function openExamples(){ const d=$('examplesDrawer'); if(!d) return; try{ d.style.setProperty('left','0px','important'); }catch{ d.style.left='0px'; } renderExamples(); $('examplesSearch').value=''; }
+    function closeExamples(){ const d=$('examplesDrawer'); if(!d) return; try{ d.style.setProperty('left','-380px','important'); }catch{ d.style.left='-380px'; } }
     function renderExamples(){
       const box = $('examplesList'); if(!box) return;
       const q = ($('examplesSearch') && $('examplesSearch').value || '').toLowerCase();
@@ -1427,8 +1427,8 @@
     // no simpleTranslate; use main Translate button
     // Chat logic (client-side thread)
     let __chatThread = [];
-    function openChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='0'; restoreChat(); showToast('Assistant opened'); }
-    function closeChat(){ const d=$('chatDrawer'); if(!d) return; d.style.right='-420px'; }
+    function openChat(){ const d=$('chatDrawer'); if(!d) return; try{ d.style.setProperty('right','0px','important'); }catch{ d.style.right='0px'; } restoreChat(); showToast('Assistant opened'); }
+    function closeChat(){ const d=$('chatDrawer'); if(!d) return; try{ d.style.setProperty('right','-420px','important'); }catch{ d.style.right='-420px'; } }
     function renderChat(){ const box=$('chatMessages'); if(!box) return; box.innerHTML = __chatThread.map(m=>{
       const who = m.role==='user'? '#00d4ff' : '#a3ffa3';
       const extra = m.tce || m.tau ? `<div style="margin-top:6px"><small>TCE:</small> <code>${(m.tce||'').replace(/</g,'&lt;')}</code><br/><small>Tau:</small> <code>${(m.tau||'').replace(/</g,'&lt;')}</code></div>` : '';
