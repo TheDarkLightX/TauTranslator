@@ -46,6 +46,91 @@
     </div>
 
     <div class="card">
+      <h2>Formal backdrop: Rice’s Theorem</h2>
+      <p>
+        Let ⟦·⟧ map programs to their (partial) extensional behaviors/functions over some domain 𝔻 and codomain ℛ.
+        A property P ⊆ (𝔻 ⇀ ℛ) is <em>extensional</em> if it depends only on behavior (i.e., on ⟦·⟧), not on source representation.
+      </p>
+      <div class="math-block">$$
+        \textbf{Rice (informal).}\;\; \text{If }P\subseteq (\mathcal D\rightharpoonup \mathcal R)\text{ is non\text{-}trivial and extensional, then }
+        \;\{ e \mid \llbracket e \rrbracket \in P \}\;\text{ is undecidable.}
+      $$</div>
+      <p>
+        “Non‑trivial” means ∃f,g with f∈P and g∉P. “Undecidable” means no total computable decider exists for the membership set above.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Modeling “conscious?” as an extensional property</h2>
+      <p>
+        Under computationalism, define a predicate C ⊆ (𝔻 ⇀ ℛ) such that C(⟦e⟧) holds iff the realized behavior meets a stipulated notion of consciousness.
+        If C is neither empty nor universal, then by Rice’s Theorem {e | C(⟦e⟧)} is undecidable.
+      </p>
+      <div class="math-block">$$
+        C \text{ non\text{-}trivial }\;\Rightarrow\; \neg\exists\,D:\text{Prog}\to\{0,1\}.\;\forall e,\; D(e)=1\iff C(\llbracket e\rrbracket).
+      $$</div>
+      <p>
+        If instead one makes <em>intensional</em> definitions (e.g., “contains token X”), decidability may return — but such tests ignore behavioral equivalence and are typically poor scientific proxies.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Reduction sketch (why typical undecidability holds)</h2>
+      <p>
+        Suppose, for contradiction, that a total decider <code>D</code> for C existed. Given any other non‑trivial extensional property Q, we can build a computable transformation T(e)
+        that embeds Q into “conscious?” so that Q(⟦e⟧) iff C(⟦T(e)⟧).
+      </p>
+      <pre><code>Sketch: construct two behavior gadgets Gc, G¬c with C(⟦Gc⟧)=true and C(⟦G¬c⟧)=false.
+Given e, define T(e) to run e on a fresh input; if Q(⟦e⟧) then behave like Gc else behave like G¬c.
+If D decides C, then e ↦ D(T(e)) decides Q, contradicting Rice.</code></pre>
+      <p>
+        The gadgets are theoretical “witness” programs used only to carry the reduction; we do not assume an engineer can actually generate or recognize consciousness.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>When can it be decidable? (boundary regimes)</h2>
+      <ul>
+        <li><strong>Finite models:</strong> bounded‑state/finite‑trace systems; exhaustive analysis is possible.</li>
+        <li><strong>Bounded resources:</strong> fixed time/space bounds and a fully specified semantics.</li>
+        <li><strong>Domain‑specific definitions:</strong> engineered predicates with computable checks (certificates, invariants).</li>
+        <li><strong>Trivial properties:</strong> always‑true or always‑false predicates.</li>
+        <li><strong>Intensional syntactic checks:</strong> decidable, but not behaviorally faithful.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Practical posture for engineering</h2>
+      <ul>
+        <li><strong>Use proxies with evidence:</strong> behavior tests, safety invariants, trace properties, and human review.</li>
+        <li><strong>Prefer certificates:</strong> explicit witnesses and checkers over finite/structured models.</li>
+        <li><strong>Quantify uncertainty:</strong> treat assessments as probabilistic (confidence, coverage, limits).</li>
+        <li><strong>Reproducibility:</strong> deterministic pipelines, seeds, and artifacts for audits.</li>
+      </ul>
+      <p>
+        In Tau Translator workflows, these ideas manifest as testable specs, mutation/property tests, and guided refinement — never as a claimed universal decider.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>FAQ (extended)</h2>
+      <p><strong>What does “typically” mean?</strong><br/>
+      It refers to general Turing‑powerful settings with non‑trivial extensional properties. Special‑case, bounded, or intensional definitions can be decidable.</p>
+      <p><strong>Is this a claim about metaphysics?</strong><br/>
+      No. It constrains <em>algorithms</em> that aim to decide a broad behavioral predicate, not whether consciousness exists.</p>
+      <p><strong>Does pancomputationalism change this?</strong><br/>
+      No — see the formal note on self‑implementation and its non‑trivial extensions: <a href="/blog/pancomputationalism.html">CTM ⇒ Pancomputationalism</a>.</p>
+    </div>
+
+    <div class="card" style="opacity:.85">
+      <h2>References</h2>
+      <ul>
+        <li>Rice’s Theorem (standard presentations in computability texts)</li>
+        <li>Project note: <a href="/blog/undecidability-consciousness.html">Why “Consciousness?” Is Typically Undecidable</a></li>
+      </ul>
+    </div>
+
+    <div class="card">
       <h2>What This Does (and Doesn’t) Say</h2>
       <ul>
         <li>It rules out a <em>universal</em> decider over all programs or implementations.</li>
