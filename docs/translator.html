@@ -181,7 +181,6 @@
       <div class="row">
         <div id="midAction" style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; position:sticky; top:0; padding:6px 0; background:transparent; z-index:5">
           <button class="btn primary" id="runMid">Translate</button>
-          <button class="btn" id="makeTau" title="Translate current TCE to Tau">Make Tau</button>
         </div>
         <div class="card">
           <label id="inLabel">Input</label>
@@ -334,26 +333,24 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js" crossorigin="anonymous"></script>
   <script>
-    // Configure Monaco worker to load via blob with a CDN baseUrl
-    window.MonacoEnvironment = {
-      getWorkerUrl: function () {
-        const code = "self.MonacoEnvironment={baseUrl:'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/'};importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/base/worker/workerMain.js');";
-        const blob = new Blob([code], { type: 'text/javascript' });
-        return URL.createObjectURL(blob);
-      }
-    };
-  </script>
-  <script>
-    // Fallback: if CDN blocked by CSP/host, lazy-load AMD loader via blob
-    if(!window.require){
-      console.warn('Monaco AMD loader not present, attempting inline fallback');
-      (function(){
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';
-        s.crossOrigin = 'anonymous';
-        document.head.appendChild(s);
-      })();
-    }
+    // Configure Monaco worker to load via blob with a CDN baseUrl; ensure AMD loader is present
+    (function ensureMonacoLoader(){
+      try{
+        if(!window.require){
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';
+          s.crossOrigin = 'anonymous';
+          document.head.appendChild(s);
+        }
+      }catch{}
+      window.MonacoEnvironment = {
+        getWorkerUrl: function () {
+          const code = "self.MonacoEnvironment={baseUrl:'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/'};importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/base/worker/workerMain.js');";
+          const blob = new Blob([code], { type: 'text/javascript' });
+          return URL.createObjectURL(blob);
+        }
+      };
+    })();
   </script>
   <script>
     const $ = (id)=>document.getElementById(id);
@@ -720,12 +717,7 @@
       if(id==='outTabModule'){ window.__outView='module'; updateEditorOut(); showToast('Output: Module'); }
       if(id==='copyOut'){ const txt = editorOut ? editorOut.getValue() : ''; if(txt) copyText(txt); }
       if(id==='runMid'){ const b=$('run'); if(b && !b.disabled){ b.click(); } }
-      if(id==='makeTau'){
-        const opSel = document.getElementById('op');
-        if(opSel){ opSel.value = 'tce2tau'; }
-        const b=$('run'); if(b && !b.disabled){ b.click(); }
-        showToast('Translating TCE → Tau');
-      }
+      // removed: makeTau (DRY with Translate)
       // Context menu: right-click normalize connectives (fallback when no Monaco action)
       if(id==='normalizeNow'){
         if(editor){
@@ -904,8 +896,10 @@
     let resolveMonacoReady = null;
     let monacoReady = new Promise((resolve)=>{
       resolveMonacoReady = resolve;
-      window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
-      window.require(['vs/editor/editor.main'], function(){
+      (function waitForRequire(){
+        if(!window.require){ return setTimeout(waitForRequire, 100); }
+        window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        window.require(['vs/editor/editor.main'], function(){
         // Register language + theme
         registerTauLanguage(monaco);
         monaco.editor.setTheme('tauTheme');
@@ -947,13 +941,14 @@
         registerCompletionProvider();
         hookDiagnostics();
         registerQuickFix();
-        resolveMonacoReady && resolveMonacoReady();
-      });
+          resolveMonacoReady && resolveMonacoReady();
+        });
+      })();
     });
 
     // Fallback if Monaco fails to initialize quickly
     setTimeout(() => {
-      if (!window.require || !editor) {
+      if (!editor) {
         const ta = $("input");
         if (ta) {
           ta.style.display = '';
@@ -1241,6 +1236,7 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
             <button class="btn" data-ex-id="${ex.id}">Load</button>
             <button class="btn" data-ex-run-id="${ex.id}">Load + Translate</button>
+            <button class="btn" data-ex-link-id="${ex.id}">Copy Link</button>
           </div>
         </div>`).join('');
         return `<details open><summary style="cursor:pointer">${cat}</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${items}</div></details>`;
@@ -1252,6 +1248,11 @@
     $('examplesList')?.addEventListener('click', (e)=>{
       const id = e.target && (e.target.getAttribute('data-ex-id')||'');
       const rid = e.target && (e.target.getAttribute('data-ex-run-id')||'');
+      const lid = e.target && (e.target.getAttribute('data-ex-link-id')||'');
+      if(lid){
+        const url = location.origin + location.pathname.replace(/[^/]+$/, '') + 'translator.html?example=' + encodeURIComponent(lid);
+        copyText(url); showToast('Link copied'); return;
+      }
       if(id||rid){
         const ex = EXAMPLES.find(x=>x.id===(id||rid)); if(!ex) return;
         // Set op/spec/lang
@@ -1265,6 +1266,26 @@
         if(rid){ const runBtn=$('run'); if(runBtn && !runBtn.disabled){ closeExamples(); runBtn.click(); } }
       }
     });
+
+    // Deep-link: ?example=<id>[&run=1]
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const exId = params.get('example');
+      const autorun = params.get('run') === '1';
+      if(exId){
+        const ex = EXAMPLES.find(x=>x.id===exId);
+        if(ex){
+          const opSel = document.getElementById('op'); if(opSel) opSel.value = ex.op;
+          const smSel = document.getElementById('specMode'); if(smSel) smSel.value = ex.specMode;
+          const langSel = document.getElementById('lang'); if(langSel) langSel.value = ex.lang;
+          if(editor){ editor.setValue(ex.text); } else { const ta=$('input'); if(ta) ta.value=ex.text; }
+          setSampleForOp();
+          if(autorun){ const runBtn=$('run'); if(runBtn && !runBtn.disabled){ runBtn.click(); } }
+        }
+      } else {
+        try{ const seen = localStorage.getItem('tau_seen_examples')==='1'; if(!seen){ openExamples(); localStorage.setItem('tau_seen_examples','1'); } }catch{}
+      }
+    })();
 
     $('run').onclick = async ()=>{
       $('run').disabled = true;
