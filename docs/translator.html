@@ -1276,6 +1276,19 @@
       if(openBtn){ openBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); openChat(); }); }
       const closeBtn = document.getElementById('closeChat');
       if(closeBtn){ closeBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); closeChat(); }); }
+      // Explicit Translate binding for reliability
+      const runMid = document.getElementById('runMid');
+      if(runMid){ runMid.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); const b=document.getElementById('run'); if(b && !b.disabled){ b.click(); } }); }
+      // Explicit output tab bindings
+      const tabTau = document.getElementById('outTabTau');
+      const tabTce = document.getElementById('outTabTce');
+      const tabExpl = document.getElementById('outTabExpl');
+      const tabMod = document.getElementById('outTabModule');
+      function setView(v){ window.__outView=v; if(typeof window.updateEditorOut==='function'){ window.updateEditorOut(); } }
+      if(tabTau){ tabTau.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); setView('tau'); }); }
+      if(tabTce){ tabTce.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); setView('tce'); }); }
+      if(tabExpl){ tabExpl.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); setView('expl'); }); }
+      if(tabMod){ tabMod.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); setView('module'); }); }
     })();
 
     // Examples Drawer: minimal sample gallery with categories
