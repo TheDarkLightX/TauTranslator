@@ -206,6 +206,7 @@
               </div>
             </div>
             <div id="editorOut" style="height: 60vh; border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></div>
+            <textarea id="outputFallback" class="mono" readonly style="display:none;height:60vh;border:1px solid rgba(255,255,255,0.12); border-radius:10px;"></textarea>
             <!-- Hidden backing stores for outputs to feed Monaco -->
             <textarea id="outTce" style="display:none"></textarea>
             <textarea id="outTau" style="display:none"></textarea>
@@ -916,6 +917,8 @@
         });
         const outEl = document.getElementById('editorOut');
         if(outEl){
+          // Reveal output area and hide fallback textarea
+          outEl.style.display=''; const ofb=document.getElementById('outputFallback'); if(ofb){ ofb.style.display='none'; }
           editorOut = monaco.editor.create(outEl, {
             value: '',
             language: 'tauLang',
@@ -934,8 +937,14 @@
               else if(window.__outView==='tce'){ v = $('outTce').value||''; lang='tauLang'; }
               else if(window.__outView==='expl'){ v = $('outExplanation').value||''; lang='markdown'; }
               else if(window.__outView==='module'){ v = $('outModule').value||''; lang='tauLang'; }
-              editorOut.setValue(v||'');
-              monaco.editor.setModelLanguage(editorOut.getModel(), lang);
+              try{
+                editorOut.setValue(v||'');
+                monaco.editor.setModelLanguage(editorOut.getModel(), lang);
+              }catch{
+                // Fallback: show textarea if Monaco not ready
+                const ofb=document.getElementById('outputFallback');
+                if(ofb){ ofb.value = v||''; ofb.style.display=''; outEl.style.display='none'; }
+              }
             }catch{}
           }
           window.updateEditorOut();
@@ -959,6 +968,10 @@
         if (ed) {
           ed.style.display = 'none';
         }
+        // Ensure output also has a visible surface if Monaco fails
+        const outEl = document.getElementById('editorOut');
+        const ofb = document.getElementById('outputFallback');
+        if(outEl && ofb){ outEl.style.display='none'; ofb.style.display=''; }
         resolveMonacoReady && resolveMonacoReady();
       }
     }, 1500);
