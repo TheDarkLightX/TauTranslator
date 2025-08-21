@@ -140,6 +140,7 @@
             <button class="btn" id="genQuestions">Generate Questions</button>
             <button class="btn" id="applyAnswers">Apply Answers</button>
             <button class="btn" id="genFullSpec">Generate Full Spec (draft)</button>
+            <button class="btn" id="assistExtract">Extract Spec Skeleton</button>
           </div>
           <small>Questions are derived from detected gaps (intent, guard, condition, quantifiers). Answers remain in your browser.</small>
         </details>
@@ -685,6 +686,7 @@
       if(id==='genQuestions'){ generateQuestions(); }
       if(id==='applyAnswers'){ applyAnswers(); }
       if(id==='genFullSpec'){ generateFullSpecDraft(); }
+      if(id==='assistExtract'){ assistExtract(); }
       if(id==='toggleChat'){ openChat(); }
       if(id==='closeChat'){ closeChat(); }
       if(id==='chatSend'){ chatSend(); }
@@ -834,6 +836,47 @@
       const module = `${header}\n# Inputs\n${declInputs}\n\n# Outputs\n${declOutputs}\n${invariants}`;
       $('outModule').value = module;
       showToast('Draft module generated');
+    }
+
+    async function assistExtract(){
+      try{
+        ensureApiBaseDefault();
+        const text = getEditorText().trim();
+        if(!text){ showToast('Enter input first'); return; }
+        const body = { text };
+        const r = await post('/assist/extract', body);
+        const prov = r && r.provenance ? r.provenance : {};
+        const s = r && r.schema ? r.schema : {};
+        const lines = [];
+        if(Array.isArray(s.actors) && s.actors.length) lines.push(`# Actors: ${s.actors.join(', ')}`);
+        if(Array.isArray(s.events) && s.events.length) lines.push(`# Events: ${s.events.join(', ')}`);
+        if(Array.isArray(s.preconditions) && s.preconditions.length) lines.push(`# Preconditions: ${s.preconditions.join('; ')}`);
+        if(Array.isArray(s.postconditions) && s.postconditions.length) lines.push(`# Postconditions: ${s.postconditions.join('; ')}`);
+        if(Array.isArray(s.temporal) && s.temporal.length) lines.push(`# Temporal: ${s.temporal.join('; ')}`);
+        if(Array.isArray(s.constraints) && s.constraints.length) lines.push(`# Constraints: ${s.constraints.join('; ')}`);
+        // Build a conservative TCE skeleton from extractions
+        let spec = '';
+        if(Array.isArray(s.preconditions) && s.preconditions.length && Array.isArray(s.postconditions) && s.postconditions.length){
+          const lhs = (s.preconditions[0]||'condition').replace(/\s+/g,'_');
+          const rhs = (s.postconditions[0]||'action').replace(/\s+/g,'_');
+          spec = `always (${lhs} -> ${rhs})`;
+        } else if(Array.isArray(s.constraints) && s.constraints.length){
+          const c = (s.constraints[0]||'constraint').replace(/\s+/g,'_');
+          spec = `always (${c})`;
+        }
+        const refined = spec || '';
+        setOutputs({
+          tce: refined ? '' : '',
+          tau: '',
+          refined_prompt: refined,
+          refined_options: [],
+          reasons: [`assist.extract via ${prov.provider||'unknown'} (${prov.model_id||''})`],
+          success: !!refined,
+          errors: Array.isArray(r.errors)? r.errors : []
+        });
+        if(refined && editor){ editor.setValue(refined); }
+        showToast(refined ? 'Extracted spec skeleton' : 'No skeleton synthesized');
+      }catch(e){ setOutputs({ errors: [String(e && e.message || e)] }); }
     }
 
     // Monaco setup
