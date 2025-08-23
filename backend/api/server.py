@@ -217,6 +217,17 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root landing for API to avoid default 404 at '/'."""
+    return {
+        "status": "ok",
+        "name": "Tau Translator API",
+        "docs": "/docs",
+        "openapi": "/openapi.json",
+    }
+
+
 @app.get("/translate", response_model=TranslationResponse)
 async def translate(sentence: str = Query(..., min_length=3, max_length=500)) -> TranslationResponse:
     """Translate an English sentence into Tau code.
