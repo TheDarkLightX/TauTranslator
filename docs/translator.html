@@ -42,7 +42,7 @@
 <body>
   <div class="wrap">
     <div class="bar">
-      <h1>Translator Alpha</h1>
+      <h1>Translator Alpha <span class="badge" style="margin-left:8px;border:1px solid rgba(255,255,255,0.2);padding:3px 6px;border-radius:6px;opacity:.8">Classic</span></h1>
       <div class="right">
         <div id="barStacks" style="display:flex">
           <div class="stack">
@@ -57,6 +57,7 @@
             <button class="btn" id="saveByok">Save</button>
           </div>
         </div>
+        <a class="btn" href="translator_cm.html">Switch to Latest (CM6)</a>
         <button class="btn" id="openExamples" onclick="try{openExamples();}catch(e){}">Examples</button>
         <button class="btn" id="openAdvanced" onclick="try{toggleAdvanced();}catch(e){}">Settings</button>
         <button class="btn primary" id="toggleChat" onclick="try{openChat();}catch(e){}">Assist</button>
