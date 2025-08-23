@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tau Translator — CM6</title>
+  <!-- Relaxed CSP for POC; allows ESM module imports from esm.sh -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://esm.sh https://cdn.jsdelivr.net https://unpkg.com https://esm.run https://cdn.skypack.dev; worker-src 'self' blob:; connect-src 'self' https://api.tautranslator.ai https://tau-translator-api.fly.dev; font-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'" />
+  <link rel="preconnect" href="https://tau-translator-api.fly.dev" />
+  <link rel="dns-prefetch" href="https://tau-translator-api.fly.dev" />
+  <link rel="preconnect" href="https://api.tautranslator.ai" />
+  <link rel="dns-prefetch" href="https://api.tautranslator.ai" />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
+  <link rel="dns-prefetch" href="https://esm.sh" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="dns-prefetch" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://esm.run" crossorigin />
+  <link rel="dns-prefetch" href="https://esm.run" />
+  <link rel="preconnect" href="https://cdn.skypack.dev" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.skypack.dev" />
+  <style>
+    :root { --bg:#0f0f1e; --card:#13132a; --fg:#e8e8e8; --muted:#a3a3a3; --b:#1f2040; --brand:#00d4ff; --ok:#00ff88; --err:#ff6b6b; }
+    html, body { height:100%; }
+    body { margin:0; overflow-x:hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #0f0f1e, #1a1a2e); color: var(--fg); }
+    .wrap { max-width: 1200px; margin: 16px auto; padding: 0 12px; }
+    h1 { margin: 0 0 16px; font-size: 24px; color: var(--brand); }
+    .bar { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 12px; flex-wrap:wrap }
+    .bar-left, .bar-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+    .stack { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+    .btn { padding: 8px 10px; border-radius: 10px; border:1px solid rgba(255,255,255,0.12); background: #18203a; color: var(--fg); cursor: pointer; }
+    .btn.primary { background: linear-gradient(45deg, var(--brand), #0099ff); border-color: transparent; color: #081018; font-weight: 700; }
+    .btn { min-height:44px; min-width:44px; }
+    .btn:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; box-shadow: 0 0 0 2px rgba(0,212,255,0.25); }
+    select, input { background: var(--card); color: var(--fg); border: 1px solid var(--b); border-radius: 10px; padding: 8px 10px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+    #cmIn, #cmOut { border:1px solid rgba(255,255,255,0.12); border-radius:10px; height: calc(100vh - 260px); min-height:46vh; max-height:72vh; background: #0f172a; }
+    textarea { width:100%; height: calc(100vh - 260px); min-height:46vh; max-height:72vh; background:#0f172a; color:#e8e8e8; border:1px solid rgba(255,255,255,0.12); border-radius:10px; }
+    .drawer-left { position:fixed; top:0; left:-380px; width:360px; height:100vh; background:#101725; border-right:1px solid rgba(255,255,255,0.12); box-shadow: 4px 0 16px rgba(0,0,0,0.4); transition:left .2s ease; display:flex; flex-direction:column; z-index:9999 }
+    .drawer-left.is-open { left:0 !important; }
+    .drawer-right { position:fixed; top:0; right:-420px; width:420px; height:100vh; background:#101725; border-left:1px solid rgba(255,255,255,0.12); box-shadow: -4px 0 16px rgba(0,0,0,0.4); transition:right .2s ease; display:flex; flex-direction:column; z-index:9999 }
+    .drawer-right.is-open { right:0 !important; }
+    .panel { display:none; }
+    .panel.is-open { display:flex !important; }
+    @media (max-width: 960px){ .row { grid-template-columns: 1fr; } }
+    /* Symmetry: make Translate and Assist equal width */
+    .actions { display:flex; gap:8px; margin-left:auto }
+    .actions .btn { flex: 1 1 168px; min-width:168px; text-align:center }
+    /* Sticky bottom action bar */
+    .sticky-actions { position: fixed; left:0; right:0; bottom:12px; display:none; z-index:9998; pointer-events:none }
+    .sticky-actions .sticky-inner { display:flex; justify-content:flex-end; gap:8px; max-width:1200px; margin:0 auto; padding:8px 12px; background: rgba(16,23,37,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:12px; backdrop-filter: blur(6px); pointer-events:all }
+    .sticky-actions .btn { flex: 1 1 168px; min-width:168px; text-align:center }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div class="bar-left" role="group" aria-label="Navigation">
+        <h1>Translator (CodeMirror 6)</h1>
+        <button class="btn" id="openExamples">Examples</button>
+        <button class="btn" id="openAdvanced" onclick="(function(){try{const adv=document.getElementById('controlsAdv'); if(!adv) return; const opened=adv.classList.contains('is-open'); adv.classList.toggle('panel', true); adv.classList.toggle('is-open', !opened); adv.style.display = opened? 'none' : 'flex';}catch(e){}})()">Settings</button>
+      </div>
+      <div class="bar-right" role="group" aria-label="API and BYOK">
+        <div id="barStacks" class="stack" style="display:flex; gap:10px">
+          <div class="stack">
+            <small>API</small>
+            <input id="apiBase" aria-label="API base URL" placeholder="https://tau-translator-api.fly.dev" style="min-width:320px" />
+            <button class="btn" id="saveApi">Save</button>
+            <button class="btn" id="resetApi">Reset</button>
+          </div>
+          <div class="stack">
+            <small>BYOK (OpenRouter)</small>
+            <input id="byok" type="password" aria-label="OpenRouter API key (BYOK)" placeholder="sk-or-v1-... (optional)" />
+            <button class="btn" id="saveByok">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div id="actionRow" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+        <label>Operation
+          <select id="op">
+            <option value="p2s">Prompt → Spec (English → TCE)</option>
+            <option value="validate">Validate TCE</option>
+            <option value="tce2tau">TCE → Tau</option>
+            <option value="s2p">Spec → Prompt (TCE/Tau → English)</option>
+          </select>
+        </label>
+        <label>Spec Mode
+          <select id="specMode">
+            <option value="auto">auto</option>
+            <option value="wff">WFF</option>
+            <option value="rr">RR</option>
+          </select>
+        </label>
+        <div class="actions" role="group" aria-label="Actions: Translate and Assist" style="display:flex; gap:8px; margin-left:auto">
+          <button class="btn primary" id="run" aria-label="Translate input" onclick="try{window.__tau_last_call={ path:'/llm/prompt-to-spec', body:{} };}catch(e){}; try{window.preEmitLastCall && window.preEmitLastCall(); window.runTranslate && window.runTranslate()}catch(e){}">Translate</button>
+          <button class="btn primary" id="toggleChat" aria-label="Open Assist chat">Assist</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <label>Input</label>
+        <div id="cmIn" style="display:none"></div>
+        <textarea id="inFallback" placeholder="e.g., If a payment is approved then the order is shipped.">If a payment is approved then the order is shipped.</textarea>
+      </div>
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+          <strong>Output</strong>
+          <div id="outTabs" style="display:flex; gap:6px">
+            <button class="btn" id="outTabTau">Tau</button>
+            <button class="btn" id="outTabTce">TCE</button>
+            <button class="btn" id="outTabExpl">Expl</button>
+            <button class="btn" id="outTabModule">Module</button>
+          </div>
+        </div>
+        <div id="cmOut" style="display:none"></div>
+        <textarea id="outFallback" class="mono" readonly></textarea>
+        <textarea id="outTce" style="display:none"></textarea>
+        <textarea id="outTau" style="display:none"></textarea>
+        <textarea id="outExplanation" style="display:none"></textarea>
+        <textarea id="outModule" style="display:none"></textarea>
+        <div style="margin-top:8px">
+          <button class="btn" id="copyOut">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <label>Reasons / Errors</label>
+      <div id="reasons" class="mono"></div>
+    </div>
+  </div>
+  <!-- Sticky bottom quick actions -->
+  <div id="stickyActions" class="sticky-actions" role="group" aria-label="Quick actions: Translate and Assist">
+    <div class="sticky-inner">
+      <button class="btn primary" id="stickyTranslate" aria-label="Translate input (sticky)">Translate</button>
+      <button class="btn primary" id="stickyAssist" aria-label="Open Assist chat (sticky)">Assist</button>
+    </div>
+  </div>
+  <div id="toast" style="position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:8px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s ease">Copied</div>
+
+  <div id="examplesDrawer" class="drawer-left">
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
+      <strong>Examples</strong>
+      <div><button class="btn" id="closeExamples">Close</button></div>
+    </div>
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12)">
+      <input id="examplesSearch" placeholder="Search examples…" style="width:100%;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:8px 10px;outline:none" />
+    </div>
+    <div id="examplesList" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+
+  <div class="card panel" id="controlsAdv" style="display:none; gap:10px; flex-direction:column">
+    <details open>
+      <summary>Privacy</summary>
+      <div><label><input type="checkbox" id="privacyMode" /> Privacy mode (strip BYOK/grammar content)</label></div>
+      <small>When enabled, private data (e.g., BYOK key, uploaded grammar contents) is never sent over the network.</small>
+    </details>
+    <details>
+      <summary>Assist & Input</summary>
+      <div style="display:grid; grid-template-columns:repeat(2, minmax(160px, 1fr)); gap:8px">
+        <label><input type="checkbox" id="assistSymbols" /> Enable symbol palette in Assist chat</label>
+        <label><input type="checkbox" id="assistVoice" /> Enable voice input (chat mic)</label>
+      </div>
+      <div id="sttRow" style="display:none; margin-top:8px">
+        <label style="min-width:220px">STT Language
+          <select id="sttLangSelect">
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="es-ES">Español</option>
+            <option value="fr-FR">Français</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="ja-JP">日本語</option>
+            <option value="zh-CN">中文 (简体)</option>
+          </select>
+        </label>
+      </div>
+    </details>
+    <details>
+      <summary>Constraints (LMQL‑lite)</summary>
+      <div style="display:grid; grid-template-columns:repeat(2, minmax(160px, 1fr)); gap:8px">
+        <label><input type="checkbox" id="cRequireAlways" checked /> Require prefix "always ("</label>
+        <label><input type="checkbox" id="cRequireClose" checked /> Require closing ")"</label>
+        <label><input type="checkbox" id="cForbidColon" checked /> Forbid colon (:)</label>
+        <label>Allowed connectives <input id="cAllowedConns" value="and,or,->,!" /></label>
+      </div>
+    </details>
+  </div>
+
+  <div class="card" id="grammarCard" style="margin-top:10px">
+    <label>Grammar source
+      <select id="grammarMode">
+        <option value="none">None (server defaults)</option>
+        <option value="upload">Upload local grammar (.tgf/.lark/.json)</option>
+        <option value="hosted">Use a hosted grammar reference</option>
+      </select>
+    </label>
+    <div id="uploadRow" style="display:none; margin-top:8px">
+      <input type="file" id="grammarFile" accept=".tgf,.lark,.json,.txt" />
+      <label style="display:inline-flex; align-items:center; gap:8px; margin-left:8px">
+        <input type="checkbox" id="attachInline" checked /> Attach to each request
+      </label>
+      <button class="btn" id="clearGrammar" style="margin-left:8px">Clear</button>
+      <div id="uploadStatus" class="mono" style="opacity:.8; margin-top:6px"></div>
+    </div>
+    <div id="hostedRow" style="display:none; margin-top:8px">
+      <label>Hosted grammar
+        <select id="hostedSelect">
+          <option value="">Select…</option>
+          <option value="tce_minimal@v1">TCE Minimal @ v1</option>
+          <option value="smtlib2@v2">SMT-LIB v2 (reference) @ v2</option>
+          <option value="z3_smt2@v2">Z3 SMT2 (reference) @ v2</option>
+          <option value="lean4@v1">Lean 4 (reference) @ v1</option>
+          <option value="tptp@v1">TPTP (reference) @ v1</option>
+        </select>
+      </label>
+      <div class="mono" style="opacity:.8; margin-top:6px">Sends a grammar reference (ID/version) to the server. The server decides which artifact to use.</div>
+    </div>
+  </div>
+
+  <div id="chatDrawer" class="drawer-right">
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
+      <strong>Assistant</strong>
+      <div>
+        <label style="font-size:12px;color:#a3a3a3;margin-right:8px"><input type="checkbox" id="rememberChat"> Remember chat (local)</label>
+        <button class="btn" id="closeChat">Close</button>
+      </div>
+    </div>
+    <div id="chatMessages" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+    <div style="padding:10px;border-top:1px solid rgba(255,255,255,0.12)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div id="chatSymbolPalette" style="display:none; gap:6px;flex-wrap:wrap">
+          <button class="btn" data-emoji="always">🔁 always</button>
+          <button class="btn" data-emoji="and">➕ &&</button>
+          <button class="btn" data-emoji="or">🔀 ||</button>
+          <button class="btn" data-emoji="implies">➡️ -></button>
+        </div>
+      </div>
+      <!-- Custom symbol language rows injected by symbols.js -->
+      <script src="js/symbols.js"></script>
+      <script src="js/speech.js"></script>
+      <div style="display:flex;gap:8px">
+        <input id="chatInput" placeholder="Ask about your spec..." style="flex:1;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 12px;outline:none" />
+        <select id="sttLang" style="display:none;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 8px">
+          <option value="en-US">en-US</option>
+          <option value="en-GB">en-GB</option>
+          <option value="es-ES">es-ES</option>
+          <option value="fr-FR">fr-FR</option>
+        </select>
+        <button class="btn" id="chatMic" style="display:none">🎤</button>
+        <button class="btn primary" id="chatSend" onclick="try{window.__tau_last_call={ path:'/llm/chat', body:{} };}catch(e){}; try{window.chatSend && window.chatSend()}catch(e){}">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const $ = (id)=>document.getElementById(id);
+    function showToast(msg){ const t=$('toast'); if(!t) return; t.textContent=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; }, 1000); }
+    function copyText(txt){
+      if(navigator.clipboard){
+        navigator.clipboard.writeText(txt).then(()=>showToast('Copied')).catch(()=>{
+          try{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('Copied'); }catch{}
+        });
+      } else {
+        try{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('Copied'); }catch{}
+      }
+    }
+    const defaultBase = localStorage.getItem('tau_api_base') || 'https://tau-translator-api.fly.dev';
+    $('apiBase').value = defaultBase;
+    $('saveApi').onclick = ()=>{ localStorage.setItem('tau_api_base', $('apiBase').value.trim()); alert('Saved API base'); };
+    $('resetApi').onclick = ()=>{ localStorage.removeItem('tau_api_base'); $('apiBase').value = 'https://tau-translator-api.fly.dev'; alert('Reset to default API base'); };
+    $('saveByok').onclick = ()=>{ localStorage.setItem('tau_byok_openrouter', $('byok').value.trim()); alert('Saved BYOK'); };
+
+    function apiBase(){ const v=$('apiBase').value.trim(); if(!v) throw new Error('Set API base'); return v.replace(/\/$/, ''); }
+
+    // Load and persist settings toggles
+    (function initToggles(){
+      try{
+        const lo = $('privacyMode'); if(lo){ const saved = localStorage.getItem('tau_privacy_mode')==='1'; lo.checked = saved; lo.addEventListener('change', ()=>{ localStorage.setItem('tau_privacy_mode', lo.checked?'1':'0'); }); }
+        const sym = $('assistSymbols'); if(sym){ const sv = localStorage.getItem('tau_assist_symbols'); const def = (sv===null ? '1' : sv); sym.checked = (def==='1'); if(sv===null){ try{ localStorage.setItem('tau_assist_symbols','1'); }catch{} } sym.addEventListener('change', ()=>{ localStorage.setItem('tau_assist_symbols', sym.checked?'1':'0'); applyAssistToggles(); }); }
+        const mic = $('assistVoice'); if(mic){ mic.checked = (localStorage.getItem('tau_assist_voice')==='1'); mic.addEventListener('change', ()=>{ localStorage.setItem('tau_assist_voice', mic.checked?'1':'0'); applyAssistToggles(); }); }
+        const sttSel = $('sttLangSelect'); if(sttSel){ sttSel.value = localStorage.getItem('tau_stt_lang')||'en-US'; sttSel.addEventListener('change', ()=>{ localStorage.setItem('tau_stt_lang', sttSel.value); applyAssistToggles(); }); }
+      }catch{}
+    })();
+    function applyAssistToggles(){
+      try{
+        const enableSymbols = (localStorage.getItem('tau_assist_symbols')==='1');
+        const enableVoice = (localStorage.getItem('tau_assist_voice')==='1');
+        const palette = $('chatSymbolPalette'); if(palette){ palette.style.display = enableSymbols ? 'flex' : 'none'; }
+        const custom = document.getElementById('customSymbolRow'); if(custom){ custom.style.display = enableSymbols ? 'flex' : 'none'; }
+        const customArt = document.getElementById('customArtRow'); if(customArt){ customArt.style.display = enableSymbols ? 'flex' : 'none'; }
+        const micBtn = $('chatMic'); if(micBtn){ micBtn.style.display = enableVoice ? '' : 'none'; }
+        const sttChat = $('sttLang'); if(sttChat){ sttChat.style.display = enableVoice ? '' : 'none'; sttChat.value = localStorage.getItem('tau_stt_lang')||'en-US'; }
+        const sttRow = $('sttRow'); if(sttRow){ sttRow.style.display = enableVoice ? '' : 'none'; }
+      }catch{}
+    }
+    setTimeout(applyAssistToggles, 0);
+
+    // Grammar state
+    let grammarInline = null; // { name, type, size, content }
+    function saveGrammarState(){
+      try{
+        const mode = ($('grammarMode') && $('grammarMode').value) || 'none';
+        localStorage.setItem('tau_grammar_mode', mode);
+        if(mode==='hosted'){ localStorage.setItem('tau_grammar_hosted', ($('hostedSelect') && $('hostedSelect').value) || ''); }
+        const attach = ($('attachInline') && $('attachInline').checked) ? '1':'0';
+        localStorage.setItem('tau_grammar_attach_inline', attach);
+      }catch{}
+    }
+    function loadGrammarState(){
+      const mode = localStorage.getItem('tau_grammar_mode') || 'none';
+      const hosted = localStorage.getItem('tau_grammar_hosted') || '';
+      const attach = (localStorage.getItem('tau_grammar_attach_inline')||'1') === '1';
+      if($('grammarMode')) $('grammarMode').value = mode;
+      if($('hostedSelect')) $('hostedSelect').value = hosted;
+      if($('attachInline')) $('attachInline').checked = attach;
+      onGrammarModeChange();
+    }
+    function onGrammarModeChange(){
+      const m = ($('grammarMode') && $('grammarMode').value) || 'none';
+      if($('uploadRow')) $('uploadRow').style.display = (m==='upload') ? '' : 'none';
+      if($('hostedRow')) $('hostedRow').style.display = (m==='hosted') ? '' : 'none';
+      const st = $('uploadStatus'); if(st) st.textContent = grammarInline ? `Loaded: ${grammarInline.name} (${grammarInline.size} bytes)` : '';
+      saveGrammarState();
+    }
+    $('grammarMode')?.addEventListener('change', onGrammarModeChange);
+    $('hostedSelect')?.addEventListener('change', saveGrammarState);
+    $('attachInline')?.addEventListener('change', saveGrammarState);
+    $('clearGrammar')?.addEventListener('click', ()=>{ grammarInline=null; const st=$('uploadStatus'); if(st) st.textContent=''; });
+    $('grammarFile')?.addEventListener('change', (e)=>{
+      const f = e.target && e.target.files && e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{ grammarInline = { name: f.name, type: f.type || 'text/plain', size: f.size, content: String(reader.result) }; const st=$('uploadStatus'); if(st) st.textContent = `Loaded: ${grammarInline.name} (${grammarInline.size} bytes)`; saveGrammarState(); };
+      reader.readAsText(f);
+    });
+    loadGrammarState();
+
+    let inView = null;
+    (async function initEditor(){
+      try{
+        async function tryImports(urlBase){
+          return Promise.all([
+            import(`${urlBase}/@codemirror/view@6.26.3`),
+            import(`${urlBase}/@codemirror/state@6.4.1`),
+            import(`${urlBase}/@codemirror/language@6.10.2`),
+            import(`${urlBase}/@codemirror/commands@6.3.3`),
+            import(`${urlBase}/@codemirror/gutter@6.4.2`),
+            import(`${urlBase}/@codemirror/autocomplete@6.18.2`),
+          ]);
+        }
+        const cdnList = [
+          'https://esm.sh',
+          'https://cdn.jsdelivr.net/npm',
+          'https://unpkg.com',
+          'https://esm.run',
+          'https://cdn.skypack.dev'
+        ];
+        let viewMod, stateMod, langMod, cmdMod, gutMod, acMod;
+        for(const base of cdnList){
+          try{ [viewMod, stateMod, langMod, cmdMod, gutMod, acMod] = await tryImports(base); break; } catch(e){}
+        }
+        if(!viewMod) throw new Error('Failed to load CodeMirror modules from all CDNs');
+        const {EditorView, keymap, drawSelection, highlightActiveLine} = viewMod;
+        const {EditorState} = stateMod;
+        const {defaultHighlightStyle, syntaxHighlighting} = langMod;
+        const {defaultKeymap, history, historyKeymap} = cmdMod;
+        const {lineNumbers} = gutMod;
+        const {autocompletion} = acMod;
+        try{ window.__cm6 = { EditorView, EditorState, drawSelection, highlightActiveLine, defaultHighlightStyle, syntaxHighlighting, lineNumbers, keymap, defaultKeymap, history, historyKeymap, autocompletion }; }catch{}
+        // Completion provider that calls backend suggestions and merges simple snippets
+        async function fetchCM6Suggestions(prefix){
+          try{
+            const full = inView ? inView.state.doc.toString() : '';
+            const body = { context: { full_text: full, cursor_position: (inView ? inView.state.selection.main.head : full.length), language_mode: 'TCE', context_type: 'logical_assertion', learning_level: 'intermediate' }, max_suggestions: 8 };
+            const r = await post('/edu/suggestions', body);
+            const arr = Array.isArray(r.suggestions) ? r.suggestions : [];
+            return arr.map(s=>({ label: s.display || s.text, apply: s.text }));
+          }catch{return []}
+        }
+        const cm6CompletionSource = async (context)=>{
+          const word = context.matchBefore(/\w+[\w_]*/);
+          const from = word ? word.from : context.pos;
+          const base = [
+            { label: 'always ( … )', apply: 'always ( )' },
+            { label: 'if … then …', apply: 'if condition then action' },
+            { label: 'and', apply: 'and ' },
+            { label: 'or', apply: 'or ' },
+            { label: 'not', apply: 'not ' },
+            { label: 'for all', apply: 'for all x ( )' },
+            { label: 'there exists', apply: 'there exists x ( )' }
+          ];
+          const server = await fetchCM6Suggestions(word ? word.text : '');
+          const options = [...base.map(b=>({label:b.label, apply:b.apply})), ...server.map(s=>({label:s.label, apply:s.apply}))];
+          return { from, options };
+        };
+        inView = new EditorView({
+          state: EditorState.create({
+            doc: ($('inFallback')?.value || ''),
+            extensions: [
+              lineNumbers(), history(),
+              keymap.of([...defaultKeymap, ...historyKeymap]),
+              drawSelection(), highlightActiveLine(),
+              syntaxHighlighting(defaultHighlightStyle),
+              autocompletion({ override: [cm6CompletionSource] }),
+              EditorView.theme({
+                '&': { backgroundColor: '#0f172a' },
+                '.cm-content': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace', fontSize: '13px' }
+              }, {dark:true})
+            ]
+          }),
+          parent: $('cmIn')
+        });
+        $('cmIn').style.display=''; if($('inFallback')) $('inFallback').style.display='none';
+      }catch(e){
+        // Editor failed; keep textarea fallback, show reason
+        const r = $('reasons'); if(r) r.textContent = 'Editor init failed: ' + (e && e.message || e);
+      }
+    })();
+
+    let outView = null;
+    function ensureOutEditor(){
+      if(outView) return outView;
+      const CM = (window.__cm6||{});
+      if(!CM || !CM.EditorView || !CM.EditorState){ const ofb=$('outFallback'); if(ofb) ofb.style.display=''; const el=$('cmOut'); if(el) el.style.display='none'; return null; }
+      const el = $('cmOut'); el.style.display=''; $('outFallback').style.display='none';
+      outView = new CM.EditorView({
+        state: CM.EditorState.create({
+          doc: '',
+          extensions: [
+            CM.lineNumbers(), CM.EditorView.editable.of(false),
+            CM.drawSelection(), CM.highlightActiveLine(),
+            CM.syntaxHighlighting(CM.defaultHighlightStyle),
+            CM.EditorView.theme({
+              '&': { backgroundColor: '#0f172a' },
+              '.cm-content': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace', fontSize: '13px' }
+            }, {dark:true})
+          ]
+        }),
+        parent: el
+      });
+      return outView;
+    }
+
+    function setOutput(text){
+      try{ const v = ensureOutEditor(); if(v){ v.dispatch({ changes:{ from:0, to: v.state.doc.length, insert: text||'' } }); } else { const ta=$('outFallback'); ta.value = text||''; } }
+      catch{ const ta=$('outFallback'); ta.value = text||''; }
+    }
+
+    function setReasons(lines){ $('reasons').textContent = Array.isArray(lines)&&lines.length ? '- ' + lines.join('\n- ') : ''; }
+    function openExamples(){ const d=$('examplesDrawer'); if(d){ d.classList.add('is-open'); renderExamples(); } }
+    function closeExamples(){ const d=$('examplesDrawer'); if(d){ d.classList.remove('is-open'); } }
+    function openChat(){ const d=$('chatDrawer'); if(d){ d.classList.add('is-open'); } }
+    function closeChat(){ const d=$('chatDrawer'); if(d){ d.classList.remove('is-open'); } }
+    window.__outView = 'tau';
+    function updateEditorOut(){
+      try{
+        const which = (window.__outView||'tau');
+        let text='';
+        if(which==='tau'){ text = ($('outTau').value||$('outTce').value||''); }
+        else if(which==='tce'){ text = $('outTce').value||''; }
+        else if(which==='expl'){ text = $('outExplanation').value||''; }
+        else if(which==='module'){ text = $('outModule').value||''; }
+        const v = ensureOutEditor();
+        if(v){ v.dispatch({ changes:{ from:0, to: v.state.doc.length, insert: text||'' } }); }
+        else { const ta=$('outFallback'); if(ta) ta.value = text||''; }
+      }catch{}
+    }
+
+    // Examples catalog
+    const EXAMPLES = [
+      { id:'p2s_basic_1', cat:'Prompt → Spec', title:'Payment approved → order shipped', op:'p2s', specMode:'wff', text:'If a payment is approved then the order is shipped.' },
+      { id:'validate_tce_1', cat:'Validate TCE', title:'Simple invariant (formal)', op:'validate', specMode:'wff', text:'always (payment_approved -> fan_on)' },
+      { id:'tce2tau_1', cat:'TCE → Tau', title:'Translate an English TCE to Tau', op:'tce2tau', specMode:'wff', text:'If a payment is approved then the order is shipped.' },
+      { id:'s2p_tau_explain', cat:'Spec → Prompt', title:'Explain a Tau-time-index rule', op:'s2p', specMode:'rr', text:'always ((i1[t] != 1) -> (o1[t] != 0))' }
+    ];
+    function renderExamples(){
+      const box=$('examplesList'); if(!box) return;
+      const q = ($('examplesSearch') && $('examplesSearch').value || '').toLowerCase();
+      const cats = {};
+      EXAMPLES.forEach(ex=>{ if(q && !(ex.title.toLowerCase().includes(q) || ex.cat.toLowerCase().includes(q))) return; (cats[ex.cat]=cats[ex.cat]||[]).push(ex); });
+      box.innerHTML = Object.keys(cats).sort().map(cat=>{
+        const items = cats[cat].map(ex=>`<div style="border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px">
+          <div style=\"font-weight:600\">${ex.title}</div>
+          <div style=\"opacity:.8;font-size:12px;margin:4px 0\">${ex.op.toUpperCase()} · ${ex.specMode.toUpperCase()}</div>
+          <div style=\"display:flex;gap:6px;flex-wrap:wrap;margin-top:6px\">
+            <button class=btn data-ex-id="${ex.id}">Load</button>
+            <button class=btn data-ex-run-id="${ex.id}">Load + Translate</button>
+            <button class=btn data-ex-link-id="${ex.id}">Copy Link</button>
+          </div>
+        </div>`).join('');
+        return `<details open><summary style="cursor:pointer">${cat}</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${items}</div></details>`;
+      }).join('') || '<div style="opacity:.7">No examples match your search.</div>';
+    }
+    function loadExample(exId){ try{ const ex=EXAMPLES.find(x=>x.id===exId); if(!ex) return; const opSel=$('op'); if(opSel) opSel.value=ex.op; const sm=$('specMode'); if(sm) sm.value=ex.specMode; if(inView){ inView.dispatch({ changes:{ from:0, to: inView.state.doc.length, insert: ex.text } }); } else { const ta=$('inFallback'); if(ta) ta.value=ex.text; } showToast('Example loaded'); }catch{} }
+    function runExample(exId){ try{ loadExample(exId); try{ window.__tau_last_call = { path:'/llm/prompt-to-spec', body:{ prompt: (EXAMPLES.find(x=>x.id===exId)||{}).text || '' } }; }catch{}; const b=$('run'); if(b && !b.disabled){ closeExamples(); b.click(); } }catch{} }
+    try{ $('openExamples')?.addEventListener('click', openExamples); $('closeExamples')?.addEventListener('click', closeExamples); $('examplesSearch')?.addEventListener('input', renderExamples); $('examplesList')?.addEventListener('click', (e)=>{ const btn=e.target && (e.target.closest? e.target.closest('button'):null); if(!btn) return; const id=btn.getAttribute('data-ex-id')||''; const rid=btn.getAttribute('data-ex-run-id')||''; const lid=btn.getAttribute('data-ex-link-id')||''; if(lid){ const url=location.origin + location.pathname.replace(/[^/]+$/, '') + 'translator_cm.html?example=' + encodeURIComponent(lid); copyText(url); showToast('Link copied'); return; } if(id){ loadExample(id); } if(rid){ runExample(rid); } }); try{ window.loadExample = loadExample; window.runExample = runExample; }catch{} }catch{}
+
+    async function post(path, body, timeoutMs=30000){
+      const url = apiBase() + path;
+      const headers = { 'Content-Type':'application/json' };
+      const privacy = (localStorage.getItem('tau_privacy_mode')==='1');
+      const byok = ($('byok') && $('byok').value || '').trim();
+      if(byok && !privacy){ headers['X-OpenRouter-Key'] = byok; }
+      // Attach grammar metadata/payload if selected
+      try{
+        const mode = ($('grammarMode') && $('grammarMode').value) || 'none';
+        if(mode==='upload' && grammarInline && ($('attachInline') && $('attachInline').checked)){
+          if(!privacy){
+            body.grammar_inline = { name: grammarInline.name, mime: grammarInline.type, size: grammarInline.size, content: grammarInline.content };
+          } else {
+            body.grammar_inline = { name: grammarInline.name, mime: grammarInline.type, size: grammarInline.size };
+          }
+        } else if(mode==='hosted'){
+          const sel = ($('hostedSelect') && $('hostedSelect').value) || '';
+          if(sel){ const parts = sel.split('@'); body.grammar_ref = { id: parts[0], version: (parts[1]||'').replace(/^v/, '') }; }
+        }
+      }catch{}
+      window.__tau_last_call = { url, path, headers: {...headers}, body: JSON.parse(JSON.stringify(body)) };
+      const controller = new AbortController();
+      const tid = setTimeout(()=>{ try{ controller.abort(); }catch{} }, Math.max(1000, timeoutMs|0));
+      let res;
+      try{
+        res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body), signal: controller.signal });
+      } catch (err){
+        setReasons([`Fetch failed: ${String(err && err.message || err)} (${url})`]);
+        throw err;
+      } finally {
+        clearTimeout(tid);
+      }
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    // Pre-emit oracle for E2E parity
+    window.preEmitLastCall = function(){
+      try{
+        const op = $('op').value; const input = inView.state.doc.toString().trim();
+        if(op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', body:{ prompt: input } }; }
+        else if(op==='validate'){ window.__tau_last_call = { path:'/validate/tce', body:{ tce: input } }; }
+        else if(op==='tce2tau'){ window.__tau_last_call = { path:'/translate/tce-to-tau', body:{ tce: input } }; }
+        else if(op==='s2p'){ const isTau = /\[[^\]]*\]/.test(input) || /always\s*\(/i.test(input); window.__tau_last_call = { path:'/llm/spec-to-prompt', body:{ spec_text: input, spec_type: (isTau?'tau':'tce') } }; }
+      }catch{}
+    };
+
+    window.runTranslate = async ()=>{
+      try{ window.preEmitLastCall && window.preEmitLastCall(); }catch{}
+      $('run').disabled = true; setReasons([]); setOutput('');
+      try{
+        const op = $('op').value; const sm = $('specMode').value; const input = (inView ? inView.state.doc.toString() : ($('inFallback').value||'')).trim();
+        if(!input) throw new Error('Enter input');
+        if(op==='p2s'){
+          const body = { prompt: input, mode:'assist' };
+          if(sm && sm!=='auto') body.spec_mode = sm;
+          // Attach constraints if controls exist
+          try{
+            body.constraints = {
+              require_prefix: ($('cRequireAlways') && $('cRequireAlways').checked) ? 'always (' : '',
+              require_closing_paren: ($('cRequireClose') && $('cRequireClose').checked) || false,
+              forbid_colon: ($('cForbidColon') && $('cForbidColon').checked) || false,
+              allowed_connectives: (($('cAllowedConns') && $('cAllowedConns').value) || 'and,or,->,!').split(',').map(s=>s.trim()).filter(Boolean)
+            };
+          }catch{}
+          const r = await post('/llm/prompt-to-spec', body);
+          // fill backing stores
+          $('outTau').value = r.tau || '';
+          $('outTce').value = r.tce || '';
+          $('outExplanation').value = r.explanation || '';
+          $('outModule').value = r.module || '';
+          setReasons([...(r.reasons||[]), ...(r.errors||[])]);
+          window.__outView = (r.tau && r.tau.trim()) ? 'tau' : ((r.tce && r.tce.trim()) ? 'tce' : ((r.explanation && r.explanation.trim()) ? 'expl' : 'tau'));
+          updateEditorOut();
+        } else if(op==='validate'){
+          const r = await post('/validate/tce', { tce: input });
+          setOutput((r.valid? 'Valid' : 'Invalid') + (r.errors && r.errors.length ? ('\n' + r.errors.join('\n')) : ''));
+        } else if(op==='tce2tau'){
+          const r = await post('/translate/tce-to-tau', { tce: input });
+          $('outTau').value = r.tau || '';
+          window.__outView = 'tau';
+          updateEditorOut();
+          setReasons(r.errors||[]);
+        } else if(op==='s2p'){
+          const isTau = /\[[^\]]*\]/.test(input) || /always\s*\(/i.test(input);
+          const r = await post('/llm/spec-to-prompt', { spec_text: input, spec_type: isTau ? 'tau' : 'tce' });
+          $('outExplanation').value = r.explanation || r.prompt_candidate || '';
+          window.__outView = 'expl';
+          updateEditorOut();
+        }
+      }catch(e){ setOutput(''); setReasons([String(e && e.message || e)]); }
+      finally{ $('run').disabled = false; }
+    };
+    $('run').onclick = window.runTranslate;
+
+    // Wire ancillary UI for E2E parity
+    $('copyOut')?.addEventListener('click', ()=>{
+      try{
+        const view = window.__outView || 'tau';
+        let txt = '';
+        if(view==='tau'){ txt = ($('outTau').value||''); }
+        else if(view==='tce'){ txt = ($('outTce').value||''); }
+        else if(view==='expl'){ txt = ($('outExplanation').value||''); }
+        else if(view==='module'){ txt = ($('outModule').value||''); }
+        if(!txt){ txt = outView ? outView.state.doc.toString() : ($('outFallback').value||''); }
+        copyText(txt||'');
+      }catch{ copyText(''); }
+    });
+    $('openExamples')?.addEventListener('click', openExamples);
+    $('closeExamples')?.addEventListener('click', closeExamples);
+    $('toggleChat')?.addEventListener('click', openChat);
+    $('closeChat')?.addEventListener('click', closeChat);
+    // Sticky actions wiring
+    $('stickyAssist')?.addEventListener('click', openChat);
+    $('stickyTranslate')?.addEventListener('click', ()=>{ const b=$('run'); if(b && !b.disabled){ b.click(); }});
+
+    // Sticky actions visibility: show when actionRow not intersecting
+    (function(){ try{
+      const bar = document.getElementById('actionRow');
+      const sticky = document.getElementById('stickyActions');
+      if(!bar || !sticky || !('IntersectionObserver' in window)) return;
+      const obs = new IntersectionObserver((entries)=>{
+        const e = entries && entries[0];
+        const visible = !!(e && e.isIntersecting);
+        sticky.style.display = visible ? 'none' : 'block';
+      }, { root: null, threshold: 0.01 });
+      obs.observe(bar);
+    }catch{}})();
+    document.addEventListener('click', (e)=>{
+      const id = e.target && e.target.id;
+      if(id==='outTabTau'){ window.__outView='tau'; updateEditorOut(); showToast('Output: Tau'); }
+      if(id==='outTabTce'){ window.__outView='tce'; updateEditorOut(); showToast('Output: TCE'); }
+      if(id==='outTabExpl'){ window.__outView='expl'; updateEditorOut(); showToast('Output: Expl'); }
+      if(id==='outTabModule'){ window.__outView='module'; updateEditorOut(); showToast('Output: Module'); }
+      // Symbol palette buttons (data-emoji) → insert snippet into chat input
+      try{
+        const btn = e.target && (e.target.closest ? e.target.closest('button') : null);
+        const emojiKey = btn && btn.getAttribute ? btn.getAttribute('data-emoji') : (e.target && e.target.getAttribute ? e.target.getAttribute('data-emoji') : null);
+        if(emojiKey){
+          const map = { always: 'always ( )', and: ' && ', or: ' || ', not: '!', implies: ' -> ', all: 'all x ( )', ex: 'ex x ( )', eq: ' = ', t: 'T', f: 'F', t_idx: '[t]', t_prev: '[t-1]' };
+          const token = map[emojiKey] || '';
+          const inp = $('chatInput'); if(inp && token){ const cur = inp.value || ''; inp.value = cur + token; inp.focus(); }
+        }
+      }catch{}
+    });
+
+    // Chat (basic thread)
+    let __chatThread = [];
+    function renderChat(){ const box=$('chatMessages'); if(!box) return; box.innerHTML = __chatThread.map(m=>{ const who = m.role==='user'? '#00d4ff' : '#a3ffa3'; return `<div style="padding:8px;border:1px solid rgba(255,255,255,0.12);border-radius:8px"><div style="color:${who};font-weight:600">${m.role}</div><div>${(m.content||'').replace(/</g,'&lt;')}</div></div>`; }).join(''); box.scrollTop = box.scrollHeight; }
+    window.chatSend = function(){ const inp=$('chatInput'); if(!inp) return; const text=(inp.value||'').trim(); if(!text) return; __chatThread.push({role:'user', content:text}); renderChat(); inp.value=''; const sendBtn=$('chatSend'); if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='Sending…'; } const messages = __chatThread.map(m=>({role:m.role, content:m.content})); const payload = { threadId:null, messages, mode:'assist' }; try{ window.__tau_last_call = { path:'/llm/chat', body: payload }; }catch{} post('/llm/chat', payload).then(r=>{ const reply = r.reply || ''; __chatThread.push({role:'assistant', content:reply}); renderChat(); }).catch(err=>{ __chatThread.push({role:'assistant', content:`Error: ${String(err && err.message || err)}`}); renderChat(); }).finally(()=>{ if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='Send'; } }); };
+
+    // Deep-link examples (?example=...&run=1)
+    (function(){ try{ const params=new URLSearchParams(location.search); const exId=params.get('example'); const run=params.get('run')==='1'; if(exId){ loadExample(exId); if(run){ const b=$('run'); if(b && !b.disabled){ b.click(); } } } }catch{} })();
+
+    try{ window.TAU_UI_READY = true; }catch{}
+  </script>
+</body>
+</html>
+
+

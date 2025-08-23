@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tau Translator — CM6</title>
+  <!-- Relaxed CSP for POC; allows ESM module imports from esm.sh -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://esm.sh; worker-src 'self' blob:; connect-src 'self' https://api.tautranslator.ai https://tau-translator-api.fly.dev; font-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'" />
+  <link rel="preconnect" href="https://tau-translator-api.fly.dev" />
+  <link rel="dns-prefetch" href="https://tau-translator-api.fly.dev" />
+  <link rel="preconnect" href="https://api.tautranslator.ai" />
+  <link rel="dns-prefetch" href="https://api.tautranslator.ai" />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
+  <link rel="dns-prefetch" href="https://esm.sh" />
+  <style>
+    :root { --bg:#0f0f1e; --card:#13132a; --fg:#e8e8e8; --muted:#a3a3a3; --b:#1f2040; --brand:#00d4ff; --ok:#00ff88; --err:#ff6b6b; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #0f0f1e, #1a1a2e); color: var(--fg); }
+    .wrap { max-width: 1100px; margin: 28px auto; padding: 0 16px; }
+    h1 { margin: 0 0 16px; font-size: 24px; color: var(--brand); }
+    .bar { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 12px; }
+    .stack { display:flex; align-items:center; gap:8px; }
+    .btn { padding: 8px 10px; border-radius: 10px; border:1px solid rgba(255,255,255,0.12); background: #18203a; color: var(--fg); cursor: pointer; }
+    .btn.primary { background: linear-gradient(45deg, var(--brand), #0099ff); border-color: transparent; color: #081018; font-weight: 700; }
+    select, input { background: var(--card); color: var(--fg); border: 1px solid var(--b); border-radius: 10px; padding: 8px 10px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+    #cmIn, #cmOut { border:1px solid rgba(255,255,255,0.12); border-radius:10px; height:60vh; background: #0f172a; }
+    textarea { width:100%; height:60vh; background:#0f172a; color:#e8e8e8; border:1px solid rgba(255,255,255,0.12); border-radius:10px; }
+    .drawer-left { position:fixed; top:0; left:-380px; width:360px; height:100vh; background:#101725; border-right:1px solid rgba(255,255,255,0.12); box-shadow: 4px 0 16px rgba(0,0,0,0.4); transition:left .2s ease; display:flex; flex-direction:column; z-index:9999 }
+    .drawer-left.is-open { left:0 !important; }
+    .drawer-right { position:fixed; top:0; right:-420px; width:420px; height:100vh; background:#101725; border-left:1px solid rgba(255,255,255,0.12); box-shadow: -4px 0 16px rgba(0,0,0,0.4); transition:right .2s ease; display:flex; flex-direction:column; z-index:9999 }
+    .drawer-right.is-open { right:0 !important; }
+    .panel { display:none; }
+    .panel.is-open { display:flex !important; }
+  </style>
+  <script type="module" crossorigin src="../assets/translator_cm-BXmNhkci.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <h1>Translator (CodeMirror 6)</h1>
+      <div id="barStacks" class="stack" style="display:flex; gap:10px">
+        <div class="stack">
+          <small>API</small>
+          <input id="apiBase" placeholder="https://tau-translator-api.fly.dev" style="min-width:320px" />
+          <button class="btn" id="saveApi">Save</button>
+        </div>
+        <div class="stack">
+          <small>BYOK (OpenRouter)</small>
+          <input id="byok" type="password" placeholder="sk-or-v1-... (optional)" />
+          <button class="btn" id="saveByok">Save</button>
+        </div>
+      </div>
+      <button class="btn" id="openExamples">Examples</button>
+      <button class="btn" id="openAdvanced" onclick="(function(){try{const adv=document.getElementById('controlsAdv'); if(!adv) return; const opened=adv.classList.contains('is-open'); adv.classList.toggle('panel', true); adv.classList.toggle('is-open', !opened); adv.style.display = opened? 'none' : 'flex';}catch(e){}})()">Settings</button>
+      <button class="btn primary" id="toggleChat">Assist</button>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <label>Operation
+          <select id="op">
+            <option value="p2s">Prompt → Spec (English → TCE)</option>
+            <option value="validate">Validate TCE</option>
+            <option value="tce2tau">TCE → Tau</option>
+            <option value="s2p">Spec → Prompt (TCE/Tau → English)</option>
+          </select>
+        </label>
+        <label>Spec Mode
+          <select id="specMode">
+            <option value="auto">auto</option>
+            <option value="wff">WFF</option>
+            <option value="rr">RR</option>
+          </select>
+        </label>
+        <button class="btn primary" id="run" onclick="try{window.__tau_last_call={ path:'/llm/prompt-to-spec', body:{} };}catch(e){}; try{window.preEmitLastCall && window.preEmitLastCall(); window.runTranslate && window.runTranslate()}catch(e){}">Translate</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <label>Input</label>
+        <div id="cmIn" style="display:none"></div>
+        <textarea id="inFallback" placeholder="e.g., If a payment is approved then the order is shipped.">If a payment is approved then the order is shipped.</textarea>
+      </div>
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+          <strong>Output</strong>
+          <div id="outTabs" style="display:flex; gap:6px">
+            <button class="btn" id="outTabTau">Tau</button>
+            <button class="btn" id="outTabTce">TCE</button>
+            <button class="btn" id="outTabExpl">Expl</button>
+            <button class="btn" id="outTabModule">Module</button>
+          </div>
+        </div>
+        <div id="cmOut" style="display:none"></div>
+        <textarea id="outFallback" class="mono" readonly></textarea>
+        <textarea id="outTce" style="display:none"></textarea>
+        <textarea id="outTau" style="display:none"></textarea>
+        <textarea id="outExplanation" style="display:none"></textarea>
+        <textarea id="outModule" style="display:none"></textarea>
+        <div style="margin-top:8px">
+          <button class="btn" id="copyOut">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <label>Reasons / Errors</label>
+      <div id="reasons" class="mono"></div>
+    </div>
+  </div>
+  <div id="toast" style="position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:8px 12px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s ease">Copied</div>
+
+  <div id="examplesDrawer" class="drawer-left">
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
+      <strong>Examples</strong>
+      <div><button class="btn" id="closeExamples">Close</button></div>
+    </div>
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12)">
+      <input id="examplesSearch" placeholder="Search examples…" style="width:100%;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:8px 10px;outline:none" />
+    </div>
+    <div id="examplesList" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+
+  <div class="card panel" id="controlsAdv" style="display:none; gap:10px; flex-direction:column">
+    <details open>
+      <summary>Privacy</summary>
+      <div><label><input type="checkbox" id="privacyMode" /> Privacy mode (strip BYOK/grammar content)</label></div>
+      <small>When enabled, private data (e.g., BYOK key, uploaded grammar contents) is never sent over the network.</small>
+    </details>
+    <details>
+      <summary>Assist & Input</summary>
+      <div style="display:grid; grid-template-columns:repeat(2, minmax(160px, 1fr)); gap:8px">
+        <label><input type="checkbox" id="assistSymbols" /> Enable symbol palette in Assist chat</label>
+        <label><input type="checkbox" id="assistVoice" /> Enable voice input (chat mic)</label>
+      </div>
+      <div id="sttRow" style="display:none; margin-top:8px">
+        <label style="min-width:220px">STT Language
+          <select id="sttLangSelect">
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="es-ES">Español</option>
+            <option value="fr-FR">Français</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="ja-JP">日本語</option>
+            <option value="zh-CN">中文 (简体)</option>
+          </select>
+        </label>
+      </div>
+    </details>
+  </div>
+
+  <div id="chatDrawer" class="drawer-right">
+    <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between">
+      <strong>Assistant</strong>
+      <div>
+        <label style="font-size:12px;color:#a3a3a3;margin-right:8px"><input type="checkbox" id="rememberChat"> Remember chat (local)</label>
+        <button class="btn" id="closeChat">Close</button>
+      </div>
+    </div>
+    <div id="chatMessages" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
+    <div style="padding:10px;border-top:1px solid rgba(255,255,255,0.12)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div id="chatSymbolPalette" style="display:none; gap:6px;flex-wrap:wrap">
+          <button class="btn" data-emoji="always">🔁 always</button>
+          <button class="btn" data-emoji="and">➕ &&</button>
+          <button class="btn" data-emoji="or">🔀 ||</button>
+          <button class="btn" data-emoji="implies">➡️ -></button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="chatInput" placeholder="Ask about your spec..." style="flex:1;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 12px;outline:none" />
+        <select id="sttLang" style="display:none;background:#1a2238;color:#e8e8e8;border:1px solid #2a3350;border-radius:10px;padding:10px 8px">
+          <option value="en-US">en-US</option>
+          <option value="en-GB">en-GB</option>
+          <option value="es-ES">es-ES</option>
+          <option value="fr-FR">fr-FR</option>
+        </select>
+        <button class="btn" id="chatMic" style="display:none">🎤</button>
+        <button class="btn primary" id="chatSend" onclick="try{window.__tau_last_call={ path:'/llm/chat', body:{} };}catch(e){}; try{window.chatSend && window.chatSend()}catch(e){}">Send</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+

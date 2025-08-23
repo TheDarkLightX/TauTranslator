@@ -361,7 +361,7 @@
           <option value="fr-FR">fr-FR</option>
         </select>
         <button class="btn" id="chatMic" style="display:none">🎤</button>
-        <button class="btn primary" id="chatSend">Send</button>
+        <button class="btn primary" id="chatSend" onclick="try{window.__tau_last_call={ path:'/llm/chat', body:{} };}catch(e){}; try{chatSend();}catch(e){}">Send</button>
         <button class="btn" id="chatStop">Stop</button>
       </div>
     </div>
@@ -596,7 +596,9 @@
       }
       // Track last call for copy cURL
       window.__tau_last_call = { url, path, headers: {...headers}, body: JSON.parse(JSON.stringify(body)) };
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+      let res;
+      try{ res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) }); }
+      catch(err){ const ors = document.getElementById('outReasons'); if(ors){ ors.textContent = `Fetch failed: ${String(err && err.message || err)} (${url})`; } throw err; }
       if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
       return res.json();
     }
@@ -745,7 +747,8 @@
     function buildCurl(){ const last = window.__tau_last_call; if(!last) return ''; const parts=[`curl -sS -X POST ${last.url}`]; parts.push(`-H 'Content-Type: application/json'`); if(last.headers['X-OpenRouter-Key']){ parts.push(`-H 'X-OpenRouter-Key: ${last.headers['X-OpenRouter-Key']}'`); } const data = JSON.stringify(last.body).replace(/'/g, "'\\''"); parts.push(`-d '${data}'`); return parts.join(' '); }
     // Wire copy/export/apply buttons
     window.addEventListener('click', (e)=>{
-      const id = e.target && e.target.id;
+      const btn = e.target && (e.target.closest ? e.target.closest('button') : null);
+      const id = btn && btn.id ? btn.id : (e.target && e.target.id);
       if(id==='copyTce'){ copyText(($('outTce').value||'')); }
       if(id==='copyTau'){ copyText(($('outTau').value||'')); }
       if(id==='copyExplanation'){ copyText(($('outExplanation').value||'')); }
@@ -760,7 +763,7 @@
       if(id==='assistExtract'){ assistExtract(); }
       if(id==='toggleChat'){ openChat(); }
       if(id==='closeChat'){ closeChat(); }
-      if(id==='chatSend'){ chatSend(); }
+      if(id==='chatSend'){ try{ window.__tau_last_call = { path:'/llm/chat', body:{} }; }catch{}; chatSend(); }
       if(id==='chatStop'){ chatStop(); }
       if(id==='chatExplainSel'){ chatExplainSelection(); }
       if(id==='chatInsertTce'){ const t = $('outTce').value||''; if(editor && t){ editor.setValue(t); showToast('Inserted TCE'); } }
@@ -1035,7 +1038,7 @@
       const sampleMap = {
         p2s: 'If a payment is approved then the order is shipped.',
         validate: 'always (payment_approved -> order_shipped)',
-        tce2tau: 'always (all x (!send_over_network(x)))',
+        tce2tau: 'If a payment is approved then the order is shipped.',
         s2p: 'always ((i1[t] != 1) -> (o1[t] != 0))'
       };
       const sample = sampleMap[op] || '';
@@ -1300,10 +1303,10 @@
     const EXAMPLES = [
       { id:'p2s_basic_1', cat:'Prompt → Spec', title:'Payment approved → order shipped', op:'p2s', specMode:'wff', lang:'TCE', text:'If a payment is approved then the order is shipped.' },
       { id:'p2s_rate_limit', cat:'Prompt → Spec', title:'Rate limit: not more than once per second', op:'p2s', specMode:'wff', lang:'TCE', text:'The system must never emit more than one event per second.' },
-      { id:'validate_tce_1', cat:'Validate TCE', title:'Simple invariant', op:'validate', specMode:'wff', lang:'TCE', text:'always (temperature_high -> fan_on)' },
-      { id:'tce2tau_1', cat:'TCE → Tau', title:'Translate a TCE rule to Tau', op:'tce2tau', specMode:'wff', lang:'TCE', text:'always (payment_approved -> order_shipped)' },
+      { id:'validate_tce_1', cat:'Validate TCE', title:'Simple invariant (formal)', op:'validate', specMode:'wff', lang:'TCE', text:'always (payment_approved -> order_shipped)' },
+      { id:'tce2tau_1', cat:'TCE → Tau', title:'Translate an English TCE to Tau', op:'tce2tau', specMode:'wff', lang:'TCE', text:'If a payment is approved then the order is shipped.' },
       { id:'s2p_tau_explain', cat:'Spec → Prompt', title:'Explain a Tau-time-index rule', op:'s2p', specMode:'rr', lang:'TAU', text:'always ((i1[t] != 1) -> (o1[t] != 0))' },
-      { id:'privacy_invariant', cat:'Privacy', title:'Privacy: never send private data', op:'p2s', specMode:'wff', lang:'TCE', text:'Never send private data over the network.' },
+      { id:'privacy_invariant', cat:'Prompt → Spec', title:'Privacy: never send private data', op:'p2s', specMode:'wff', lang:'TCE', text:'Never send private data over the network.' },
     ];
 
     function openExamples(){ const d=$('examplesDrawer'); if(!d) return; d.classList.add('is-open'); renderExamples(); $('examplesSearch').value=''; }
@@ -1495,7 +1498,9 @@
       const sendBtn=document.getElementById('chatSend'); if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='Sending…'; }
       // build payload
       const messages = __chatThread.map(m=>({role:m.role, content:m.content}));
-      post('/llm/chat', { threadId:null, messages, mode:'assist' }).then(r=>{
+      const payload = { threadId:null, messages, mode:'assist' };
+      try{ window.__tau_last_call = { path:'/llm/chat', body: payload }; }catch{}
+      post('/llm/chat', payload).then(r=>{
         const reply = r.reply || '';
         __chatThread.push({role:'assistant', content:reply, tce:r.tce, tau:r.tau});
         // Also update outputs if present

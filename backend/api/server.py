@@ -40,17 +40,38 @@ import logging
 
 app = FastAPI(title="Tau Translator API", version="0.1.0")
 
+_DEFAULT_ORIGINS = [
+    "https://www.tautranslator.ai",
+    "https://tautranslator.ai",
+    "https://thedarklightx.github.io",
+    "https://thedarklightx.github.io/TauTranslator",
+    # Local development/testing UIs
+    "http://127.0.0.1:8766",
+    "http://127.0.0.1:8777",
+    "http://127.0.0.1:8888",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://localhost:8766",
+    "http://localhost:8777",
+    "http://localhost:8888",
+]
+try:
+    _extra = os.getenv("TAU_CORS_EXTRA", "").strip()
+    if _extra:
+        for o in _extra.split(","):
+            o = o.strip()
+            if o:
+                _DEFAULT_ORIGINS.append(o)
+except Exception:
+    pass
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.tautranslator.ai",
-        "https://tautranslator.ai",
-        "https://thedarklightx.github.io",
-        "https://thedarklightx.github.io/TauTranslator",
-    ],
+    allow_origins=_DEFAULT_ORIGINS,
     allow_credentials=False,
-    allow_methods=["POST", "GET", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-OpenRouter-Key"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=600,
 )
 
 
