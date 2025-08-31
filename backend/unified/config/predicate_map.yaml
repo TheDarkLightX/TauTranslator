@@ -1,0 +1,16 @@
+# Config-driven phrase to predicate mapping (snake_case identifiers)
+# Keys are phrases; values are canonical predicate names (without arity)
+# This file is small and intended for offline default behavior.
+
+"payment approved": payment_approved
+"payment received": payment_received
+"order shipped": order_shipped
+"package shipped": package_shipped
+"send data over network": send_over_network
+"sensor high": sensor_high
+"manual override": manual_override
+"alarm on": alarm_on
+"process contraband bits": process_contraband_bits
+"login successful": login_success
+"session active": session_active
+"has profile": has_profile
