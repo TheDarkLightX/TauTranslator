@@ -17,6 +17,40 @@ class Constraints:
     prefer_quantifier: Optional[str] = None  # "all" | "ex"
 
 
+def sanitize_to_tce(generated: str, user: str, temporal_mode: str | None) -> str:
+    """Extract or construct a TCE-like string from LLM output.
+
+    Behavior:
+    - If a segment after "User:" appears, prefer it.
+    - If we find an explicit "always ( ... )" span, return it; strip when atemporal.
+    - Otherwise, fall back to user's prompt, wrapped only if invariant.
+    """
+    is_atemporal = (temporal_mode or "").lower() == "atemporal"
+    text = generated or ""
+    if "User:" in text:
+        try:
+            after = text.split("User:", 1)[1]
+            after = after.split("TCE:", 1)[0]
+            after = after.splitlines()[0].strip()
+            if after:
+                return after if is_atemporal else f"always ({after})"
+        except Exception:
+            pass
+    idx = text.find("always (")
+    if idx != -1:
+        tail = text[idx:]
+        close = tail.find(')')
+        span = tail[: close + 1] if close != -1 else tail
+        if is_atemporal:
+            try:
+                inner = span[len('always ('):-1] if span.endswith(')') else span
+                return inner.strip()
+            except Exception:
+                return user
+        return span
+    return user if is_atemporal else f"always ({user})"
+
+
 def infer_temporal_mode(prompt: str, explicit: Optional[str]) -> str:
     """Infer temporal mode from the prompt and an optional explicit override.
 

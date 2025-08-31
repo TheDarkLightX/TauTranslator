@@ -26,6 +26,7 @@ from ..services.disambiguation_services import (
     get_nli_reranker,
     dictionary_entity_candidates,
     Constraints as _Constraints,
+    sanitize_to_tce,
 )
 import hashlib
 import os
@@ -286,36 +287,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     raw = gen.unwrap().text
 
     def _sanitize_to_tce(generated: str, user: str) -> str:
-        # Respect explicit temporal mode: avoid adding 'always' when atemporal
-        is_atemporal = (getattr(body, "temporal_mode", None) or "").lower() == "atemporal"
-        # Prefer explicit user segment
-        if "User:" in generated:
-            try:
-                after = generated.split("User:", 1)[1]
-                # stop at first newline or 'TCE:' tag
-                after = after.split("TCE:", 1)[0]
-                after = after.splitlines()[0].strip()
-                if after:
-                    return after if is_atemporal else f"always ({after})"
-            except Exception:
-                pass
-        # Try extracting an existing always(...) span
-        idx = generated.find("always (")
-        if idx != -1:
-            tail = generated[idx:]
-            # take until the next ')' if present
-            close = tail.find(')')
-            span = tail[: close + 1] if close != -1 else tail
-            if is_atemporal:
-                # strip outer 'always (' ... ')' conservatively
-                try:
-                    inner = span[len('always ('):-1] if span.endswith(')') else span
-                    return inner.strip()
-                except Exception:
-                    return user
-            return span
-        # Fallback to user prompt
-        return user if is_atemporal else f"always ({user})"
+        return sanitize_to_tce(generated, user, body.temporal_mode)
 
     # NLP-lite intent detection and prompt refinement suggestions
     # Extract simple intents: allow/deny, condition/guard, temporal always
