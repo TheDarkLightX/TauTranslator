@@ -26,7 +26,6 @@
  * ```
  */
 declare module '$env/static/private' {
-	export const GJS_DEBUG_TOPICS: string;
 	export const LESSOPEN: string;
 	export const USER: string;
 	export const npm_config_user_agent: string;
@@ -34,7 +33,6 @@ declare module '$env/static/private' {
 	export const GIT_ASKPASS: string;
 	export const npm_node_execpath: string;
 	export const DESKTOPINTEGRATION: string;
-	export const CLUTTER_DISABLE_MIPMAPPED_TEXT: string;
 	export const SHLVL: string;
 	export const LD_LIBRARY_PATH: string;
 	export const npm_config_noproxy: string;
@@ -50,7 +48,6 @@ declare module '$env/static/private' {
 	export const npm_package_json: string;
 	export const NVM_INC: string;
 	export const PERLLIB: string;
-	export const GIO_LAUNCHED_DESKTOP_FILE: string;
 	export const GNOME_SHELL_SESSION_MODE: string;
 	export const GTK_MODULES: string;
 	export const PAGER: string;
@@ -61,6 +58,7 @@ declare module '$env/static/private' {
 	export const npm_config_local_prefix: string;
 	export const npm_config_yes: string;
 	export const PYDEVD_DISABLE_FILE_VALIDATION: string;
+	export const DBUS_STARTER_BUS_TYPE: string;
 	export const SYSTEMD_EXEC_PID: string;
 	export const BUNDLED_DEBUGPY_PATH: string;
 	export const GSM_SKIP_SSH_AGENT_WORKAROUND: string;
@@ -69,7 +67,6 @@ declare module '$env/static/private' {
 	export const GIO_LAUNCHED_DESKTOP_FILE_PID: string;
 	export const COLOR: string;
 	export const NVM_DIR: string;
-	export const CHROME_WRAPPER: string;
 	export const DEBUGINFOD_URLS: string;
 	export const QT_QPA_PLATFORMTHEME: string;
 	export const LOGNAME: string;
@@ -109,6 +106,7 @@ declare module '$env/static/private' {
 	export const VSCODE_GIT_IPC_HANDLE: string;
 	export const TERM_PROGRAM: string;
 	export const CURSOR_TRACE_ID: string;
+	export const npm_config_loglevel: string;
 	export const npm_lifecycle_script: string;
 	export const SSH_AUTH_SOCK: string;
 	export const GSETTINGS_SCHEMA_DIR: string;
@@ -119,18 +117,16 @@ declare module '$env/static/private' {
 	export const QT_ACCESSIBILITY: string;
 	export const GDMSESSION: string;
 	export const LESSCLOSE: string;
-	export const MM_NOTTTY: string;
 	export const GPG_AGENT_INFO: string;
-	export const GJS_DEBUG_OUTPUT: string;
 	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
 	export const QT_IM_MODULE: string;
 	export const npm_config_globalconfig: string;
 	export const npm_config_init_module: string;
 	export const PWD: string;
-	export const CHROME_VERSION_EXTRA: string;
 	export const npm_execpath: string;
 	export const XDG_CONFIG_DIRS: string;
 	export const NVM_CD_FLAGS: string;
+	export const DBUS_STARTER_ADDRESS: string;
 	export const XDG_DATA_DIRS: string;
 	export const npm_config_global_prefix: string;
 	export const npm_command: string;
@@ -169,7 +165,6 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		GJS_DEBUG_TOPICS: string;
 		LESSOPEN: string;
 		USER: string;
 		npm_config_user_agent: string;
@@ -177,7 +172,6 @@ declare module '$env/dynamic/private' {
 		GIT_ASKPASS: string;
 		npm_node_execpath: string;
 		DESKTOPINTEGRATION: string;
-		CLUTTER_DISABLE_MIPMAPPED_TEXT: string;
 		SHLVL: string;
 		LD_LIBRARY_PATH: string;
 		npm_config_noproxy: string;
@@ -193,7 +187,6 @@ declare module '$env/dynamic/private' {
 		npm_package_json: string;
 		NVM_INC: string;
 		PERLLIB: string;
-		GIO_LAUNCHED_DESKTOP_FILE: string;
 		GNOME_SHELL_SESSION_MODE: string;
 		GTK_MODULES: string;
 		PAGER: string;
@@ -204,6 +197,7 @@ declare module '$env/dynamic/private' {
 		npm_config_local_prefix: string;
 		npm_config_yes: string;
 		PYDEVD_DISABLE_FILE_VALIDATION: string;
+		DBUS_STARTER_BUS_TYPE: string;
 		SYSTEMD_EXEC_PID: string;
 		BUNDLED_DEBUGPY_PATH: string;
 		GSM_SKIP_SSH_AGENT_WORKAROUND: string;
@@ -212,7 +206,6 @@ declare module '$env/dynamic/private' {
 		GIO_LAUNCHED_DESKTOP_FILE_PID: string;
 		COLOR: string;
 		NVM_DIR: string;
-		CHROME_WRAPPER: string;
 		DEBUGINFOD_URLS: string;
 		QT_QPA_PLATFORMTHEME: string;
 		LOGNAME: string;
@@ -252,6 +245,7 @@ declare module '$env/dynamic/private' {
 		VSCODE_GIT_IPC_HANDLE: string;
 		TERM_PROGRAM: string;
 		CURSOR_TRACE_ID: string;
+		npm_config_loglevel: string;
 		npm_lifecycle_script: string;
 		SSH_AUTH_SOCK: string;
 		GSETTINGS_SCHEMA_DIR: string;
@@ -262,18 +256,16 @@ declare module '$env/dynamic/private' {
 		QT_ACCESSIBILITY: string;
 		GDMSESSION: string;
 		LESSCLOSE: string;
-		MM_NOTTTY: string;
 		GPG_AGENT_INFO: string;
-		GJS_DEBUG_OUTPUT: string;
 		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
 		QT_IM_MODULE: string;
 		npm_config_globalconfig: string;
 		npm_config_init_module: string;
 		PWD: string;
-		CHROME_VERSION_EXTRA: string;
 		npm_execpath: string;
 		XDG_CONFIG_DIRS: string;
 		NVM_CD_FLAGS: string;
+		DBUS_STARTER_ADDRESS: string;
 		XDG_DATA_DIRS: string;
 		npm_config_global_prefix: string;
 		npm_command: string;

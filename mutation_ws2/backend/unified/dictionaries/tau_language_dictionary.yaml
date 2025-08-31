@@ -1,0 +1,287 @@
+# Tau Language Dictionary
+# Comprehensive vocabulary for Tau Language users and specifications
+# Based on IDNI Tau Language specification
+
+domain: tau_language
+metadata:
+  version: "1.0"
+  description: "Official dictionary for Tau Language constructs and terminology"
+  created_for: "Tau Language specification and program synthesis"
+  
+entities:
+  # Core Language Constructs
+  specification:
+    category: document
+    synonyms: [spec, tau_spec, formal_spec]
+    properties: [constraints, satisfiability, determinism]
+    typical_verbs: [defines, constrains, specifies, synthesizes]
+    description: "A formal specification in Tau Language"
+    
+  program:
+    category: system
+    synonyms: [tau_program, synthesized_program]
+    properties: [behavior, implementation, correctness]
+    typical_verbs: [executes, implements, satisfies, runs]
+    description: "A program synthesized from Tau specifications"
+    
+  formula:
+    category: abstract
+    plural_form: formulas
+    synonyms: [logical_formula, constraint, expression]
+    properties: [satisfiability, variables, operators]
+    typical_verbs: [evaluates, holds, satisfies, constrains]
+    
+  stream:
+    category: object
+    plural_form: streams
+    synonyms: [channel, io_stream]
+    properties: [direction, index, values]
+    typical_verbs: [carries, transmits, contains, flows]
+    description: "Input/output communication channel indexed by time"
+    
+  variable:
+    category: abstract
+    plural_form: variables
+    synonyms: [var, boolean_variable]
+    properties: [name, type, value, scope]
+    typical_verbs: [represents, holds, binds, varies]
+    
+  function:
+    category: abstract
+    plural_form: functions
+    synonyms: [boolean_function, bf]
+    properties: [arity, definition, recursion]
+    typical_verbs: [computes, returns, evaluates, maps]
+    
+  predicate:
+    category: abstract
+    plural_form: predicates
+    synonyms: [relation, property]
+    properties: [arity, definition, truth_value]
+    typical_verbs: [holds, satisfies, checks, validates]
+    
+  constraint:
+    category: abstract
+    plural_form: constraints
+    synonyms: [requirement, condition, restriction]
+    properties: [type, strength, scope]
+    typical_verbs: [restricts, enforces, limits, requires]
+    
+  # Stream-specific entities
+  input:
+    category: object
+    plural_form: inputs
+    synonyms: [input_stream, i, input_channel]
+    properties: [index, value, time_step]
+    typical_verbs: [receives, reads, accepts]
+    
+  output:
+    category: object
+    plural_form: outputs
+    synonyms: [output_stream, o, output_channel]
+    properties: [index, value, time_step]
+    typical_verbs: [produces, writes, emits, sends]
+    
+  # Temporal entities
+  time:
+    category: abstract
+    synonyms: [time_step, t, moment]
+    properties: [index, offset, current]
+    typical_verbs: [advances, progresses, elapses]
+    
+  state:
+    category: abstract
+    plural_form: states
+    synonyms: [program_state, configuration]
+    properties: [variables, time, validity]
+    typical_verbs: [transitions, holds, changes, maintains]
+
+verbs:
+  # Specification verbs
+  specifies:
+    past_tense: specified
+    synonyms: [defines, declares, states]
+    typical_subjects: [specification, user, developer]
+    typical_objects: [behavior, constraint, requirement]
+    
+  synthesizes:
+    past_tense: synthesized
+    synonyms: [generates, creates, produces]
+    typical_subjects: [tau, system, compiler]
+    typical_objects: [program, implementation, solution]
+    
+  satisfies:
+    past_tense: satisfied
+    synonyms: [meets, fulfills, complies]
+    typical_subjects: [program, solution, implementation]
+    typical_objects: [specification, constraint, requirement]
+    
+  # Logical verbs
+  holds:
+    past_tense: held
+    synonyms: [is_true, valid, applies]
+    typical_subjects: [formula, constraint, predicate]
+    typical_objects: [state, time, condition]
+    
+  evaluates:
+    past_tense: evaluated
+    synonyms: [computes, calculates, determines]
+    typical_subjects: [function, expression, formula]
+    typical_objects: [value, result, truth]
+    
+  constrains:
+    past_tense: constrained
+    synonyms: [restricts, limits, bounds]
+    typical_subjects: [specification, formula, requirement]
+    typical_objects: [behavior, variable, output]
+    
+  # Stream verbs
+  reads:
+    past_tense: read
+    synonyms: [receives, gets, accepts]
+    typical_subjects: [program, process, stream]
+    typical_objects: [input, value, data]
+    
+  writes:
+    past_tense: wrote
+    synonyms: [outputs, emits, produces]
+    typical_subjects: [program, process, stream]
+    typical_objects: [output, value, result]
+    
+  flows:
+    past_tense: flowed
+    synonyms: [streams, passes, transmits]
+    typical_subjects: [data, value, information]
+    typical_objects: [stream, channel, time]
+
+patterns:
+  # Stream patterns
+  stream_reference:
+    pattern: "([io])(\\d+)\\[([^\\]]+)\\]"
+    replacement: "stream(\\1, \\2, \\3)"
+    description: "Stream reference like i1[t] or o2[t-1]"
+    examples: ["i1[t]", "o1[t-2]", "i2[0]"]
+    
+  stream_at_time:
+    pattern: "(input|output)\\s+(\\d+)\\s+at\\s+(?:time\\s+)?([\\w\\+\\-]+)"
+    replacement: "\\1_\\2[\\3]"
+    description: "Natural language stream reference"
+    examples: ["input 1 at time t", "output 2 at t-1"]
+    
+  # Temporal patterns
+  always_formula:
+    pattern: "(?:always|□|\\[\\])\\s*\\((.+)\\)"
+    replacement: "[]\\1"
+    description: "Always/globally temporal operator"
+    examples: ["always (x = y)", "[] (output = input)"]
+    
+  sometimes_formula:
+    pattern: "(?:sometimes|eventually|◇|<>)\\s*\\((.+)\\)"
+    replacement: "<>\\1"
+    description: "Sometimes/eventually temporal operator"
+    examples: ["sometimes (x = 1)", "<> (ready = true)"]
+    
+  # Quantifier patterns
+  universal_quantifier:
+    pattern: "(?:for\\s+)?all\\s+(\\w+)\\s*:\\s*(.+)"
+    replacement: "all \\1: \\2"
+    description: "Universal quantification"
+    examples: ["all x: P(x)", "for all y: y > 0"]
+    
+  existential_quantifier:
+    pattern: "(?:there\\s+)?exists?\\s+(\\w+)\\s*(?:such\\s+that)?\\s*:\\s*(.+)"
+    replacement: "ex \\1: \\2"
+    description: "Existential quantification"
+    examples: ["exists x: x > 0", "there exists y such that: P(y)"]
+    
+  # Time offset patterns
+  time_offset:
+    pattern: "t\\s*([+-])\\s*(\\d+)"
+    replacement: "t\\1\\2"
+    description: "Time offset expression"
+    examples: ["t + 1", "t - 2", "t+3"]
+    
+  # Logical patterns
+  implication:
+    pattern: "(?:if\\s+)?(.+?)\\s*(?:then|->|implies)\\s*(.+)"
+    replacement: "\\1 -> \\2"
+    description: "Logical implication"
+    examples: ["if A then B", "x > 0 implies x != 0"]
+    
+  biconditional:
+    pattern: "(.+?)\\s*(?:iff|<->|if\\s+and\\s+only\\s+if)\\s*(.+)"
+    replacement: "\\1 <-> \\2"
+    description: "Biconditional/equivalence"
+    examples: ["A iff B", "x = y if and only if y = x"]
+
+abbreviations:
+  # Tau-specific
+  BF: "Boolean Function"
+  BDD: "Binary Decision Diagram"
+  CNF: "Conjunctive Normal Form"
+  DNF: "Disjunctive Normal Form"
+  SAT: "Satisfiability"
+  
+  # Logical operators
+  IFF: "if and only if"
+  WFF: "Well-Formed Formula"
+  
+  # Temporal logic
+  LTL: "Linear Temporal Logic"
+  CTL: "Computation Tree Logic"
+  
+  # Stream abbreviations
+  IO: "Input/Output"
+  I/O: "Input/Output"
+
+# Domain-specific vocabulary extensions
+properties:
+  # Boolean properties
+  satisfiable:
+    category: boolean_property
+    opposite: unsatisfiable
+    applies_to: [specification, formula, constraint]
+    
+  deterministic:
+    category: system_property
+    opposite: nondeterministic
+    applies_to: [program, specification, behavior]
+    
+  recursive:
+    category: definition_property
+    applies_to: [function, predicate, definition]
+    
+  temporal:
+    category: logic_property
+    applies_to: [operator, formula, constraint]
+    
+  synthesizable:
+    category: specification_property
+    applies_to: [specification, constraint, requirement]
+
+# Common Tau expressions that should be recognized
+common_expressions:
+  - pattern: "specification is satisfiable"
+    meaning: "The specification has at least one valid implementation"
+    
+  - pattern: "program satisfies specification"
+    meaning: "The program's behavior meets all specified constraints"
+    
+  - pattern: "stream carries values"
+    meaning: "The stream transmits data over time"
+    
+  - pattern: "formula holds at time t"
+    meaning: "The formula evaluates to true at time step t"
+    
+  - pattern: "constraint is enforced"
+    meaning: "The constraint must be satisfied by any valid solution"
+
+# Example sentences for testing
+example_sentences:
+  - "All output streams must eventually equal their corresponding input streams"
+  - "The specification constrains the program to be deterministic"
+  - "For every input at time t, there exists an output at time t+1"
+  - "The program synthesized from this specification satisfies all constraints"
+  - "Input stream 1 at time t equals output stream 2 at time t-1"
+  - "Always when input is high, eventually output becomes high"
+  - "The boolean function evaluates to true if and only if all variables are satisfied"

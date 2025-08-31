@@ -1,7 +1,7 @@
 import time
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 
 def _wait_last_call_path(page, expected_path: str, timeout_ms: int = 15000) -> dict:
@@ -30,11 +30,19 @@ def docs_server() -> str:
 
 
 def _cm_set_text(page, text: str) -> None:
-    page.click("#cmIn .cm-content")
-    page.keyboard.press("Control+A")
-    page.keyboard.press("Backspace")
-    if text:
-        page.keyboard.type(text, delay=1)
+    # Prefer CM6 content if present; otherwise fallback textarea
+    try:
+        page.locator("#cmIn .cm-content").wait_for(timeout=3000)
+    except Exception:
+        pass
+    if page.locator("#cmIn .cm-content").count() > 0:
+        page.click("#cmIn .cm-content")
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Backspace")
+        if text:
+            page.keyboard.type(text, delay=1)
+    else:
+        page.fill("#inFallback", text)
 
 
 def _get_output_text(page) -> str:
@@ -49,6 +57,47 @@ def _get_output_text(page) -> str:
     return page.eval_on_selector("#outFallback", "el => el.value || ''")
 
 
+def _wait_any_output(page, timeout_ms: int = 15000) -> None:
+    deadline = time.time() + (timeout_ms / 1000.0)
+    tau = page.locator("#outTau")
+    tce = page.locator("#outTce")
+    expl = page.locator("#outExplanation")
+    module = page.locator("#outModule")
+    cm_out = page.locator("#cmOut .cm-content")
+    while time.time() < deadline:
+        try:
+            if tau.count() and tau.input_value().strip():
+                return
+            if tce.count() and tce.input_value().strip():
+                return
+            if expl.count() and expl.input_value().strip():
+                return
+            if module.count() and module.input_value().strip():
+                return
+            if cm_out.count() and (cm_out.inner_text().strip() if cm_out.inner_text() else ""):
+                return
+        except Exception:
+            pass
+        page.wait_for_timeout(100)
+    raise AssertionError("Timed out waiting for any output text")
+
+
+def _wait_validate_output(page, timeout_ms: int = 15000) -> None:
+    deadline = time.time() + (timeout_ms / 1000.0)
+    cm_out = page.locator("#cmOut .cm-content")
+    fallback = page.locator("#outFallback")
+    while time.time() < deadline:
+        try:
+            if cm_out.count() and (cm_out.inner_text().strip() if cm_out.inner_text() else ""):
+                return
+            if fallback.count() and fallback.input_value().strip():
+                return
+        except Exception:
+            pass
+        page.wait_for_timeout(100)
+    raise AssertionError("Timed out waiting for validate output")
+
+
 def test_cm_p2s_basic_roundtrip(docs_server: str):
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -60,6 +109,7 @@ def test_cm_p2s_basic_roundtrip(docs_server: str):
         _cm_set_text(page, "If a payment is approved then the order is shipped.")
         page.click("#run")
         _wait_last_call_path(page, "/llm/prompt-to-spec")
+        _wait_any_output(page)
         out = _get_output_text(page)
         assert "always" in out or "order" in out
         # s2p on produced Tau
@@ -69,7 +119,13 @@ def test_cm_p2s_basic_roundtrip(docs_server: str):
         _cm_set_text(page, tau)
         page.click("#run")
         _wait_last_call_path(page, "/llm/spec-to-prompt")
+        _wait_any_output(page)
         expl = page.evaluate("() => document.getElementById('outExplanation').value || ''")
+        if not expl:
+            try:
+                expl = page.inner_text("#cmOut .cm-content").strip()
+            except Exception:
+                expl = page.eval_on_selector("#outFallback", "el => el.value || ''")
         assert expl and ("if" in expl.lower() or "then" in expl.lower())
         browser.close()
 
@@ -85,6 +141,7 @@ def test_cm_validate_and_tce2tau(docs_server: str):
         _cm_set_text(page, "always (temperature_high -> fan_on)")
         page.click("#run")
         _wait_last_call_path(page, "/validate/tce")
+        _wait_validate_output(page)
         txt = _get_output_text(page)
         assert "Valid" in txt or "Invalid" in txt
         # tce2tau
@@ -92,6 +149,7 @@ def test_cm_validate_and_tce2tau(docs_server: str):
         _cm_set_text(page, "If a payment is approved then the order is shipped.")
         page.click("#run")
         _wait_last_call_path(page, "/translate/tce-to-tau")
+        _wait_any_output(page)
         tau = page.evaluate("() => document.getElementById('outTau').value || ''")
         assert tau and "always" in tau
         browser.close()
@@ -108,6 +166,7 @@ def test_cm_tau_time_index_explain(docs_server: str):
         _cm_set_text(page, tau)
         page.click("#run")
         _wait_last_call_path(page, "/llm/spec-to-prompt")
+        _wait_any_output(page)
         expl = page.evaluate("() => document.getElementById('outExplanation').value || ''")
         assert expl
         browser.close()

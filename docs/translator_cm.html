@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://api.tautranslator.ai" />
   <link rel="dns-prefetch" href="https://api.tautranslator.ai" />
   <script src="js/cm6.bundle.js"></script>
+  <script type="module">import { cm_slugifyWords, cm_localP2S, cm_localValidate, cm_localS2P, cm_localTce2Tau } from './js/fallbacks.js'; window.cm_slugifyWords=cm_slugifyWords; window.cm_localP2S=cm_localP2S; window.cm_localValidate=cm_localValidate; window.cm_localS2P=cm_localS2P; window.cm_localTce2Tau=cm_localTce2Tau;</script>
   <style>
     :root { --bg:#0f0f1e; --card:#13132a; --fg:#e8e8e8; --muted:#a3a3a3; --b:#1f2040; --brand:#00d4ff; --ok:#00ff88; --err:#ff6b6b; }
     html, body { height:100%; }
@@ -44,14 +45,18 @@
     .sticky-actions { position: fixed; left:0; right:0; bottom:12px; display:none; z-index:9998; pointer-events:none }
     .sticky-actions .sticky-inner { display:flex; justify-content:flex-end; gap:8px; max-width:1200px; margin:0 auto; padding:8px 12px; background: rgba(16,23,37,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:12px; backdrop-filter: blur(6px); pointer-events:all }
     .sticky-actions .btn { flex: 1 1 168px; min-width:168px; text-align:center }
+    /* Output tabs active/hover states */
+    #outTabs .btn { opacity:.8; transition: background-color .16s ease, opacity .12s ease, transform .12s ease, box-shadow .16s ease }
+    #outTabs .btn:hover { transform: translateY(-1px) }
+    #outTabs .btn.is-active { opacity:1; background: linear-gradient(45deg, var(--brand), #0099ff); color:#081018; border-color: transparent; box-shadow: 0 0 0 2px rgba(0,212,255,0.25) }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="bar">
       <div class="bar-left" role="group" aria-label="Navigation">
-        <h1>Translator (CodeMirror 6) <span class="badge" style="margin-left:8px;border:1px solid rgba(255,255,255,0.2);padding:3px 6px;border-radius:6px;opacity:.8">Latest</span></h1>
-        <a class="btn" href="translator.html">Switch to Classic (Monaco)</a>
+        <h1>Translator <span class="badge" style="margin-left:8px;border:1px solid rgba(255,255,255,0.2);padding:3px 6px;border-radius:6px;opacity:.8">Latest</span></h1>
+        <a class="btn" href="translator.html">Switch to Classic</a>
         <button class="btn" id="openExamples">Examples</button>
         <button class="btn" id="openAdvanced" onclick="(function(){try{const adv=document.getElementById('controlsAdv'); if(!adv) return; const opened=adv.classList.contains('is-open'); adv.classList.toggle('panel', true); adv.classList.toggle('is-open', !opened); adv.style.display = opened? 'none' : 'flex';}catch(e){}})()">Settings</button>
       </div>
@@ -62,11 +67,14 @@
             <input id="apiBase" aria-label="API base URL" placeholder="https://tau-translator-api.fly.dev" style="min-width:320px" />
             <button class="btn" id="saveApi">Save</button>
             <button class="btn" id="resetApi">Reset</button>
+            <button class="btn" id="testApi">Test</button>
+            <small id="apiStatus" style="opacity:.8">checking…</small>
           </div>
           <div class="stack">
             <small>BYOK (OpenRouter)</small>
             <input id="byok" type="password" aria-label="OpenRouter API key (BYOK)" placeholder="sk-or-v1-... (optional)" />
             <button class="btn" id="saveByok">Save</button>
+            <button class="btn" id="testLlm" title="Ping LLM via /llm/chat using BYOK when Privacy is OFF">Test LLM</button>
           </div>
         </div>
       </div>
@@ -87,6 +95,12 @@
             <option value="auto">auto</option>
             <option value="wff">WFF</option>
             <option value="rr">RR</option>
+          </select>
+        </label>
+        <label>Temporal Mode
+          <select id="temporalMode">
+            <option value="invariant">Invariant (always ...)</option>
+            <option value="atemporal">Atemporal (no always)</option>
           </select>
         </label>
         <div class="actions" role="group" aria-label="Actions: Translate and Assist" style="display:flex; gap:8px; margin-left:auto">
@@ -145,6 +159,10 @@
         <div style="grid-column: 1 / span 2">
           <label>Refined options</label>
           <textarea id="anaOptions" class="mono" readonly></textarea>
+        </div>
+        <div id="clarifySection" style="grid-column: 1 / span 2; margin-top:10px; display:none">
+          <label>Disambiguate</label>
+          <div id="clarifyArea" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
         </div>
       </div>
     </div>
@@ -290,12 +308,68 @@
       }
     }
     const defaultBase = localStorage.getItem('tau_api_base') || 'https://tau-translator-api.fly.dev';
+    const ALLOWED_API_BASES = ['https://tau-translator-api.fly.dev','https://api.tautranslator.ai'];
     $('apiBase').value = defaultBase;
-    $('saveApi').onclick = ()=>{ localStorage.setItem('tau_api_base', $('apiBase').value.trim()); alert('Saved API base'); };
-    $('resetApi').onclick = ()=>{ localStorage.removeItem('tau_api_base'); $('apiBase').value = 'https://tau-translator-api.fly.dev'; alert('Reset to default API base'); };
+    // Ensure privacy mode is OFF by default on first load
+    try{ if(localStorage.getItem('tau_privacy_mode')===null){ localStorage.setItem('tau_privacy_mode','0'); } }catch{}
+    // Apply BYOK from storage and URL (?byok=...)
+    try{
+      const savedByok = localStorage.getItem('tau_byok_openrouter')||'';
+      const params = new URLSearchParams(location.search);
+      const qByok = params.get('byok');
+      const useByok = (qByok && qByok.trim()) ? qByok.trim() : savedByok;
+      if(useByok && $('byok')){
+        $('byok').value = useByok;
+        localStorage.setItem('tau_byok_openrouter', useByok);
+      }
+      const qApi = params.get('api');
+      if(qApi && $('apiBase')){ $('apiBase').value = qApi.trim(); localStorage.setItem('tau_api_base', qApi.trim()); }
+    }catch{}
+    function _warnIfApiBlocked(){ try{ const base=$('apiBase').value.trim(); if(base && !ALLOWED_API_BASES.some(h=>base.startsWith(h))){ setReasons([`API base may be blocked by CSP: ${base}`, `Use one of: ${ALLOWED_API_BASES.join(', ')}`]); } }catch{} }
+    $('saveApi').onclick = ()=>{ const v=$('apiBase').value.trim(); localStorage.setItem('tau_api_base', v); alert('Saved API base'); _warnIfApiBlocked(); try{ pingApi().then(updateApiStatus).catch(()=>updateApiStatus(false)); }catch{} };
+    $('resetApi').onclick = ()=>{ localStorage.removeItem('tau_api_base'); $('apiBase').value = 'https://tau-translator-api.fly.dev'; alert('Reset to default API base'); _warnIfApiBlocked(); try{ pingApi().then(updateApiStatus).catch(()=>updateApiStatus(false)); }catch{} };
+    $('testApi').onclick = ()=>{ _warnIfApiBlocked(); try{ pingApi().then(updateApiStatus).catch(()=>updateApiStatus(false)); }catch{} };
     $('saveByok').onclick = ()=>{ localStorage.setItem('tau_byok_openrouter', $('byok').value.trim()); alert('Saved BYOK'); };
+    $('testLlm').onclick = async ()=>{
+      try{
+        const privacy = (localStorage.getItem('tau_privacy_mode')==='1');
+        if(privacy){ alert('Privacy mode is ON. Turn it OFF to send BYOK header.'); }
+        const messages = [{ role:'user', content:'ping' }];
+        const payload = { threadId:null, messages, mode:'assist' };
+        const r = await post('/llm/chat', payload);
+        // Open chat and display result + provider
+        try{ openChat(); }catch{}
+        __chatThread.push({ role:'user', content:'ping' });
+        __chatThread.push({ role:'assistant', content: (r && r.reply) || '(empty reply)' });
+        if(r && r.provenance && r.provenance.provider){ __chatThread.push({ role:'assistant', content: `via ${r.provenance.provider}` }); }
+        renderChat();
+        showToast('LLM test done');
+      }catch(e){
+        const prev = (document.getElementById('reasons')?.textContent||'');
+        const prevLines = prev ? prev.split('\n').map(s=>s.replace(/^\-\s*/, '').trim()).filter(Boolean) : [];
+        const last = (function(){ try{ return JSON.stringify(window.__tau_last_call || {}, null, 2).slice(0,512) + '…'; }catch{ return ''; } })();
+        setReasons([...prevLines, `LLM test failed: ${String(e && e.message || e)}`, last ? `Last call: ${last}` : '']);
+        try{ openChat(); __chatThread.push({ role:'assistant', content:`Error: ${String(e && e.message || e)}` }); renderChat(); }catch{}
+      }
+    };
 
     function apiBase(){ const v=$('apiBase').value.trim(); if(!v) throw new Error('Set API base'); return v.replace(/\/$/, ''); }
+    async function pingApi(timeoutMs=3000){
+      const ctrl = new AbortController();
+      const tid = setTimeout(()=>{ try{ ctrl.abort(); }catch{} }, Math.max(500, timeoutMs|0));
+      try{
+        const base = apiBase();
+        const res = await fetch(base + '/healthz', { signal: ctrl.signal });
+        if(res.ok) return true;
+        // fallback to '/' if healthz not present
+        const res2 = await fetch(base + '/', { signal: ctrl.signal });
+        return res2.ok;
+      }catch{ return false }
+      finally{ clearTimeout(tid); }
+    }
+    function updateApiStatus(ok){ const el=$('apiStatus'); if(!el) return; el.textContent = ok ? 'online' : 'offline'; el.style.color = ok ? '#00ff88' : '#ff6b6b'; }
+    // initial status
+    try{ pingApi().then(updateApiStatus).catch(()=>updateApiStatus(false)); }catch{}
 
     // Load and persist settings toggles
     (function initToggles(){
@@ -491,6 +565,18 @@
         const v = ensureOutEditor();
         if(v){ v.dispatch({ changes:{ from:0, to: v.state.doc.length, insert: text||'' } }); }
         else { const ta=$('outFallback'); if(ta) ta.value = text||''; }
+        // Toggle active tab classes (robust equality + ARIA)
+        try{
+          const ids = ['outTabTau','outTabTce','outTabExpl','outTabModule'];
+          ids.forEach(id=>{
+            const el=$(id); if(!el) return;
+            const key = id.replace(/^outTab/i,'').toLowerCase();
+            const on = (key === which);
+            el.classList.toggle('is-active', on);
+            el.setAttribute('aria-pressed', on ? 'true' : 'false');
+            el.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+        }catch{}
       }catch{}
     }
 
@@ -524,6 +610,31 @@
     function runExample(exId){ try{ loadExample(exId); try{ window.__tau_last_call = { path:'/llm/prompt-to-spec', body:{ prompt: (EXAMPLES.find(x=>x.id===exId)||{}).text || '' } }; }catch{}; const b=$('run'); if(b && !b.disabled){ closeExamples(); b.click(); } }catch{} }
     try{ $('openExamples')?.addEventListener('click', openExamples); $('closeExamples')?.addEventListener('click', closeExamples); $('examplesSearch')?.addEventListener('input', renderExamples); $('examplesList')?.addEventListener('click', (e)=>{ const btn=e.target && (e.target.closest? e.target.closest('button'):null); if(!btn) return; const id=btn.getAttribute('data-ex-id')||''; const rid=btn.getAttribute('data-ex-run-id')||''; const lid=btn.getAttribute('data-ex-link-id')||''; if(lid){ const url=location.origin + location.pathname.replace(/[^/]+$/, '') + 'translator_cm.html?example=' + encodeURIComponent(lid); copyText(url); showToast('Link copied'); return; } if(id){ loadExample(id); } if(rid){ runExample(rid); } }); try{ window.loadExample = loadExample; window.runExample = runExample; }catch{} }catch{}
 
+    // Clarifiers state and renderer
+    const clarifyState = { selections: {} };
+    function renderClarifiers(questions){
+      try{
+        const sect = document.getElementById('clarifySection'); const area = document.getElementById('clarifyArea');
+        if(!sect || !area) return;
+        if(!questions || !questions.length){ sect.style.display='none'; area.innerHTML=''; return; }
+        sect.style.display=''; area.innerHTML = '';
+        questions.forEach((q, qi)=>{
+          const wrap = document.createElement('div'); wrap.style.display='inline-flex'; wrap.style.alignItems='center'; wrap.style.gap='6px'; wrap.style.border='1px solid rgba(255,255,255,0.12)'; wrap.style.borderRadius='999px'; wrap.style.padding='4px 8px';
+          const label = document.createElement('span'); label.textContent = (q && q.question) ? q.question : String(q); label.style.opacity='.85';
+          wrap.appendChild(label);
+          const opts = (q && q.options && Array.isArray(q.options) && q.options.length) ? q.options : ['invariant','atemporal'];
+          opts.forEach(opt=>{
+            const b = document.createElement('button'); b.className='btn'; b.textContent=opt; b.onclick=()=>{ clarifyState.selections[(q&&q.question)||`q${qi}`]=opt; showToast(`Selected: ${opt}`); };
+            wrap.appendChild(b);
+          });
+          area.appendChild(wrap);
+        });
+      }catch{}
+    }
+
+    // Local fallback helpers (offline-friendly)
+    
+    function _isLlmPath(p){ try{ return (p||'').startsWith('/llm/'); }catch{return false} }
     async function post(path, body, timeoutMs=30000){
       const url = apiBase() + path;
       const headers = { 'Content-Type':'application/json' };
@@ -551,12 +662,33 @@
       try{
         res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body), signal: controller.signal });
       } catch (err){
-        setReasons([`Fetch failed: ${String(err && err.message || err)} (${url})`]);
+        // Strict online mode: no automatic local fallback
+        const msg = `Network error: ${String(err && err.message || err)} (${url})`;
+        setReasons([msg]);
+        // Attempt diagnostics: health and preflight
+        try{
+          const base = apiBase();
+          const health = await fetch(base + '/healthz', { method:'GET' }).then(r=>`${r.status} ${r.statusText||''}`).catch(e=>`ERR ${e&&e.message||e}`);
+          const pre = await fetch(base + path, {
+            method:'OPTIONS',
+            headers:{
+              'Origin': (location.origin||'http://127.0.0.1:8777'),
+              'Access-Control-Request-Method':'POST',
+              'Access-Control-Request-Headers': Object.keys(headers).join(', ').toLowerCase()
+            }
+          }).then(async r=>`OPTIONS ${r.status} allow-origin:${r.headers.get('access-control-allow-origin')||''} allow-headers:${r.headers.get('access-control-allow-headers')||''}`).catch(e=>`OPTIONS ERR ${e&&e.message||e}`);
+          setReasons([msg, `Healthz: ${health}`, `Preflight: ${pre}`]);
+        }catch{}
         throw err;
       } finally {
         clearTimeout(tid);
       }
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      if(!res.ok){
+        let snippet = '';
+        try{ snippet = await res.text(); }catch{}
+        setReasons([`HTTP ${res.status} ${res.statusText||''} (${url})`, snippet ? `Body: ${snippet.slice(0,256)}` : '']);
+        throw new Error('HTTP ' + res.status);
+      }
       return res.json();
     }
 
@@ -580,6 +712,7 @@
         if(op==='p2s'){
           const body = { prompt: input, mode:'assist' };
           if(sm && sm!=='auto') body.spec_mode = sm;
+          try{ const tmSel = document.getElementById('temporalMode'); if(tmSel && tmSel.value){ body.temporal_mode = tmSel.value; } }catch{}
           // Attach constraints if controls exist
           try{
             body.constraints = {
@@ -589,9 +722,21 @@
               allowed_connectives: (($('cAllowedConns') && $('cAllowedConns').value) || 'and,or,->,!').split(',').map(s=>s.trim()).filter(Boolean)
             };
           }catch{}
+          // Apply clarifier selections as hints
+          try{
+            const chosen = (clarifyState && clarifyState.selections) || {};
+            const vals = Object.values(chosen).map(String);
+            if(vals.some(v=>/\batemporal\b/i.test(v))){ body.temporal_mode = 'atemporal'; }
+            else if(vals.some(v=>/\binvariant\b/i.test(v))){ body.temporal_mode = 'invariant'; }
+            const qPref = vals.find(v=>/^all$/i.test(v) || /^ex$/i.test(v));
+            if(qPref){ body.constraints = body.constraints || {}; body.constraints.prefer_quantifier = qPref.toLowerCase(); }
+          }catch{}
           const r = await post('/llm/prompt-to-spec', body);
           // fill backing stores
-          $('outTau').value = r.tau || '';
+          try{
+            const synth = (!r.tau || !String(r.tau).trim()) ? (cm_localTce2Tau(input)||{}) : null;
+            $('outTau').value = (r.tau && String(r.tau).trim()) ? r.tau : (synth && synth.tau || '');
+          }catch{ $('outTau').value = r.tau || ''; }
           $('outTce').value = r.tce || '';
           $('outExplanation').value = r.explanation || '';
           // Analysis wiring
@@ -601,6 +746,10 @@
             $('anaRefined').value = rp;
             const ro = Array.isArray(r.refined_options) ? r.refined_options.join('\n') : (r.refined_options || '');
             $('anaOptions').value = ro;
+            if(typeof renderClarifiers === 'function'){
+              const qs = (r.clarifying_questions && Array.isArray(r.clarifying_questions)) ? r.clarifying_questions : [];
+              renderClarifiers(qs);
+            }
           }catch{}
           $('outModule').value = r.module || '';
           setReasons([...(r.reasons||[]), ...(r.errors||[])]);
@@ -611,7 +760,10 @@
           setOutput((r.valid? 'Valid' : 'Invalid') + (r.errors && r.errors.length ? ('\n' + r.errors.join('\n')) : ''));
         } else if(op==='tce2tau'){
           const r = await post('/translate/tce-to-tau', { tce: input });
-          $('outTau').value = r.tau || '';
+          try{
+            const synth = (!r.tau || !String(r.tau).trim()) ? (cm_localTce2Tau(input)||{}) : null;
+            $('outTau').value = (r.tau && String(r.tau).trim()) ? r.tau : (synth && synth.tau || '');
+          }catch{ $('outTau').value = r.tau || ''; }
           window.__outView = 'tau';
           updateEditorOut();
           setReasons(r.errors||[]);
@@ -627,7 +779,12 @@
           window.__outView = 'expl';
           updateEditorOut();
         }
-      }catch(e){ setOutput(''); setReasons([String(e && e.message || e)]); }
+      }catch(e){
+        const prev = (document.getElementById('reasons')?.textContent||'');
+        const prevLines = prev ? prev.split('\n').map(s=>s.replace(/^\-\s*/, '').trim()).filter(Boolean) : [];
+        setOutput('');
+        setReasons([...prevLines, String(e && e.message || e)]);
+      }
       finally{ $('run').disabled = false; }
     };
     $('run').onclick = window.runTranslate;
@@ -669,7 +826,8 @@
       obs.observe(bar);
     }catch{}})();
     document.addEventListener('click', (e)=>{
-      const id = e.target && e.target.id;
+      const btn = e.target && (e.target.closest ? e.target.closest('#outTabs button') : null);
+      const id = btn && btn.id;
       if(id==='outTabTau'){ window.__outView='tau'; updateEditorOut(); showToast('Output: Tau'); }
       if(id==='outTabTce'){ window.__outView='tce'; updateEditorOut(); showToast('Output: TCE'); }
       if(id==='outTabExpl'){ window.__outView='expl'; updateEditorOut(); showToast('Output: Expl'); }
@@ -689,7 +847,13 @@
     // Chat (basic thread)
     let __chatThread = [];
     function renderChat(){ const box=$('chatMessages'); if(!box) return; box.innerHTML = __chatThread.map(m=>{ const who = m.role==='user'? '#00d4ff' : '#a3ffa3'; return `<div style="padding:8px;border:1px solid rgba(255,255,255,0.12);border-radius:8px"><div style="color:${who};font-weight:600">${m.role}</div><div>${(m.content||'').replace(/</g,'&lt;')}</div></div>`; }).join(''); box.scrollTop = box.scrollHeight; }
-    window.chatSend = function(){ const inp=$('chatInput'); if(!inp) return; const text=(inp.value||'').trim(); if(!text) return; __chatThread.push({role:'user', content:text}); renderChat(); inp.value=''; const sendBtn=$('chatSend'); if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='Sending…'; } const messages = __chatThread.map(m=>({role:m.role, content:m.content})); const payload = { threadId:null, messages, mode:'assist' }; try{ window.__tau_last_call = { path:'/llm/chat', body: payload }; }catch{} post('/llm/chat', payload).then(r=>{ const reply = r.reply || ''; __chatThread.push({role:'assistant', content:reply}); renderChat(); }).catch(err=>{ __chatThread.push({role:'assistant', content:`Error: ${String(err && err.message || err)}`}); renderChat(); }).finally(()=>{ if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='Send'; } }); };
+    window.chatSend = function(){ const inp=$('chatInput'); if(!inp) return; const text=(inp.value||'').trim(); if(!text) return; __chatThread.push({role:'user', content:text}); renderChat(); inp.value=''; const sendBtn=$('chatSend'); if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='Sending…'; } const messages = __chatThread.map(m=>({role:m.role, content:m.content})); const payload = { threadId:null, messages, mode:'assist' }; try{ window.__tau_last_call = { path:'/llm/chat', body: payload }; }catch{} post('/llm/chat', payload).then(r=>{ const reply = r.reply || ''; __chatThread.push({role:'assistant', content:reply}); renderChat(); }).catch(err=>{ // Strict: no local fallback; surface precise error
+      const prev = (document.getElementById('reasons')?.textContent||'');
+      const prevLines = prev ? prev.split('\n').map(s=>s.replace(/^\-\s*/, '').trim()).filter(Boolean) : [];
+      __chatThread.push({role:'assistant', content:`Error: ${String(err && err.message || err)}`});
+      renderChat();
+      setReasons([...prevLines, `LLM chat failed. Check API base, privacy mode, BYOK, and CORS.`, `Last call: ${JSON.stringify(window.__tau_last_call || {}, null, 2).slice(0,256)}…`]);
+    }).finally(()=>{ if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='Send'; } }); };
 
     // Deep-link examples (?example=...&run=1)
     (function(){ try{ const params=new URLSearchParams(location.search); const exId=params.get('example'); const run=params.get('run')==='1'; if(exId){ loadExample(exId); if(run){ const b=$('run'); if(b && !b.disabled){ b.click(); } } } }catch{} })();

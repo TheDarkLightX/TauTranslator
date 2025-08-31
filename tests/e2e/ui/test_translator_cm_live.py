@@ -36,7 +36,20 @@ def test_cm_p2s_works(docs_server: str):
         page = browser.new_page()
         page.goto(url, wait_until="domcontentloaded")
         page.wait_for_timeout(400)
-        # Ensure default text is present, click Translate
+        # Seed minimal input and ensure op is prompt-to-spec
+        page.select_option("#op", "p2s")
+        try:
+            page.locator("#cmIn .cm-content").wait_for(timeout=2000)
+        except Exception:
+            pass
+        if page.locator("#cmIn .cm-content").count() > 0:
+            page.click("#cmIn .cm-content")
+            page.keyboard.press("Control+A")
+            page.keyboard.press("Backspace")
+            page.keyboard.type("If a payment is approved then the order is shipped.", delay=1)
+        else:
+            page.fill("#inFallback", "If a payment is approved then the order is shipped.")
+        # Click Translate and assert endpoint
         page.click("#run")
         _wait_last_call_path(page, "/llm/prompt-to-spec")
         # Copy out should work

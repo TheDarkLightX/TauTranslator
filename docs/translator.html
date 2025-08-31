@@ -319,7 +319,7 @@
     </div>
     <div id="examplesList" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px"></div>
     <div style="padding:10px;border-top:1px solid rgba(255,255,255,0.12);font-size:12px;color:#a3a3a3">
-      Tip: Click an example to load it into the editor. Use “Load + Translate” to run immediately.
+      Tip: Click an example to load it into the editor. Use "Load + Translate" to run immediately.
     </div>
   </div>
 
@@ -1030,7 +1030,14 @@
       }
     }, 1500);
 
-    function getEditorText(){ return editor ? editor.getValue() : ($("input") ? $("input").value : ''); }
+    function getEditorText(){
+      try{
+        const ta = $("input");
+        const ev = editor ? (editor.getValue()||'') : '';
+        const tv = ta ? (ta.value||'') : '';
+        return (ev && ev.trim()) ? ev : tv;
+      }catch{ return ''; }
+    }
 
     // Provide contextual sample inputs per operation without overwriting user text
     function setSampleForOp(){
@@ -1327,7 +1334,7 @@
       try{
         loadExample(exId);
         const ex = EXAMPLES.find(x=>x.id===exId); if(!ex) return;
-        try { if(ex.op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', body: { prompt: ex.text } }; } } catch{}
+        try { if(ex.op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', url:(function(){try{return apiBase()+'/llm/prompt-to-spec';}catch(e){return '';}})(), body: { prompt: ex.text } }; } } catch{}
         const runBtn=$('run'); if(runBtn && !runBtn.disabled){ closeExamples(); runBtn.click(); }
       }catch{}
     }
@@ -1375,7 +1382,7 @@
         showToast('Example loaded');
         if(rid){ const runBtn=$('run'); if(runBtn && !runBtn.disabled){
             // E2E oracle: hint expected path for examples autorun
-            try { if(ex.op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', body: { prompt: ex.text } }; } } catch{}
+            try { if(ex.op==='p2s'){ window.__tau_last_call = { path:'/llm/prompt-to-spec', url:(function(){try{return apiBase()+'/llm/prompt-to-spec';}catch(e){return '';}})(), body: { prompt: ex.text } }; } } catch{}
             closeExamples(); runBtn.click();
           } }
       }
@@ -1410,14 +1417,22 @@
           const op = opSel.value;
           const input = (typeof getEditorText === 'function') ? getEditorText().trim() : '';
           if (op === 'p2s') {
-            window.__tau_last_call = { path: '/llm/prompt-to-spec', body: { prompt: input } };
+            const path = '/llm/prompt-to-spec';
+            let url = ''; try { url = apiBase() + path; } catch(e) {}
+            window.__tau_last_call = { path: path, url: url, body: { prompt: input } };
           } else if (op === 'validate') {
-            window.__tau_last_call = { path: '/validate/tce', body: { tce: input } };
+            const path = '/validate/tce';
+            let url = ''; try { url = apiBase() + path; } catch(e) {}
+            window.__tau_last_call = { path: path, url: url, body: { tce: input } };
           } else if (op === 'tce2tau') {
-            window.__tau_last_call = { path: '/translate/tce-to-tau', body: { tce: input } };
+            const path = '/translate/tce-to-tau';
+            let url = ''; try { url = apiBase() + path; } catch(e) {}
+            window.__tau_last_call = { path: path, url: url, body: { tce: input } };
           } else if (op === 's2p') {
             const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input) || /always\s*\(/i.test(input);
-            window.__tau_last_call = { path: '/llm/spec-to-prompt', body: { spec_text: input, spec_type: (isTau ? 'tau' : 'tce') } };
+            const path = '/llm/spec-to-prompt';
+            let url = ''; try { url = apiBase() + path; } catch(e) {}
+            window.__tau_last_call = { path: path, url: url, body: { spec_text: input, spec_type: (isTau ? 'tau' : 'tce') } };
           }
         } catch {}
       };
@@ -1431,6 +1446,18 @@
         const provider = $('provider').value.trim() || undefined;
         const input = getEditorText().trim();
         const lang = ($('lang').value||'TCE').toUpperCase();
+        // Pre-emit last call with remote URL for E2E visibility, even if input is empty
+        try {
+          let prePath = null; let preBody = null;
+          if(op === 'p2s') { prePath = '/llm/prompt-to-spec'; preBody = { prompt: input }; }
+          else if(op === 'validate') { prePath = '/validate/tce'; preBody = { tce: input }; }
+          else if(op === 'tce2tau') { prePath = '/translate/tce-to-tau'; preBody = { tce: input }; }
+          else if(op === 's2p') {
+            const isTauPre = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input) || /always\s*\(/i.test(input);
+            prePath = '/llm/spec-to-prompt'; preBody = { spec_text: input, spec_type: (isTauPre ? 'tau' : 'tce') };
+          }
+          if(prePath){ let url=''; try{ url = apiBase() + prePath; }catch(e){} window.__tau_last_call = { path: prePath, url, body: preBody }; }
+        } catch {}
         if(!input){ throw new Error('Enter input.'); }
 
         if(op === 'p2s'){
@@ -1446,7 +1473,7 @@
             forbid_colon: $('cForbidColon').checked,
             allowed_connectives: $('cAllowedConns').value.split(',').map(s=>s.trim()).filter(Boolean)
           };
-          try{ window.__tau_last_call = { path:'/llm/prompt-to-spec', body: { prompt: input } }; }catch{}
+          try{ window.__tau_last_call = { path:'/llm/prompt-to-spec', url:(function(){try{return apiBase()+'/llm/prompt-to-spec';}catch(e){return '';}})(), body: { prompt: input } }; }catch{}
           const r = await post('/llm/prompt-to-spec', body);
           setOutputs({ tce: r.tce, tau: r.tau, reasons: r.reasons, success: r.success, errors: r.errors || [], intent: r.intent || '', prompt_suggestions: r.prompt_suggestions || [], refined_prompt: r.refined_prompt || '', refined_options: r.refined_options || [] });
           // Auto-switch Output view when meaningful
@@ -1454,18 +1481,18 @@
           else if((r.tce||'').trim()){ window.__outView='tce'; }
           if(typeof window.updateEditorOut==='function') window.updateEditorOut();
         } else if (op === 'validate'){
-          try{ window.__tau_last_call = { path:'/validate/tce', body: { tce: input } }; }catch{}
+          try{ window.__tau_last_call = { path:'/validate/tce', url:(function(){try{return apiBase()+'/validate/tce';}catch(e){return '';}})(), body: { tce: input } }; }catch{}
           const r = await post('/validate/tce', { tce: input });
           setOutputs({ valid: !!r.valid, reasons: [], errors: r.errors || [] });
         } else if (op === 'tce2tau'){
-          try{ window.__tau_last_call = { path:'/translate/tce-to-tau', body: { tce: input } }; }catch{}
+          try{ window.__tau_last_call = { path:'/translate/tce-to-tau', url:(function(){try{return apiBase()+'/translate/tce-to-tau';}catch(e){return '';}})(), body: { tce: input } }; }catch{}
           const r = await post('/translate/tce-to-tau', { tce: input });
           setOutputs({ tau: r.tau, success: r.success, errors: r.errors || [] });
           window.__outView='tau'; if(typeof window.updateEditorOut==='function') window.updateEditorOut();
         } else if (op === 's2p'){
           const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input);
           const payload = { spec_text: input, spec_type: isTau ? 'tau' : 'tce' };
-          try{ window.__tau_last_call = { path:'/llm/spec-to-prompt', body: payload }; }catch{}
+          try{ window.__tau_last_call = { path:'/llm/spec-to-prompt', url:(function(){try{return apiBase()+'/llm/spec-to-prompt';}catch(e){return '';}})(), body: payload }; }catch{}
           const r = await post('/llm/spec-to-prompt', payload);
           const rag = (r && r.provenance && Array.isArray(r.provenance.retrieval)) ? r.provenance.retrieval : null;
           setOutputs({ tce: '', tau: '', reasons: [], prompt_candidate: r.prompt_candidate || '', analysis: r.analysis || null, explanation: r.explanation || '', rag, verification: r.verification || null });
@@ -1519,6 +1546,29 @@
     }
     function saveChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ localStorage.setItem('tau_chat', JSON.stringify(__chatThread)); }catch{} }
     function restoreChat(){ const remember = $('rememberChat') && $('rememberChat').checked; if(!remember) return; try{ const raw=localStorage.getItem('tau_chat'); if(raw){ __chatThread = JSON.parse(raw)||[]; renderChat(); } }catch{} }
+  </script>
+  <script>
+    // Emit last-call meta when operation changes (helps E2E assert remote base for Classic)
+    try{
+      const opSel = document.getElementById('op');
+      if(opSel){
+        opSel.addEventListener('change', ()=>{
+          try{
+            const op = opSel.value;
+            const input = (typeof getEditorText === 'function') ? getEditorText().trim() : '';
+            let path = null; let body = null;
+            if(op==='validate'){ path='/validate/tce'; body={ tce: input } }
+            else if(op==='p2s'){ path='/llm/prompt-to-spec'; body={ prompt: input } }
+            else if(op==='tce2tau'){ path='/translate/tce-to-tau'; body={ tce: input } }
+            else if(op==='s2p'){
+              const isTau = /(^(\s*)module\b|\bdefine\b|;\s*$)/i.test(input) || /\[[^\]]*\]/.test(input) || /always\s*\(/i.test(input);
+              path='/llm/spec-to-prompt'; body={ spec_text: input, spec_type: (isTau ? 'tau' : 'tce') };
+            }
+            if(path){ let url=''; try{ url = apiBase() + path; }catch(e){} window.__tau_last_call = { path, url, body }; }
+          }catch{}
+        });
+      }
+    }catch{}
   </script>
   <!-- Client-only extensions: Symbol Map + Web Speech (loaded after main script) -->
   <script src="js/symbols.js"></script>

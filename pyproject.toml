@@ -58,6 +58,8 @@ select = ["E", "F", "I", "B"]
 line-length = 100
 
 [tool.mutmut]
-paths_to_mutate = ["src/tau_translator_omega/core_engine/ast/ast_nodes.py"]
+paths_to_mutate = ["backend/unified/api/llm_endpoints.py"]
 backup = false
-runner = "PYTHONPATH=src python -m pytest -q"
+runner = "PYTHONPATH=. pytest -c /dev/null -q tests/mutmut_subset/test_subset.py"
+tests_dir = "tests/mutmut_subset"
+use_coverage = true
