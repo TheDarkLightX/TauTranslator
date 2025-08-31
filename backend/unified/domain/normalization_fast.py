@@ -54,6 +54,9 @@ def whitelist_and_canonicalize(text: str) -> Tuple[str, List[str]]:
 def gate_tokens_fast(candidate: str) -> Tuple[str, List[str]]:
     reasons: List[str] = []
     raw = (candidate or "").strip()
+    # Record forbidden colon usage before any normalization that may remove it
+    if ":" in raw:
+        reasons.append("Removed colon per constraint")
     raw, m0 = whitelist_and_canonicalize(raw)
     reasons.extend(m0)
     m = re.match(r"^\s*always\s*\((.*)\)\s*$", raw, flags=re.IGNORECASE | re.DOTALL)
@@ -64,6 +67,9 @@ def gate_tokens_fast(candidate: str) -> Tuple[str, List[str]]:
         reasons.append("Wrapped in always (...) per constraint gate")
     inner_bal, m1 = balance_parentheses_stream(inner)
     reasons.extend(m1)
+    # Explicitly report forbidden colon usage before generic whitelist cleaning
+    if ":" in inner_bal:
+        reasons.append("Removed colon per constraint")
     inner_clean, m2 = whitelist_and_canonicalize(inner_bal)
     reasons.extend(m2)
     return f"always ({inner_clean})", reasons
