@@ -43,6 +43,7 @@
             <option value="ex">ex</option>
           </select>
         </label>
+        <small id="featStatus" style="margin-left:8px;color:#6b7280"></small>
       </div>
     </div>
     <div class="row">
@@ -72,6 +73,13 @@
     async function post(path, body){ const res = await fetch(apiBase()+path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); }
     function setOutput(text){ try{ const of=$('outFallback'); of.value = text||''; }catch{} }
     function setReasons(lines){ $('reasons').textContent = Array.isArray(lines)&&lines.length ? '- ' + lines.join('\n- ') : ''; }
+    function updateFeatureStatus(){
+      const nli = (localStorage.getItem('TAU_ENABLE_NLI')||'0')==='1' ? 'NLI:on' : 'NLI:off';
+      const el = (localStorage.getItem('TAU_ENABLE_REFINED')||'0')==='1' ? 'EL:on' : 'EL:off';
+      $('featStatus').textContent = nli + ' | ' + el;
+    }
+    updateFeatureStatus();
+
     $('run').onclick = async ()=>{
       setOutput(''); setReasons([]);
       const input = ($('inFallback')?.value||'').trim(); if(!input){ setReasons(['Enter input']); return; }
@@ -83,6 +91,7 @@
         if(qpSel==='all' || qpSel==='ex'){ constraints.prefer_quantifier = qpSel; }
         const payload = { prompt: input, mode:'assist', temporal_mode: tm, constraints };
         const r = await post('/llm/prompt-to-spec', payload);
+        updateFeatureStatus();
         setOutput((r.tau||'') || (r.tce||'') || (r.explanation||''));
         setReasons(r.reasons||[]);
       }catch(e){ setReasons([String(e && e.message || e)]); }
