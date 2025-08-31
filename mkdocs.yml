@@ -9,6 +9,9 @@ nav:
       - Current (CodeMirror 6): translator_cm.html
       - Classic (Monaco): translator.html
       - Lab (CodeMirror 6): translator_lab.html
+  - Plans:
+      - Autocomplete Plan: plans/autocomplete_plan.md
+      - Disambiguation Spec: plans/disambiguation_spec.md
   - TCE: tce.md
   - Architecture:
       - Translation Pipeline: architecture/translation_pipeline.md
