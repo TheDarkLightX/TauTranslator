@@ -20,6 +20,13 @@ from ..domain.normalization import normalize_inner_from_prompt
 from ..domain.spec_strategy import get_spec_strategy
 from ..domain.englishify import tce_to_english
 from collections import OrderedDict
+from ..services.disambiguation_services import (
+    infer_temporal_mode,
+    choose_quantifier,
+    get_nli_reranker,
+    dictionary_entity_candidates,
+    Constraints as _Constraints,
+)
 import hashlib
 import os
 def _load_class_from_path(module_name: str, file_path: str, class_name: str):
@@ -254,12 +261,8 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         f"Rule: {t['name']}\nSummary: {t['summary']}\nExamples: {', '.join(t['examples'])}"
         for t in top
     ])
-    # Temporal guidance: favor invariant only when user intent suggests it
-    low = body.prompt.lower()
-    inferred_temporal = (
-        "invariant" if any(w in low for w in ["always", "whenever", "at all times", "must always"]) else "atemporal"
-    )
-    temporal_mode_hint = (body.temporal_mode or inferred_temporal).lower()
+    # Temporal guidance: infer with pure helper, default atemporal unless cues present
+    temporal_mode_hint = infer_temporal_mode(body.prompt, body.temporal_mode)
     system = (
         "You are a TCE generator. Output a single TCE sentence. "
         "For invariant statements, wrap the inner formula with 'always (...)'. "
@@ -376,15 +379,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
 
     # Optional: try entity linking to bias clarifiers (gated by env var)
     def _refined_entities(text: str, topk: int = 3) -> list[str]:
-        # Lightweight dictionary-based fallback for common nouns -> predicate roots
-        dictionary = [
-            "user", "session", "login", "order", "payment", "signal", "sensor", "alarm", "data",
-            "profile", "package", "network"
-        ]
-        words = set(re.findall(r"[A-Za-z]+", text.lower()))
-        cands = [w for w in dictionary if w in words]
-        # Map to canonical predicate names (rooted); UI can decide final arity
-        return [f"{c}_candidate" for c in cands][:max(1, min(topk, len(cands) or 0))]
+        return dictionary_entity_candidates(text, topk=topk)
 
     try:
         if os.getenv("TAU_ENABLE_REFINED", "0") == "1":
@@ -412,43 +407,21 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     # Gate-controlled via TAU_ENABLE_NLI and model paths (HF or ONNX)
     # ------------------------------------------------------------
     def _nli_rerank(premise: str, candidates_tce: list[str]) -> tuple[str, list[str]]:
-        reasons_local: list[str] = []
+        rr = get_nli_reranker()
+        if rr is None or not candidates_tce:
+            return (candidates_tce[0] if candidates_tce else ""), []
+        # Use controlled English hypotheses for lexical similarity
+        hyps: list[str] = []
+        for ct in candidates_tce:
+            try:
+                hyps.append(_tce_to_english(ct))
+            except Exception:
+                hyps.append(ct)
+        best, reasons_local = rr.rerank(premise, hyps)
+        # Map the best hypothesis back to its original TCE candidate by index
         try:
-            if os.getenv("TAU_ENABLE_NLI", "0") != "1":
-                return candidates_tce[0], reasons_local
-            # Use ONNX if provided, otherwise fall back to a lightweight lexical scorer
-            onnx_path = os.getenv("TAU_NLI_ONNX_PATH", "").strip()
-            if onnx_path:
-                try:
-                    import onnxruntime as ort  # type: ignore
-                    # Placeholder: Loading session only to validate availability; real tokenization omitted
-                    _ = ort.InferenceSession(onnx_path)  # noqa: F841
-                    # Without a tokenizer pipeline here, fall back to lexical scoring
-                except Exception:
-                    pass
-            # Prepare hypotheses as English for lexical scoring
-            hyps: list[str] = []
-            for ct in candidates_tce:
-                try:
-                    hyps.append(_tce_to_english(ct))
-                except Exception:
-                    hyps.append(ct)
-            # Simple Jaccard token overlap as a lightweight stand-in
-            def tok(s: str) -> set[str]:
-                return set(re.findall(r"[A-Za-z0-9]+", s.lower()))
-            p = tok(premise)
-            best_idx = 0
-            best_score = -1.0
-            for i, h in enumerate(hyps):
-                hset = tok(h)
-                inter = len(p & hset)
-                union = max(1, len(p | hset))
-                score = inter / union
-                if score > best_score:
-                    best_score = score
-                    best_idx = i
-            reasons_local.append(f"NLI-lite rerank applied over {len(candidates_tce)} candidates")
-            return candidates_tce[best_idx], reasons_local
+            idx = hyps.index(best)
+            return candidates_tce[idx], reasons_local
         except Exception:
             return candidates_tce[0], reasons_local
 
@@ -757,19 +730,11 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     try:
         _m = re.match(r"^\s*always\s*\((.*)\)\s*$", tce, flags=re.IGNORECASE | re.DOTALL)
         inner0 = _m.group(1).strip() if _m else tce.strip()
-        has_quant = bool(re.search(r"\b(all|ex)\b", inner0, flags=re.IGNORECASE))
-        pref_q = (constraints.get('prefer_quantifier') or '').strip().lower()
-        if not has_quant and pref_q not in ("all", "ex"):
-            q_choice = None
-            reason_q = None
-            if re.search(r"\b(for\s+all|each|every|all)\b", low):
-                q_choice, reason_q = "all", "Detected universal cue"
-            elif re.search(r"\b(there\s+exists|exists|some|at\s+least\s+one)\b", low):
-                q_choice, reason_q = "ex", "Detected existential cue"
-            if q_choice in ("all", "ex"):
-                inner_q = f"{q_choice} x ({inner0})"
-                tce = f"always ({inner_q})" if _m else inner_q
-                reasons.append(f"Heuristic quantifier: {q_choice} ({reason_q})")
+        q_choice, reason_q = choose_quantifier(body.prompt, inner0, _Constraints(prefer_quantifier=(constraints.get('prefer_quantifier') if isinstance(constraints, dict) else None)))
+        if q_choice in ("all", "ex"):
+            inner_q = f"{q_choice} x ({inner0})"
+            tce = f"always ({inner_q})" if _m else inner_q
+            reasons.append(f"Heuristic quantifier: {q_choice} ({reason_q})")
     except Exception:
         pass
 
