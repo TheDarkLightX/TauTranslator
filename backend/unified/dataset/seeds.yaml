@@ -52,3 +52,33 @@
 - nl: For every user, exactly one of email verified and phone verified holds.
   tce_en: At all times, for every user, exactly one of email verified and phone verified holds.
   tce_sym: always (all x (((email_verified[0](x) || phone_verified[0](x)) && !(email_verified[0](x) && phone_verified[0](x)))))
+- nl: No users are anonymous.
+  tce_en: At all times, for every user, do not be anonymous.
+  tce_sym: always (all x (user[0](x) -> !anonymous[0](x)))
+- nl: There is at least one admin.
+  tce_en: There exists an admin.
+  tce_sym: ex x (admin[0](x))
+- nl: For every order there exists a shipment for that order.
+  tce_en: At all times, for every order, there exists a shipment for that order.
+  tce_sym: always (all o (order[0](o) -> ex s (shipment_for[0](o,s))))
+- nl: There exists an item that every user likes.
+  tce_en: There exists an item such that for every user, the user likes the item.
+  tce_sym: ex i (all u (likes[0](u,i)))
+- nl: For any user, if the user logs in then the user has a profile.
+  tce_en: At all times, for every user, if the user logs in then the user has a profile.
+  tce_sym: always (all u (login_success[0](u) -> has_profile[0](u)))
+- nl: Some users are banned.
+  tce_en: There exists a user who is banned.
+  tce_sym: ex u (user[0](u) && banned[0](u))
+- nl: Every admin is a user.
+  tce_en: At all times, for every admin, the admin is a user.
+  tce_sym: always (all a (admin[0](a) -> user[0](a)))
+- nl: There is no pending payment.
+  tce_en: At all times, for every payment, the payment is not pending.
+  tce_sym: always (all p (!payment_pending[0](p)))
+- nl: For each user there exists a session for that user.
+  tce_en: At all times, for every user, there exists a session for that user.
+  tce_sym: always (all u (ex s (session_for[0](u,s))))
+- nl: There exists a session that all users share.
+  tce_en: There exists a session such that for every user, the user has the session.
+  tce_sym: ex s (all u (has_session[0](u,s)))

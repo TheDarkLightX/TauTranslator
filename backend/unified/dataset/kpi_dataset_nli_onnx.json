@@ -1,0 +1,7 @@
+{
+  "count": 50.0,
+  "latency_p50_ms": 3.545379266142845,
+  "latency_p90_ms": 5.903384229168296,
+  "temporal_acc": 0.84,
+  "quantifier_acc": 0.56
+}
