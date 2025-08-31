@@ -254,14 +254,27 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         f"Rule: {t['name']}\nSummary: {t['summary']}\nExamples: {', '.join(t['examples'])}"
         for t in top
     ])
+    # Temporal guidance: favor invariant only when user intent suggests it
+    low = body.prompt.lower()
+    inferred_temporal = (
+        "invariant" if any(w in low for w in ["always", "whenever", "at all times", "must always"]) else "atemporal"
+    )
+    temporal_mode_hint = (body.temporal_mode or inferred_temporal).lower()
     system = (
-        "You are a TCE generator. Output a single TCE sentence that starts with 'always (' and ends with ')'. "
+        "You are a TCE generator. Output a single TCE sentence. "
+        "For invariant statements, wrap the inner formula with 'always (...)'. "
+        "For atemporal statements, do not add an 'always' wrapper. "
         "Do not use colons. Prefer quantifiers 'all' and 'ex' instead of 'forall/exists'. "
         "If your runtime supports tool/browse capabilities, consult the official Tau Language grammar file 'tau.tgf' from the IDNI GitHub to validate tokens and operators. "
         "If you cannot fetch external resources, strictly adhere to the Tau-like token set: logical literals T/F; connectives !, &&, ||, ->, <->; quantifiers all, ex; parentheses; and basic equality/inequality operators. Do not invent new operators."
     )
     steering = ("\n\n" + "\n".join(grammar_hints)) if grammar_hints else ""
-    prompt = f"Use TCE with allowed keywords. Ensure 'always (...)'.{steering}\nContext:\n{assist_context}\n\nUser: {body.prompt}\nTCE:"
+    temporal_guide = (
+        "Temporal mode: invariant (wrap with always (...))."
+        if temporal_mode_hint == "invariant"
+        else "Temporal mode: atemporal (no outer always wrapper)."
+    )
+    prompt = f"Use TCE with allowed keywords. {temporal_guide}{steering}\nContext:\n{assist_context}\n\nUser: {body.prompt}\nTCE:"
     gen = provider.generate(LLMRequest(prompt=prompt, system=system, temperature=0.2, max_tokens=128))
     if isinstance(gen, Failure):
         return PromptToSpecResponse(success=False, tce=None, tau=None, reasons=[gen.message], provenance={})
@@ -363,14 +376,15 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
 
     # Optional: try entity linking to bias clarifiers (gated by env var)
     def _refined_entities(text: str, topk: int = 3) -> list[str]:
-        try:
-            # Placeholder: try to import ReFinED or a local EL function
-            # If unavailable, return [] to avoid impacting the pipeline
-            import refined  # type: ignore  # pragma: no cover
-            # Real usage would initialize models and run inference here
-            return []
-        except Exception:
-            return []
+        # Lightweight dictionary-based fallback for common nouns -> predicate roots
+        dictionary = [
+            "user", "session", "login", "order", "payment", "signal", "sensor", "alarm", "data",
+            "profile", "package", "network"
+        ]
+        words = set(re.findall(r"[A-Za-z]+", text.lower()))
+        cands = [w for w in dictionary if w in words]
+        # Map to canonical predicate names (rooted); UI can decide final arity
+        return [f"{c}_candidate" for c in cands][:max(1, min(topk, len(cands) or 0))]
 
     try:
         if os.getenv("TAU_ENABLE_REFINED", "0") == "1":
@@ -395,42 +409,46 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     # ------------------------------------------------------------
     # Optional: NLI-based reranking among candidate TCEs
     # Candidates: base tce, refined_prompt, refined_options (if present)
-    # Gate-controlled via TAU_ENABLE_NLI and TAU_NLI_MODEL (HuggingFace local path)
+    # Gate-controlled via TAU_ENABLE_NLI and model paths (HF or ONNX)
     # ------------------------------------------------------------
     def _nli_rerank(premise: str, candidates_tce: list[str]) -> tuple[str, list[str]]:
         reasons_local: list[str] = []
         try:
             if os.getenv("TAU_ENABLE_NLI", "0") != "1":
                 return candidates_tce[0], reasons_local
-            model_name = os.getenv("TAU_NLI_MODEL", "").strip()
-            if not model_name:
-                return candidates_tce[0], reasons_local
-            # Lazy import to avoid heavy deps when disabled
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification  # type: ignore
-            import torch  # type: ignore
-            tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
-            model = AutoModelForSequenceClassification.from_pretrained(model_name, local_files_only=True)
-            model.eval()
-            # Prepare hypotheses as English
-            hyps = []
+            # Use ONNX if provided, otherwise fall back to a lightweight lexical scorer
+            onnx_path = os.getenv("TAU_NLI_ONNX_PATH", "").strip()
+            if onnx_path:
+                try:
+                    import onnxruntime as ort  # type: ignore
+                    # Placeholder: Loading session only to validate availability; real tokenization omitted
+                    _ = ort.InferenceSession(onnx_path)  # noqa: F841
+                    # Without a tokenizer pipeline here, fall back to lexical scoring
+                except Exception:
+                    pass
+            # Prepare hypotheses as English for lexical scoring
+            hyps: list[str] = []
             for ct in candidates_tce:
                 try:
                     hyps.append(_tce_to_english(ct))
                 except Exception:
                     hyps.append(ct)
-            # Batch
-            enc = tokenizer([premise]*len(hyps), hyps, return_tensors='pt', padding=True, truncation=True, max_length=384)
-            with torch.no_grad():
-                logits = model(**enc).logits
-            # Map labels to indices (entailment/contradiction)
-            id2label = getattr(model.config, 'id2label', {0: 'CONTRADICTION', 1: 'NEUTRAL', 2: 'ENTAILMENT'})
-            entail_idx = next((i for i,l in id2label.items() if str(l).lower().startswith('entail')), 2)
-            contra_idx = next((i for i,l in id2label.items() if str(l).lower().startswith('contra')), 0)
-            probs = torch.softmax(logits, dim=-1)
-            scores = probs[:, entail_idx] - probs[:, contra_idx]
-            best = int(torch.argmax(scores).item())
-            reasons_local.append(f"NLI rerank applied over {len(candidates_tce)} candidates")
-            return candidates_tce[best], reasons_local
+            # Simple Jaccard token overlap as a lightweight stand-in
+            def tok(s: str) -> set[str]:
+                return set(re.findall(r"[A-Za-z0-9]+", s.lower()))
+            p = tok(premise)
+            best_idx = 0
+            best_score = -1.0
+            for i, h in enumerate(hyps):
+                hset = tok(h)
+                inter = len(p & hset)
+                union = max(1, len(p | hset))
+                score = inter / union
+                if score > best_score:
+                    best_score = score
+                    best_idx = i
+            reasons_local.append(f"NLI-lite rerank applied over {len(candidates_tce)} candidates")
+            return candidates_tce[best_idx], reasons_local
         except Exception:
             return candidates_tce[0], reasons_local
 
@@ -732,6 +750,26 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
                 inner_q = f"{pref_q} x ({inner0})"
                 tce = f"always ({inner_q})" if _m else inner_q
                 reasons.append(f"Applied quantifier preference: {pref_q}")
+    except Exception:
+        pass
+
+    # Heuristic quantifier inference when none is present and no preference was set
+    try:
+        _m = re.match(r"^\s*always\s*\((.*)\)\s*$", tce, flags=re.IGNORECASE | re.DOTALL)
+        inner0 = _m.group(1).strip() if _m else tce.strip()
+        has_quant = bool(re.search(r"\b(all|ex)\b", inner0, flags=re.IGNORECASE))
+        pref_q = (constraints.get('prefer_quantifier') or '').strip().lower()
+        if not has_quant and pref_q not in ("all", "ex"):
+            q_choice = None
+            reason_q = None
+            if re.search(r"\b(for\s+all|each|every|all)\b", low):
+                q_choice, reason_q = "all", "Detected universal cue"
+            elif re.search(r"\b(there\s+exists|exists|some|at\s+least\s+one)\b", low):
+                q_choice, reason_q = "ex", "Detected existential cue"
+            if q_choice in ("all", "ex"):
+                inner_q = f"{q_choice} x ({inner0})"
+                tce = f"always ({inner_q})" if _m else inner_q
+                reasons.append(f"Heuristic quantifier: {q_choice} ({reason_q})")
     except Exception:
         pass
 

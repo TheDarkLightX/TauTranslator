@@ -29,6 +29,20 @@
     <div class="card" style="margin:12px 0">
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
         <button class="btn" id="run">Translate</button>
+        <label>Temporal
+          <select id="temporalMode">
+            <option value="auto" selected>Auto</option>
+            <option value="invariant">Invariant</option>
+            <option value="atemporal">Atemporal</option>
+          </select>
+        </label>
+        <label>Quantifier
+          <select id="quantPref">
+            <option value="none" selected>None</option>
+            <option value="all">all</option>
+            <option value="ex">ex</option>
+          </select>
+        </label>
       </div>
     </div>
     <div class="row">
@@ -62,7 +76,13 @@
       setOutput(''); setReasons([]);
       const input = ($('inFallback')?.value||'').trim(); if(!input){ setReasons(['Enter input']); return; }
       try{
-        const r = await post('/llm/prompt-to-spec', { prompt: input, mode:'assist', constraints:{ require_prefix:'always (', require_closing_paren:true, forbid_colon:true } });
+        const tmSel = ($('temporalMode')?.value||'auto');
+        const qpSel = ($('quantPref')?.value||'none');
+        const tm = tmSel==='auto' ? undefined : tmSel;
+        const constraints = { forbid_colon:true };
+        if(qpSel==='all' || qpSel==='ex'){ constraints.prefer_quantifier = qpSel; }
+        const payload = { prompt: input, mode:'assist', temporal_mode: tm, constraints };
+        const r = await post('/llm/prompt-to-spec', payload);
         setOutput((r.tau||'') || (r.tce||'') || (r.explanation||''));
         setReasons(r.reasons||[]);
       }catch(e){ setReasons([String(e && e.message || e)]); }
