@@ -1,0 +1,4 @@
+{"nl": "Blue elephants exist.", "tce_en": "There exists an elephant that is blue.", "tce_sym": "ex x (blue[0](x) && elephant[0](x))"}
+{"nl": "If a payment is approved then the order is shipped.", "tce_en": "At all times, if a payment is approved then the order is shipped.", "tce_sym": "always (payment_approved[0]() -> order_shipped[0]())"}
+{"nl": "Never send personal information.", "tce_en": "At all times, do not send personal information.", "tce_sym": "always (!send_over_network[0](x))"}
+{"nl": "For all users, if login is successful then a session is created.", "tce_en": "At all times, for every user, if login is successful then a session is created.", "tce_sym": "always (all u (login_success[0](u) -> session_created[0](u)))"}
