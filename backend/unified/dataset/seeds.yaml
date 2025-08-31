@@ -1,0 +1,54 @@
+- nl: Blue elephants exist.
+  tce_en: There exists an elephant that is blue.
+  tce_sym: ex x (blue[0](x) && elephant[0](x))
+- nl: If a payment is approved then the order is shipped.
+  tce_en: At all times, if a payment is approved then the order is shipped.
+  tce_sym: always (payment_approved[0]() -> order_shipped[0]())
+- nl: Never send personal information.
+  tce_en: At all times, do not send personal information.
+  tce_sym: always (!send_over_network[0](x))
+- nl: For all users, if login is successful then a session is created.
+  tce_en: At all times, for every user, if login is successful then a session is created.
+  tce_sym: always (all u (login_success[0](u) -> session_created[0](u)))
+- nl: A user exists.
+  tce_en: There exists a user.
+  tce_sym: ex x (user[0](x))
+- nl: For every user, the user has a profile.
+  tce_en: At all times, for every user, the user has a profile.
+  tce_sym: always (all x (user[0](x) -> has_profile[0](x)))
+- nl: The alarm is on or manual override is on.
+  tce_en: At all times, the alarm is on or manual override is on.
+  tce_sym: always (alarm_on[0]() || manual_override[0]())
+- nl: The sensor is high and the alarm is on.
+  tce_en: At all times, the sensor is high and the alarm is on.
+  tce_sym: always (sensor_high[0]() && alarm_on[0]())
+- nl: The alarm is on if and only if the sensor is high.
+  tce_en: At all times, the alarm is on if and only if the sensor is high.
+  tce_sym: always (alarm_on[0]() <-> sensor_high[0]())
+- nl: Robots never injure humans.
+  tce_en: At all times, for every robot r and every human h, do not injure r and h.
+  tce_sym: always (all r (all h (!injure[0](r,h))))
+- nl: For every login, there exists a session for that login.
+  tce_en: At all times, for every login user u, there exists a session for u.
+  tce_sym: always (all u (login_success[0](u) -> ex y (session_created[0](u))))
+- nl: The output equals the input at time t.
+  tce_en: At all times, o1 at time t equals i1 at time t.
+  tce_sym: always (o1[t] = i1[t])
+- nl: If the input is not 0 then the output is not 1.
+  tce_en: At all times, if the input is not 0 then the output is not 1.
+  tce_sym: always ((i1[t] != 0) -> (o1[t] != 1))
+- nl: There is at least one active session.
+  tce_en: There exists an active session.
+  tce_sym: ex x (session_active[0](x))
+- nl: Exactly one of the alarm and the manual override is on.
+  tce_en: At all times, exactly one of the alarm and the manual override is on.
+  tce_sym: always (((alarm_on[0]() || manual_override[0]()) && !(alarm_on[0]() && manual_override[0]())))
+- nl: The alarm is on only if the sensor is high.
+  tce_en: At all times, the alarm is on only if the sensor is high.
+  tce_sym: always (alarm_on[0]() <- sensor_high[0]())
+- nl: If and only if the door is locked, the light is off.
+  tce_en: At all times, the door is locked if and only if the light is off.
+  tce_sym: always (door_locked[0]() <-> light_off[0]())
+- nl: For every user, exactly one of email verified and phone verified holds.
+  tce_en: At all times, for every user, exactly one of email verified and phone verified holds.
+  tce_sym: always (all x (((email_verified[0](x) || phone_verified[0](x)) && !(email_verified[0](x) && phone_verified[0](x)))))

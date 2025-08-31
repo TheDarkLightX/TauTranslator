@@ -41,6 +41,58 @@ def balance_parentheses_stream(text: str) -> Tuple[str, List[str]]:
     return "".join(out_chars), msgs
 
 
+def _split_top(text: str, token: str) -> list[str]:
+    out = []
+    buf = []
+    depth = 0
+    i = 0
+    L = len(text)
+    while i < L:
+        ch = text[i]
+        if ch == '(': depth += 1
+        elif ch == ')': depth -= 1
+        if depth == 0 and text.startswith(token, i):
+            out.append(''.join(buf).strip()); buf = []
+            i += len(token); continue
+        buf.append(ch); i += 1
+    out.append(''.join(buf).strip())
+    return out
+
+
+def _rewrite_biconditional_and_reverse(text: str) -> str:
+    # First, rewrite simple parenthesized forms anywhere inside
+    import re as _re
+    prev = None
+    out = text
+    # (A <-> B) => ((A -> B) && (B -> A))
+    pat_bi = _re.compile(r"\(([^()]+?)\)\s*<->\s*\(([^()]+?)\)")
+    pat_bi_simple = _re.compile(r"\(([^()]+?)\s*<->\s*([^()]+?)\)")
+    pat_rev = _re.compile(r"\(([^()]+?)\)\s*<-\s*\(([^()]+?)\)")
+    pat_rev_simple = _re.compile(r"\(([^()]+?)\s*<-\s*([^()]+?)\)")
+    for _ in range(4):  # few iterations to settle local rewrites
+        prev = out
+        out = pat_bi.sub(r"((\1 -> \2) && (\2 -> \1))", out)
+        out = pat_bi_simple.sub(r"((\1 -> \2) && (\2 -> \1))", out)
+        out = pat_rev.sub(r"(\2 -> \1)", out)
+        out = pat_rev_simple.sub(r"(\2 -> \1)", out)
+        if out == prev:
+            break
+    text = out
+    # Rewrite X <-> Y  => (X -> Y) && (Y -> X) at top level
+    parts = _split_top(text, '<->')
+    if len(parts) == 2:
+        left = parts[0].strip()
+        right = parts[1].strip()
+        return f"(({left} -> {right}) && ({right} -> {left}))"
+    # Rewrite X <- Y => (Y -> X)
+    parts2 = _split_top(text, '<-')
+    if len(parts2) == 2:
+        left = parts2[0].strip()
+        right = parts2[1].strip()
+        return f"({right} -> {left})"
+    return text
+
+
 def whitelist_and_canonicalize(text: str) -> Tuple[str, List[str]]:
     msgs: List[str] = []
     cleaned = _RE_WHITELIST.sub(" ", text)
@@ -67,6 +119,8 @@ def gate_tokens_fast(candidate: str) -> Tuple[str, List[str]]:
         reasons.append("Wrapped in always (...) per constraint gate")
     inner_bal, m1 = balance_parentheses_stream(inner)
     reasons.extend(m1)
+    # Normalize top-level biconditional and reverse implication to supported forms
+    inner_bal = _rewrite_biconditional_and_reverse(inner_bal)
     # Explicitly report forbidden colon usage before generic whitelist cleaning
     if ":" in inner_bal:
         reasons.append("Removed colon per constraint")
