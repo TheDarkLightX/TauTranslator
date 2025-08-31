@@ -21,6 +21,7 @@ from ..domain.spec_strategy import get_spec_strategy
 from ..domain.englishify import tce_to_english
 from collections import OrderedDict
 import hashlib
+import os
 def _load_class_from_path(module_name: str, file_path: str, class_name: str):
     try:
         spec = importlib.util.spec_from_file_location(module_name, file_path)
@@ -183,11 +184,15 @@ class PromptToSpecBody(BaseModel):
     provider: str | None = None
     # Optional hint to bias synthesis toward logical WFF vs recurrence-style constraints
     spec_mode: str | None = None  # "wff" | "rr"
+    # Temporal mode: "invariant" (default) wraps in always(...), "atemporal" emits bare WFF
+    temporal_mode: str | None = None  # "invariant" | "atemporal"
     # Optional grammar steering
     grammar_inline: dict | None = None  # { name, mime, size, content }
     grammar_ref: dict | None = None     # { id, version }
     # Optional LMQL-lite constraints
     constraints: dict | None = None     # { require_prefix, require_closing_paren, forbid_colon, allowed_connectives }
+    # Optional: treat newlines in prompt as conjunction (AND)
+    multiline_and: bool = False
 
 
 @router.post("/prompt-to-spec", response_model=PromptToSpecResponse)
@@ -251,7 +256,9 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     ])
     system = (
         "You are a TCE generator. Output a single TCE sentence that starts with 'always (' and ends with ')'. "
-        "Do not use colons. Prefer quantifiers 'all' and 'ex' instead of 'forall/exists'."
+        "Do not use colons. Prefer quantifiers 'all' and 'ex' instead of 'forall/exists'. "
+        "If your runtime supports tool/browse capabilities, consult the official Tau Language grammar file 'tau.tgf' from the IDNI GitHub to validate tokens and operators. "
+        "If you cannot fetch external resources, strictly adhere to the Tau-like token set: logical literals T/F; connectives !, &&, ||, ->, <->; quantifiers all, ex; parentheses; and basic equality/inequality operators. Do not invent new operators."
     )
     steering = ("\n\n" + "\n".join(grammar_hints)) if grammar_hints else ""
     prompt = f"Use TCE with allowed keywords. Ensure 'always (...)'.{steering}\nContext:\n{assist_context}\n\nUser: {body.prompt}\nTCE:"
@@ -263,6 +270,8 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
     raw = gen.unwrap().text
 
     def _sanitize_to_tce(generated: str, user: str) -> str:
+        # Respect explicit temporal mode: avoid adding 'always' when atemporal
+        is_atemporal = (getattr(body, "temporal_mode", None) or "").lower() == "atemporal"
         # Prefer explicit user segment
         if "User:" in generated:
             try:
@@ -271,7 +280,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
                 after = after.split("TCE:", 1)[0]
                 after = after.splitlines()[0].strip()
                 if after:
-                    return f"always ({after})"
+                    return after if is_atemporal else f"always ({after})"
             except Exception:
                 pass
         # Try extracting an existing always(...) span
@@ -280,11 +289,17 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             tail = generated[idx:]
             # take until the next ')' if present
             close = tail.find(')')
-            if close != -1:
-                return tail[: close + 1]
-            return tail
+            span = tail[: close + 1] if close != -1 else tail
+            if is_atemporal:
+                # strip outer 'always (' ... ')' conservatively
+                try:
+                    inner = span[len('always ('):-1] if span.endswith(')') else span
+                    return inner.strip()
+                except Exception:
+                    return user
+            return span
         # Fallback to user prompt
-        return f"always ({user})"
+        return user if is_atemporal else f"always ({user})"
 
     # NLP-lite intent detection and prompt refinement suggestions
     # Extract simple intents: allow/deny, condition/guard, temporal always
@@ -346,8 +361,149 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         "object_token": object_token,
     }
 
+    # Optional: try entity linking to bias clarifiers (gated by env var)
+    def _refined_entities(text: str, topk: int = 3) -> list[str]:
+        try:
+            # Placeholder: try to import ReFinED or a local EL function
+            # If unavailable, return [] to avoid impacting the pipeline
+            import refined  # type: ignore  # pragma: no cover
+            # Real usage would initialize models and run inference here
+            return []
+        except Exception:
+            return []
+
+    try:
+        if os.getenv("TAU_ENABLE_REFINED", "0") == "1":
+            ents = _refined_entities(body.prompt, topk=int(os.getenv("TAU_REFINED_TOPK", "3")))
+            if ents:
+                nlp_analysis["entities"] = ents
+                # Offer a clarifier to choose entity grounding
+                clar_q = {
+                    "question": "Which entity do you mean?",
+                    "options": ents,
+                }
+                # Stash temporarily; merged later below with optimizer questions
+                opt_questions = (opt_questions or []) + [clar_q.get("question", "Which entity?")]
+                # Keep a lightweight facet for downstream consumers
+                suggestions.append("Entity grounding available")
+    except Exception:
+        pass
+
     # Prefer deterministic optimizer if available and valid-looking
     tce = opt_tce or _sanitize_to_tce(raw, body.prompt)
+
+    # ------------------------------------------------------------
+    # Optional: NLI-based reranking among candidate TCEs
+    # Candidates: base tce, refined_prompt, refined_options (if present)
+    # Gate-controlled via TAU_ENABLE_NLI and TAU_NLI_MODEL (HuggingFace local path)
+    # ------------------------------------------------------------
+    def _nli_rerank(premise: str, candidates_tce: list[str]) -> tuple[str, list[str]]:
+        reasons_local: list[str] = []
+        try:
+            if os.getenv("TAU_ENABLE_NLI", "0") != "1":
+                return candidates_tce[0], reasons_local
+            model_name = os.getenv("TAU_NLI_MODEL", "").strip()
+            if not model_name:
+                return candidates_tce[0], reasons_local
+            # Lazy import to avoid heavy deps when disabled
+            from transformers import AutoTokenizer, AutoModelForSequenceClassification  # type: ignore
+            import torch  # type: ignore
+            tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+            model = AutoModelForSequenceClassification.from_pretrained(model_name, local_files_only=True)
+            model.eval()
+            # Prepare hypotheses as English
+            hyps = []
+            for ct in candidates_tce:
+                try:
+                    hyps.append(_tce_to_english(ct))
+                except Exception:
+                    hyps.append(ct)
+            # Batch
+            enc = tokenizer([premise]*len(hyps), hyps, return_tensors='pt', padding=True, truncation=True, max_length=384)
+            with torch.no_grad():
+                logits = model(**enc).logits
+            # Map labels to indices (entailment/contradiction)
+            id2label = getattr(model.config, 'id2label', {0: 'CONTRADICTION', 1: 'NEUTRAL', 2: 'ENTAILMENT'})
+            entail_idx = next((i for i,l in id2label.items() if str(l).lower().startswith('entail')), 2)
+            contra_idx = next((i for i,l in id2label.items() if str(l).lower().startswith('contra')), 0)
+            probs = torch.softmax(logits, dim=-1)
+            scores = probs[:, entail_idx] - probs[:, contra_idx]
+            best = int(torch.argmax(scores).item())
+            reasons_local.append(f"NLI rerank applied over {len(candidates_tce)} candidates")
+            return candidates_tce[best], reasons_local
+        except Exception:
+            return candidates_tce[0], reasons_local
+
+    try:
+        cands: list[str] = [tce]
+        if isinstance(refined_prompt, str) and refined_prompt.strip():
+            cands.append(refined_prompt.strip())
+        if isinstance(refined_options, list) and refined_options:
+            for ro in refined_options:
+                if isinstance(ro, str) and ro.strip():
+                    cands.append(ro.strip())
+        # Deduplicate while preserving order
+        seen = set(); ordered = []
+        for ct in cands:
+            k = ct.strip()
+            if k not in seen:
+                ordered.append(k); seen.add(k)
+        # If temporal_mode=atemporal, add an atemporal variant for each candidate
+        atemporal_mode = (body.temporal_mode or "").lower() == "atemporal"
+        if atemporal_mode:
+            extra = []
+            for ct in ordered:
+                m = re.match(r"^\s*always\s*\((.*)\)\s*$", ct, flags=re.IGNORECASE | re.DOTALL)
+                if m:
+                    extra.append(m.group(1).strip())
+            ordered.extend(extra)
+        # Rerank
+        best_tce, nli_msgs = _nli_rerank(body.prompt, ordered)
+        if nli_msgs:
+            reasons.extend(nli_msgs)
+        if best_tce:
+            tce = best_tce
+    except Exception:
+        pass
+
+    # Multiline prompt handling: synthesize conjunction of line-wise rules
+    multiline = bool(body.multiline_and) and ('\n' in body.prompt.strip())
+    if multiline:
+        lines = [ln.strip() for ln in body.prompt.splitlines() if ln.strip()]
+        inners: list[str] = []
+        for ln in lines:
+            low_ln = ln.lower()
+            # Heuristic 1: prohibition/never → universal negation
+            if (re.search(r"\bnever\b", low_ln) and ("send" in low_ln) and ("network" in low_ln)):
+                inners.append("all x (!send_over_network[0](x))")
+                continue
+            # Heuristic 2: simple implication "if ... then ..."
+            m_if = re.search(r"\bif\b\s*(.+?)\s*\bthen\b\s*(.+)$", ln, flags=re.IGNORECASE)
+            if m_if:
+                lhs_txt = m_if.group(1).strip()
+                rhs_txt = m_if.group(2).strip()
+                def _map_atom(s: str) -> str:
+                    s_low = s.lower()
+                    if ("payment" in s_low) and (re.search(r"approve|approved|approval", s_low)):
+                        return "payment_approved[0]()"
+                    if ("payment" in s_low) and (re.search(r"receiv|received", s_low)):
+                        return "payment_received[0]()"
+                    if (("order" in s_low) and re.search(r"ship|shipped|shipment", s_low)) or (("package" in s_low) and re.search(r"ship|shipped|shipment", s_low)):
+                        return "order_shipped[0]()" if ("order" in s_low) else "package_shipped[0]()"
+                    # Fallback: slug top 3 alphanum tokens
+                    toks = re.findall(r"[A-Za-z0-9]+", s_low)
+                    name = "_".join(toks[:3]) if toks else "predicate"
+                    return f"{name}[0]()"
+                lhs = _map_atom(lhs_txt)
+                rhs = _map_atom(rhs_txt)
+                inners.append(f"({lhs} -> {rhs})")
+                continue
+            # Fallback: direct atom
+            toks = re.findall(r"[A-Za-z0-9]+", low_ln)
+            name = "_".join(toks[:3]) if toks else "predicate"
+            inners.append(f"{name}[0]()")
+        if inners:
+            tce = f"always ({' && '.join(inners)})"
     # Minimal repair rules and normalization toward Tau grammar
     orig_prompt_low = body.prompt.lower()
     if ':' in tce:
@@ -377,7 +533,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             return "T"
         if ("never" in orig_prompt_low) and ("send" in orig_prompt_low) and ("network" in orig_prompt_low):
             # Never send data over the network -> forall x !send_over_network(x)
-            return "all x (!send_over_network[0](x))"
+            return "all x (!send_over_network(x))"
         if (("don't" in orig_prompt_low) or ("do not" in orig_prompt_low) or ("must not" in orig_prompt_low) or ("cannot" in orig_prompt_low) or ("never" in orig_prompt_low)) \
             and ("process" in orig_prompt_low) and ("contraband" in orig_prompt_low) and ("bits" in orig_prompt_low):
             # Don't process any contraband bits -> forall x !process_contraband_bits(x)
@@ -397,7 +553,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             return "all x (user[0](x) -> has_profile[0](x))"
         if ("sensor" in orig_prompt_low) and ("manual override" in orig_prompt_low) and ("alarm" in orig_prompt_low) and (("high" in orig_prompt_low) or ("is high" in orig_prompt_low)):
             # If sensor is high OR manual override is on then alarm turns on
-            return "((sensor_high[0]() || manual_override[0]()) -> alarm_on[0]())"
+            return "((sensor_high() || manual_override()) -> alarm_on())"
         # Asimov First Law style phrasing
         if ("injure" in orig_prompt_low and "human" in orig_prompt_low) and ("inaction" in orig_prompt_low or "through inaction" in orig_prompt_low) and ("allow" in orig_prompt_low and "harm" in orig_prompt_low):
             # A robot may not injure a human or, through inaction, allow a human to come to harm.
@@ -443,7 +599,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
             snake = "_".join(words)
             mapped = _phrase_map(segment)
             name = mapped or snake
-            return "T" if not name else f"{name}[0]()"
+            return "T" if not name else f"{name}(x)"
         def _atomize_boolean(expr: str) -> str:
             # split on || and && while keeping them
             parts = re.split(r"(\|\||&&)", expr)
@@ -522,9 +678,20 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
                 words = re.findall(r"[A-Za-z0-9]+", orig_prompt_low)
                 base = "_".join([w for w in words[:3]]) or "predicate"
                 inner = f"{base}[0](x)"
+        # Existence cue: map "exist(s)" with adjectives/nouns to unary properties
+        if re.search(r"\b(exist|exists|there\s+exists)\b", orig_prompt_low) and not re.search(r"->|\ball\b|\bex\b|\[t", inner, flags=re.IGNORECASE):
+            # Extract likely descriptors
+            desc = re.findall(r"[A-Za-z]+", orig_prompt_low)
+            desc = [d.lower() for d in desc if d.lower() not in {"there","exists","exist","a","an","the","of","and","or"}]
+            # Heuristic: last noun and preceding adjective
+            parts = []
+            for d in desc[-3:]:
+                parts.append(f"{d}(x)")
+            if parts:
+                return " && ".join(parts)
         # ensure parentheses around implications for safety
         return inner.strip()
-    if tce.lower().startswith('always (') and tce.endswith(')'):
+    if (not multiline) and tce.lower().startswith('always (') and tce.endswith(')'):
         inner_norm = _normalize_inner(tce)
         tce = f"always ({inner_norm})"
     # Apply LMQL-lite constraints if provided
@@ -555,8 +722,25 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         if 'or' in allowed:
             tce = re.sub(r"\bOR\b", "or", tce)
 
+    # Quantifier preference (clarifier): wrap inner when no explicit quantifier is present
+    try:
+        pref_q = (constraints.get('prefer_quantifier') or '').strip().lower()
+        if pref_q in ("all", "ex"):
+            _m = re.match(r"^\s*always\s*\((.*)\)\s*$", tce, flags=re.IGNORECASE | re.DOTALL)
+            inner0 = _m.group(1).strip() if _m else tce.strip()
+            if not re.search(r"\b(all|ex)\b", inner0, flags=re.IGNORECASE):
+                inner_q = f"{pref_q} x ({inner0})"
+                tce = f"always ({inner_q})" if _m else inner_q
+                reasons.append(f"Applied quantifier preference: {pref_q}")
+    except Exception:
+        pass
+
     # Final DFA-like gate: ensure only allowed tokens and a balanced structure inside always(...)
     def _gate_tokens(candidate: str) -> tuple[str, list[str]]:
+        # Choose gate based on temporal_mode
+        if (body.temporal_mode or "invariant").lower() == "atemporal":
+            from ..domain.normalization import gate_tokens_atemporal
+            return gate_tokens_atemporal(candidate)
         return gate_tokens(candidate)
 
     tce, gate_msgs = _gate_tokens(tce)
@@ -571,6 +755,11 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
                 reasons.extend(tau_result.errors)
             else:
                 tau = tau_result.tau_code
+                # Respect explicit atemporal mode by stripping outer always(...)
+                if (body.temporal_mode or "").lower() == "atemporal" and isinstance(tau, str):
+                    tl = tau.strip()
+                    if tl.lower().startswith("always (") and tl.endswith(")"):
+                        tau = tl[len("always ("):-1].strip()
         except Exception as e:
             reasons.append(f"Validation/translation failed: {e}")
     # Fallback: if canonical unavailable or failed, try simple translation, then tau-like acceptance
@@ -578,22 +767,28 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
         try:
             ok, tau_simple, errs = translate_tce_to_tau_simple(tce)
             if ok and tau_simple:
-                tau = tau_simple
+                if (body.temporal_mode or "").lower() == "atemporal":
+                    tl = tau_simple.strip()
+                    tau = tl[len("always ("):-1].strip() if tl.lower().startswith("always (") and tl.endswith(")") else tl
+                else:
+                    tau = tau_simple
             else:
-                # If output is already tau-like e.g., contains '->' inside always(...), accept as tau
+                # Acceptance path: normalize tokens and honor temporal mode
                 tl = tce.strip()
+                inner = tl
                 if tl.lower().startswith('always (') and tl.endswith(')'):
                     inner = tl[len('always ('):-1].strip()
-                    # Normalize tokens to Tau grammar for acceptance path
-                    inner = re.sub(r"\b(and|AND)\b", "&&", inner)
-                    inner = re.sub(r"\b(or|OR)\b", "||", inner)
-                    inner = re.sub(r"\b(forall|for\s+all)\b", "all", inner)
-                    inner = re.sub(r"\b(there\s+exists|exists)\b", "ex", inner)
-                    inner = re.sub(r"\b(true)\b", "T", inner, flags=re.IGNORECASE)
-                    inner = re.sub(r"\b(false)\b", "F", inner, flags=re.IGNORECASE)
-                    tau = f"always ({inner})"
+                # Normalize tokens to Tau grammar for acceptance path
+                inner = re.sub(r"\b(and|AND)\b", "&&", inner)
+                inner = re.sub(r"\b(or|OR)\b", "||", inner)
+                inner = re.sub(r"\b(forall|for\s+all)\b", "all", inner)
+                inner = re.sub(r"\b(there\s+exists|exists)\b", "ex", inner)
+                inner = re.sub(r"\b(true)\b", "T", inner, flags=re.IGNORECASE)
+                inner = re.sub(r"\b(false)\b", "F", inner, flags=re.IGNORECASE)
+                if (body.temporal_mode or "").lower() == "atemporal":
+                    tau = inner
                 else:
-                    reasons.extend(errs)
+                    tau = f"always ({inner})"
         except Exception:
             pass
 
@@ -626,9 +821,7 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
                     opts = ["all", "ex"]
                 elif "guard" in ql:
                     opts = ["yes", "no"]
-                elif "condition" in ql or "action" in ql:
-                    # provide placeholders; UI can autocomplete
-                    opts = ["payment_approved", "order_shipped"]
+                # For condition/action we no longer inject placeholder symbols; UI can suggest from context
                 clarifying_questions.append({"question": q, "options": opts})
             # Chosen cut (best-effort snapshot of decisions)
             chosen_cut = {
@@ -642,7 +835,18 @@ async def prompt_to_spec(body: PromptToSpecBody, request: Request):
 
     # Finalize TCE as controlled English (plain text)
     try:
-        tce_english = tce_to_english(tce)
+        # If explicit atemporal or tce is not wrapped, produce neutral English
+        is_atemporal = (body.temporal_mode or "").lower() == "atemporal"
+        _m_al = re.match(r"^\s*always\s*\((.*)\)\s*$", tce, flags=re.IGNORECASE | re.DOTALL)
+        if is_atemporal or _m_al is None:
+            inner = _m_al.group(1) if _m_al else tce
+            phrase = _to_english_phrase(inner)
+            sent = phrase[:1].upper() + phrase[1:] if phrase else ""
+            if sent and not sent.endswith('.'):
+                sent += '.'
+            tce_english = sent
+        else:
+            tce_english = tce_to_english(tce)
     except Exception:
         tce_english = tce
 
@@ -678,6 +882,20 @@ class SpecToPromptBody(BaseModel):
 
 @router.post("/spec-to-prompt", response_model=SpecToPromptResponse)
 async def spec_to_prompt(body: SpecToPromptBody):
+    # AST-driven deterministic path (preferred)
+    try:
+        from ..domain.spec_to_prompt_ast import build_spec_to_prompt
+        _res = build_spec_to_prompt(body.spec_text, body.spec_type)
+        return SpecToPromptResponse(
+            success=True,
+            explanation=_res.get("explanation", ""),
+            provenance={"spec_type": body.spec_type},
+            prompt_candidate=_res.get("prompt", ""),
+            analysis=_res.get("analysis", {}),
+            verification=_res.get("verification", {}),
+        )
+    except Exception:
+        pass
     # Heuristic, deterministic explanation for common Tau/TCE forms
     def _humanize_identifier(identifier: str) -> str:
         return re.sub(r"_+", " ", identifier).strip()
@@ -853,12 +1071,17 @@ async def spec_to_prompt(body: SpecToPromptBody):
         "helpers_present": {"full3": has_full3, "xor2": has_xor2},
     }
 
-    # prompt candidate as concise one-liner
-    pc = "Deflationary agent kernel with inputs " + \
-         (", ".join(sorted(set(decl_inputs))) or "(none)") + \
-         ", outputs " + (", ".join(sorted(set(decl_outputs))) or "(none)") + \
-         "; r(...) defines " + str(eq_count) + " temporal equations using [t] and [t-1]; helpers: " + \
-         (", ".join(sorted(set(helpers))) or "none") + "."
+    # prompt candidate as concise one-liner (neutral, data-driven)
+    pc = (
+        "Summary: "
+        + ("inputs: " + ", ".join(sorted(set(decl_inputs))) if decl_inputs else "inputs: (none)")
+        + "; "
+        + ("outputs: " + ", ".join(sorted(set(decl_outputs))) if decl_outputs else "outputs: (none)")
+        + f"; r(...) equations: {eq_count}"
+        + (", uses [t-1]" if uses_prev_time else "")
+        + "; helpers: " + (", ".join(sorted(set(helpers))) if helpers else "none")
+        + "."
+    )
 
     verification = {
         "equations": analysis.get("equations"),

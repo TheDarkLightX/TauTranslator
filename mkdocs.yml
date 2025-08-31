@@ -5,7 +5,10 @@ repo_name: TauTranslatorOmega
 nav:
   - Home: home.md
   - Whitepaper: WHITEPAPER.html
-  - Translator: translator.html
+  - Translator:
+      - Current (CodeMirror 6): translator_cm.html
+      - Classic (Monaco): translator.html
+      - Lab (CodeMirror 6): translator_lab.html
   - TCE: tce.md
   - Architecture:
       - Translation Pipeline: architecture/translation_pipeline.md

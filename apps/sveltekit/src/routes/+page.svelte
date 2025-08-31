@@ -5,6 +5,7 @@
   import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
   import { autocompletion } from '@codemirror/autocomplete'
+  import { rankCandidates } from '../lib/ranker'
 
   let apiBase = ''
   let byok = ''
@@ -25,6 +26,9 @@
   let showAssist = false
   let chatInput = ''
   let chatThread = []
+  // Clarifiers (UI → request shaping)
+  let clarTemporal = 'auto' // 'auto' | 'invariant' | 'atemporal'
+  let clarQuantifier = '' // '' | 'all' | 'ex'
   const EXAMPLES = [
     { id:'p2s_basic_1', title:'Payment approved → order shipped', text:'If a payment is approved then the order is shipped.' },
     { id:'privacy_invariant', title:'Privacy: never send private data', text:'Never send private data over the network.' }
@@ -50,6 +54,12 @@
     const input = (inView ? inView.state.doc.toString() : ((inFallback && inFallback.value)||'')).trim()
     if(!input){ reasons = 'Enter input'; return }
     const body = { prompt: input, mode:'assist' }
+    // Clarifiers → request shaping
+    if(clarTemporal === 'atemporal') body['temporal_mode'] = 'atemporal'
+    else if(clarTemporal === 'invariant') body['temporal_mode'] = 'invariant'
+    if(clarQuantifier){
+      body['constraints'] = Object.assign({}, body['constraints']||{}, { prefer_quantifier: clarQuantifier })
+    }
     try{
       const r = await post('/llm/prompt-to-spec', body)
       outTau = r.tau || ''
@@ -84,6 +94,26 @@
     }catch{ if(outFallback) outFallback.value = v||'' }
   }
 
+  // CodeMirror completion provider (ranked by rule+semantic ranker)
+  function cmCompletionSource(context){
+    try{
+      const doc = inView ? inView.state.doc.toString() : ''
+      const cands = [
+        { text: 'ex x ( )', kind: 'snippet' },
+        { text: 'all x ( )', kind: 'snippet' },
+        { text: '(cond) -> (act)', kind: 'snippet' },
+        { text: '&&', kind: 'operator' },
+        { text: '||', kind: 'operator' },
+        { text: '!', kind: 'operator' },
+      ]
+      const ranked = rankCandidates(doc, cands)
+      const word = context.matchBefore(/\w+[\w_]*/)
+      const from = word ? word.from : context.pos
+      const options = ranked.map(r => ({ label: r.text, apply: r.text }))
+      return { from, options }
+    }catch{ return null }
+  }
+
   onMount(()=>{
     apiBase = load('tau_api_base','https://tau-translator-api.fly.dev')
     byok = load('tau_byok_openrouter','')
@@ -95,7 +125,7 @@
           extensions: [
             history(), keymap.of([...defaultKeymap, ...historyKeymap]),
             drawSelection(), highlightActiveLine(), syntaxHighlighting(defaultHighlightStyle),
-            autocompletion()
+            autocompletion({ override: [cmCompletionSource] })
           ]
         }),
         parent: cmInEl
@@ -189,6 +219,27 @@
     <details open>
       <summary>Privacy</summary>
       <label><input type="checkbox" checked={load('tau_privacy_mode','0')==='1'} on:change={(e)=>save('tau_privacy_mode', e.currentTarget.checked?'1':'0')} /> Privacy mode (strip BYOK/grammar)</label>
+    </details>
+    <details>
+      <summary>Clarifiers</summary>
+      <div style="display:grid; grid-template-columns:repeat(2, minmax(160px, 1fr)); gap:8px">
+        <label>
+          Temporal
+          <select bind:value={clarTemporal}>
+            <option value="auto">auto</option>
+            <option value="invariant">invariant (always)</option>
+            <option value="atemporal">atemporal (no always)</option>
+          </select>
+        </label>
+        <label>
+          Quantifier preference
+          <select bind:value={clarQuantifier}>
+            <option value="">none</option>
+            <option value="all">all</option>
+            <option value="ex">ex</option>
+          </select>
+        </label>
+      </div>
     </details>
   </div>
   {/if}
