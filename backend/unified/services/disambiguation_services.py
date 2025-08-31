@@ -83,10 +83,26 @@ def choose_quantifier(prompt: str, inner: str, constraints: Constraints) -> Tupl
     if pref in {"all", "ex"}:
         return pref, f"Preference: {pref}"
     low = (prompt or "").lower()
-    if re.search(r"\b(for\s+all|each|every|all)\b", low):
-        return "all", "Detected universal cue"
-    if re.search(r"\b(there\s+exists|exists|some|at\s+least\s+one)\b", low):
-        return "ex", "Detected existential cue"
+    # Prefer the earliest cue in the text to disambiguate phrases containing both
+    u_idxs = [m.start() for m in [
+        re.search(r"\bfor\s+all\b", low),
+        re.search(r"\beach\b", low),
+        re.search(r"\bevery\b", low),
+        re.search(r"\ball\b", low),
+    ] if m]
+    e_idxs = [m.start() for m in [
+        re.search(r"\bthere\s+exists\b", low),
+        re.search(r"\bexists\b", low),
+        re.search(r"\bsome\b", low),
+        re.search(r"\bat\s+least\s+one\b", low),
+    ] if m]
+    u_pos = min(u_idxs) if u_idxs else None
+    e_pos = min(e_idxs) if e_idxs else None
+    if u_pos is not None or e_pos is not None:
+        if e_pos is not None and (u_pos is None or e_pos <= u_pos):
+            return "ex", "Detected existential cue"
+        if u_pos is not None:
+            return "all", "Detected universal cue"
     return None, None
 
 
