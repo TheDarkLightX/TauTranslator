@@ -7,6 +7,26 @@
 *.p12
 *.pfx
 
+# API key artifacts (encrypted or not) - NEVER commit
+pwa/.tau_config/
+*.enc
+
+# REPL / session history (contains local paths) - NEVER commit
+.tau_history
+**/.tau_history
+
+# Test reports with local machine paths - NEVER commit
+pwa/playwright-report/
+
+# Local pytest debug logs (contain local paths) - NEVER commit
+pytest_log.txt
+pytest_output.log
+pytestdebug.log
+
+# Local virtualenvs (any name) - NEVER commit
+.venv-clean/
+.venv-*/
+
 # System prompts and internal documentation
 *system_prompt*
 *vibearchitect*
